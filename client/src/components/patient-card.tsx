@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FileText, Ruler, Calendar } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface PatientCardProps {
   id: string;
@@ -23,6 +24,7 @@ export function PatientCard({
   objective,
   group,
 }: PatientCardProps) {
+  const [, setLocation] = useLocation();
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -80,11 +82,22 @@ export function PatientCard({
         )}
       </CardContent>
       <CardFooter className="flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1" data-testid={`button-view-patient-${id}`}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex-1" 
+          onClick={() => setLocation(`/patients/${id}`)}
+          data-testid={`button-view-patient-${id}`}
+        >
           <FileText className="h-4 w-4 mr-1" />
           Ver Detalles
         </Button>
-        <Button size="sm" className="flex-1" data-testid={`button-measure-patient-${id}`}>
+        <Button 
+          size="sm" 
+          className="flex-1" 
+          onClick={() => setLocation(`/measurements?patientId=${id}`)}
+          data-testid={`button-measure-patient-${id}`}
+        >
           <Ruler className="h-4 w-4 mr-1" />
           Nueva Medición
         </Button>
