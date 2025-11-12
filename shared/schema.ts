@@ -456,6 +456,9 @@ export const meals = pgTable("meals", {
   isGlutenFree: boolean("is_gluten_free").default(false),
   isDairyFree: boolean("is_dairy_free").default(false),
   
+  // Image
+  imageUrl: text("image_url"), // URL to uploaded or AI-generated image
+  
   notes: text("notes"),
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
