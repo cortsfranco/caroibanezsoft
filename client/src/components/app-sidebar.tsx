@@ -12,7 +12,8 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import carolinaAvatar from "@assets/image_1762966212646.png";
 
 const menuItems = [
   {
@@ -104,6 +105,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
+            <AvatarImage src={carolinaAvatar} alt="Carolina Ibáñez" />
             <AvatarFallback className="bg-white/20 text-white text-xs backdrop-blur-sm">
               CI
             </AvatarFallback>
