@@ -1,4 +1,4 @@
-import { Home, Users, FolderKanban, Ruler, UtensilsCrossed, FileText, Activity } from "lucide-react";
+import { Home, Users, FolderKanban, Ruler, UtensilsCrossed, FileText, Activity, BookOpen } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -36,9 +36,14 @@ const menuItems = [
     icon: Ruler,
   },
   {
-    title: "Biblioteca de Dietas",
+    title: "Dietas Asignadas",
     url: "/dietas",
     icon: UtensilsCrossed,
+  },
+  {
+    title: "Biblioteca de Dietas",
+    url: "/biblioteca-dietas",
+    icon: BookOpen,
   },
   {
     title: "Informes",

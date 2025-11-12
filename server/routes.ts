@@ -777,8 +777,16 @@ router.post("/api/diet-templates", async (req, res) => {
     const data = {
       name: req.body.name,
       description: req.body.description || null,
+      objective: req.body.objective || null,
       content: req.body.content,
+      targetCalories: req.body.targetCalories || null,
       isActive: req.body.isActive ?? true,
+      macros: null,
+      mealStructure: null,
+      sampleMeals: null,
+      restrictions: null,
+      tags: null,
+      successRate: null,
     };
     
     const template = await storage.createDietTemplate(data);
@@ -786,6 +794,28 @@ router.post("/api/diet-templates", async (req, res) => {
   } catch (error) {
     console.error("Error creating diet template:", error);
     res.status(500).json({ error: "Failed to create diet template" });
+  }
+});
+
+router.patch("/api/diet-templates/:id", async (req, res) => {
+  try {
+    const data = {
+      name: req.body.name,
+      description: req.body.description || null,
+      objective: req.body.objective || null,
+      content: req.body.content,
+      targetCalories: req.body.targetCalories || null,
+      isActive: req.body.isActive,
+    };
+    
+    const template = await storage.updateDietTemplate(req.params.id, data);
+    if (!template) {
+      return res.status(404).json({ error: "Template not found" });
+    }
+    res.json(template);
+  } catch (error) {
+    console.error("Error updating diet template:", error);
+    res.status(500).json({ error: "Failed to update diet template" });
   }
 });
 

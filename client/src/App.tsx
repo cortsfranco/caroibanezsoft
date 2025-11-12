@@ -13,6 +13,7 @@ import PatientProfile from "@/pages/patient-profile";
 import Groups from "@/pages/groups";
 import Measurements from "@/pages/measurements";
 import Diets from "@/pages/diets";
+import DietLibrary from "@/pages/diet-library";
 import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/grupos" component={Groups} />
       <Route path="/mediciones" component={Measurements} />
       <Route path="/dietas" component={Diets} />
+      <Route path="/biblioteca-dietas" component={DietLibrary} />
       <Route path="/informes" component={Reports} />
       <Route component={NotFound} />
     </Switch>
