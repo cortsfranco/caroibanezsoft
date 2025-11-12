@@ -308,8 +308,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
               <TableRow>
                 <TableHead className="w-12">
                   <Checkbox
-                    checked={isAllSelected}
-                    indeterminate={isSomeSelected}
+                    checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
                     onCheckedChange={handleToggleSelectAll}
                     data-testid="checkbox-select-all"
                   />
