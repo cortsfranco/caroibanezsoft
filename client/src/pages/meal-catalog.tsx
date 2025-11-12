@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Meal, MealTag } from "@shared/schema";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +67,7 @@ type MealFormValues = z.infer<typeof mealFormSchema>;
 
 export default function MealCatalogPage() {
   const { toast } = useToast();
+  const confirmDialog = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -333,8 +336,16 @@ export default function MealCatalogPage() {
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("¿Estás seguro de eliminar esta comida?")) {
+  const handleDelete = async (id: string) => {
+    const meal = meals.find(m => m.id === id);
+    const confirmed = await confirmDialog.confirm({
+      title: "Eliminar Comida",
+      description: `¿Estás seguro de que deseas eliminar "${meal?.name}"? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+    });
+    
+    if (confirmed) {
       deleteMealMutation.mutate(id);
     }
   };
@@ -864,6 +875,18 @@ export default function MealCatalogPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDialog.isOpen}
+        onOpenChange={(open) => !open && confirmDialog.handleCancel()}
+        title={confirmDialog.options.title}
+        description={confirmDialog.options.description}
+        confirmLabel={confirmDialog.options.confirmLabel}
+        cancelLabel={confirmDialog.options.cancelLabel}
+        onConfirm={confirmDialog.handleConfirm}
+        onCancel={confirmDialog.handleCancel}
+        variant="destructive"
+      />
     </div>
   );
 }

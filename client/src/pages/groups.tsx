@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ type GroupMembership = {
 
 export default function Groups() {
   const { toast } = useToast();
+  const confirmDialog = useConfirmDialog();
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
@@ -217,6 +220,36 @@ export default function Groups() {
     }
   };
 
+  const handleDeleteGroup = async (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    const groupMembers = memberships.filter(m => m.groupId === groupId).length;
+    const confirmed = await confirmDialog.confirm({
+      title: "Eliminar Grupo",
+      description: `¿Estás seguro de que deseas eliminar el grupo "${group?.name}"?${groupMembers > 0 ? ` Este grupo tiene ${groupMembers} paciente(s).` : ''} Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+    });
+    
+    if (confirmed) {
+      deleteGroupMutation.mutate(groupId);
+    }
+  };
+
+  const handleRemoveMembership = async (membershipId: string, patientId: string, groupId: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    const group = groups.find(g => g.id === groupId);
+    const confirmed = await confirmDialog.confirm({
+      title: "Remover Paciente",
+      description: `¿Estás seguro de que deseas remover a "${patient?.name}" del grupo "${group?.name}"?`,
+      confirmLabel: "Remover",
+      cancelLabel: "Cancelar",
+    });
+    
+    if (confirmed) {
+      deleteMembershipMutation.mutate(membershipId);
+    }
+  };
+
   if (loadingGroups || loadingPatients) {
     return (
       <div className="space-y-6">
@@ -377,7 +410,7 @@ export default function Groups() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => deleteGroupMutation.mutate(group.id)}
+                        onClick={() => handleDeleteGroup(group.id)}
                         data-testid={`button-delete-group-${group.id}`}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -454,7 +487,7 @@ export default function Groups() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => membershipId && deleteMembershipMutation.mutate(membershipId)}
+                                  onClick={() => membershipId && handleRemoveMembership(membershipId, patient.id, group.id)}
                                   data-testid={`button-remove-patient-${patient.id}-${group.id}`}
                                 >
                                   <X className="h-3 w-3" />
@@ -540,6 +573,18 @@ export default function Groups() {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDialog.isOpen}
+        onOpenChange={(open) => !open && confirmDialog.handleCancel()}
+        title={confirmDialog.options.title}
+        description={confirmDialog.options.description}
+        confirmLabel={confirmDialog.options.confirmLabel}
+        cancelLabel={confirmDialog.options.cancelLabel}
+        onConfirm={confirmDialog.handleConfirm}
+        onCancel={confirmDialog.handleCancel}
+        variant="destructive"
+      />
     </div>
   );
 }

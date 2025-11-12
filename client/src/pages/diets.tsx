@@ -16,6 +16,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Plus, Search } from "lucide-react";
 import type { Diet } from "@shared/schema";
 
@@ -32,6 +34,7 @@ type DietFormData = {
 
 export default function Diets() {
   const { toast } = useToast();
+  const confirmDialog = useConfirmDialog();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingDiet, setEditingDiet] = useState<Diet | null>(null);
@@ -198,8 +201,16 @@ export default function Diets() {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar esta dieta?")) {
+  const handleDelete = async (id: string) => {
+    const diet = diets.find(d => d.id === id);
+    const confirmed = await confirmDialog.confirm({
+      title: "Eliminar Dieta",
+      description: `¿Estás seguro de que deseas eliminar la dieta "${diet?.name}"? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      cancelLabel: "Cancelar",
+    });
+    
+    if (confirmed) {
       deleteDietMutation.mutate(id);
     }
   };
@@ -515,6 +526,18 @@ export default function Diets() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDialog.isOpen}
+        onOpenChange={(open) => !open && confirmDialog.handleCancel()}
+        title={confirmDialog.options.title}
+        description={confirmDialog.options.description}
+        confirmLabel={confirmDialog.options.confirmLabel}
+        cancelLabel={confirmDialog.options.cancelLabel}
+        onConfirm={confirmDialog.handleConfirm}
+        onCancel={confirmDialog.handleCancel}
+        variant="destructive"
+      />
     </div>
   );
 }
