@@ -19,6 +19,10 @@ import {
 import { createServer, type Server } from "http";
 import { wsManager } from "./websocket";
 import { VersionConflictError } from "./storage";
+import { imageService } from "./services/image-service";
+import multer from "multer";
+import path from "path";
+import fs from "fs/promises";
 
 const router = Router();
 
@@ -715,8 +719,6 @@ router.post("/api/patients/:id/diets/generate", async (req, res) => {
 
     const result = await dietAiService.generateDiet(request);
     
-    wsManager.notifyPatientUpdate(request.patientId);
-    
     res.json(result);
   } catch (error) {
     console.error("Error generating diet:", error);
@@ -843,7 +845,7 @@ router.get("/api/meals", async (req, res) => {
       filters.search = search;
     }
     if (tagIds) {
-      filters.tagIds = Array.isArray(tagIds) ? tagIds : [tagIds as string];
+      filters.tagIds = Array.isArray(tagIds) ? tagIds.map(String) : [String(tagIds)];
     }
     
     const meals = await storage.getMeals(filters);
@@ -925,6 +927,127 @@ router.delete("/api/meals/:id", async (req, res) => {
     console.error("Error deleting meal:", error);
     res.status(500).json({ error: "Failed to delete meal" });
   }
+});
+
+// ===== MEAL IMAGES =====
+// Configure multer for image uploads
+const uploadsDir = path.join(process.cwd(), 'uploads', 'meals');
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      try {
+        await fs.mkdir(uploadsDir, { recursive: true });
+        cb(null, uploadsDir);
+      } catch (error) {
+        cb(error as Error, uploadsDir);
+      }
+    },
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'meal-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG and WebP are allowed.'));
+    }
+  }
+});
+
+// Upload image for a meal
+router.post("/api/meals/:id/upload-image", upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    const meal = await storage.getMeal(req.params.id);
+    if (!meal) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+
+    const imageUrl = `/uploads/meals/${req.file.filename}`;
+    
+    const updatedMeal = await storage.updateMeal(
+      req.params.id,
+      { imageUrl },
+      meal.version
+    );
+
+    if (!updatedMeal) {
+      return res.status(404).json({ error: "Failed to update meal" });
+    }
+
+    res.json({ imageUrl, meal: updatedMeal });
+  } catch (error) {
+    console.error("Error uploading meal image:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - record was modified by another user" });
+    }
+    res.status(500).json({ error: "Failed to upload image" });
+  }
+});
+
+// Generate AI image for a meal
+router.post("/api/meals/:id/generate-image", async (req, res) => {
+  try {
+    if (!imageService.isAvailable()) {
+      return res.status(503).json({ 
+        error: "AI image generation not available. Please configure OPENAI_API_KEY environment variable." 
+      });
+    }
+
+    const meal = await storage.getMeal(req.params.id);
+    if (!meal) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+
+    const ingredients = Array.isArray(meal.ingredients) 
+      ? meal.ingredients.map((ing: any) => `${ing.quantity} ${ing.unit} ${ing.name}`).join(', ')
+      : 'mixed ingredients';
+
+    const imageUrl = await imageService.generateMealImage({
+      mealName: meal.name,
+      ingredients,
+      portionSize: meal.portionSize || '1 portion',
+      description: meal.description || undefined,
+    });
+
+    const updatedMeal = await storage.updateMeal(
+      req.params.id,
+      { imageUrl },
+      meal.version
+    );
+
+    if (!updatedMeal) {
+      return res.status(404).json({ error: "Failed to update meal" });
+    }
+
+    res.json({ imageUrl, meal: updatedMeal });
+  } catch (error) {
+    console.error("Error generating meal image:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - record was modified by another user" });
+    }
+    res.status(500).json({ 
+      error: "Failed to generate image",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Check if AI image generation is available
+router.get("/api/image-generation/status", async (_req, res) => {
+  res.json({ 
+    available: imageService.isAvailable(),
+    provider: imageService.isAvailable() ? 'OpenAI DALL-E 3' : null
+  });
 });
 
 // ===== MEAL TAGS =====
