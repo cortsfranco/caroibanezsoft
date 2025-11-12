@@ -18,6 +18,7 @@ import {
   mealTagAssignments,
   weeklyDietPlans,
   weeklyPlanMeals,
+  weeklyPlanAssignments,
   type Patient,
   type InsertPatient,
   type PatientGroup,
@@ -52,6 +53,8 @@ import {
   type InsertWeeklyDietPlan,
   type WeeklyPlanMeal,
   type InsertWeeklyPlanMeal,
+  type WeeklyPlanAssignment,
+  type InsertWeeklyPlanAssignment,
 } from "@shared/schema";
 import type { IStorage, PatientProfile } from "./storage";
 import { VersionConflictError } from "./storage";
@@ -782,7 +785,7 @@ export class DbStorage implements IStorage {
     throw new Error("Database not available. Enable Neon endpoint and run db:push");
   }
 
-  async getWeeklyDietPlans(patientId?: string): Promise<WeeklyDietPlan[]> {
+  async getWeeklyDietPlans(filters?: { isTemplate?: boolean; search?: string }): Promise<WeeklyDietPlan[]> {
     console.warn("getWeeklyDietPlans called but database is not ready");
     return [];
   }
@@ -825,16 +828,90 @@ export class DbStorage implements IStorage {
   async deleteWeeklyPlanMeal(id: string): Promise<boolean> {
     throw new Error("Database not available. Enable Neon endpoint and run db:push");
   }
+
+  // Weekly Plan Assignments
+  async getWeeklyPlanAssignments(planId?: string, groupId?: string, patientId?: string): Promise<WeeklyPlanAssignment[]> {
+    let query = db.select().from(weeklyPlanAssignments);
+
+    const conditions = [];
+    if (planId) conditions.push(eq(weeklyPlanAssignments.planId, planId));
+    if (groupId) conditions.push(eq(weeklyPlanAssignments.groupId, groupId));
+    if (patientId) conditions.push(eq(weeklyPlanAssignments.patientId, patientId));
+
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions));
+    }
+    return await query;
+  }
+
+  async getWeeklyPlanAssignment(id: string): Promise<WeeklyPlanAssignment | null> {
+    const result = await db.select().from(weeklyPlanAssignments).where(eq(weeklyPlanAssignments.id, id)).limit(1);
+    return result[0] || null;
+  }
+
+  async createWeeklyPlanAssignment(data: InsertWeeklyPlanAssignment): Promise<WeeklyPlanAssignment> {
+    const result = await db.insert(weeklyPlanAssignments).values(data).returning();
+    return result[0];
+  }
+
+  async updateWeeklyPlanAssignment(id: string, data: Partial<InsertWeeklyPlanAssignment>, expectedVersion?: number): Promise<WeeklyPlanAssignment | null> {
+    const whereConditions = expectedVersion !== undefined
+      ? and(eq(weeklyPlanAssignments.id, id), eq(weeklyPlanAssignments.version, expectedVersion))
+      : eq(weeklyPlanAssignments.id, id);
+
+    const result = await db
+      .update(weeklyPlanAssignments)
+      .set({ 
+        ...data, 
+        updatedAt: new Date(),
+        version: sql`${weeklyPlanAssignments.version} + 1`
+      })
+      .where(whereConditions)
+      .returning();
+
+    if (!result[0] && expectedVersion !== undefined) {
+      throw new VersionConflictError();
+    }
+
+    return result[0] || null;
+  }
+
+  async deleteWeeklyPlanAssignment(id: string): Promise<boolean> {
+    const result = await db.delete(weeklyPlanAssignments).where(eq(weeklyPlanAssignments.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async assignPlanToGroup(planId: string, groupId: string, startDate?: Date, endDate?: Date): Promise<WeeklyPlanAssignment> {
+    const data: InsertWeeklyPlanAssignment = {
+      planId,
+      groupId,
+      patientId: undefined,
+      startDate: startDate || null,
+      endDate: endDate || null,
+    };
+    return await this.createWeeklyPlanAssignment(data);
+  }
+
+  async assignPlanToPatient(planId: string, patientId: string, startDate?: Date, endDate?: Date): Promise<WeeklyPlanAssignment> {
+    const data: InsertWeeklyPlanAssignment = {
+      planId,
+      patientId,
+      groupId: undefined,
+      startDate: startDate || null,
+      endDate: endDate || null,
+    };
+    return await this.createWeeklyPlanAssignment(data);
+  }
 }
 
 import { MemStorage } from "./mem-storage";
 
-// Feature toggle: Use MemStorage for meal catalog development while Neon DB is unavailable
-// Set USE_MEM_STORAGE=false when Neon endpoint is enabled
-const USE_MEM_STORAGE = process.env.USE_MEM_STORAGE !== "false";
+// Use DbStorage (PostgreSQL) by default now that Neon DB is available
+// Set USE_MEM_STORAGE=true to use in-memory storage for testing
+const USE_MEM_STORAGE = process.env.USE_MEM_STORAGE === "true";
 
 export const storage: IStorage = USE_MEM_STORAGE 
   ? new MemStorage()
   : new DbStorage();
 
-console.log(`[Storage] Using ${USE_MEM_STORAGE ? "MemStorage" : "DbStorage"} (meal catalog: ${USE_MEM_STORAGE ? "READY" : "requires Neon DB"})`);
+console.log(`[Storage] Using ${USE_MEM_STORAGE ? "MemStorage" : "DbStorage"} (database: ${USE_MEM_STORAGE ? "In-Memory" : "PostgreSQL"})`);
