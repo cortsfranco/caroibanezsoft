@@ -40,10 +40,10 @@ interface EditableCellProps {
 function EditableCell({ value: initialValue, row, column, table }: EditableCellProps) {
   const [value, setValue] = useState(initialValue || "");
   const columnId = column.id;
-  const patientId = row.original.id;
+  const patient = row.original;
 
   const { save } = useAutosave({
-    endpoint: `/api/patients/${patientId}`,
+    endpoint: `/api/patients/${patient.id}`,
     method: "PATCH",
     debounceMs: 1000,
     invalidateQueries: [["/api/patients"]],
@@ -51,14 +51,17 @@ function EditableCell({ value: initialValue, row, column, table }: EditableCellP
 
   const handleChange = (newValue: string) => {
     setValue(newValue);
-    save({ [columnId]: newValue });
+    save({ 
+      [columnId]: newValue,
+      version: patient.version 
+    });
   };
 
   if (columnId === "objective") {
     return (
       <Select value={value} onValueChange={handleChange}>
-        <SelectTrigger className="w-full border-0 focus:ring-0">
-          <SelectValue />
+        <SelectTrigger className="w-full border-0 focus:ring-0" data-testid={`select-${columnId}-${patient.id}`}>
+          <SelectValue placeholder="Seleccionar" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="pérdida">Pérdida</SelectItem>
@@ -69,12 +72,40 @@ function EditableCell({ value: initialValue, row, column, table }: EditableCellP
     );
   }
 
+  if (columnId === "gender") {
+    return (
+      <Select value={value} onValueChange={handleChange}>
+        <SelectTrigger className="w-full border-0 focus:ring-0" data-testid={`select-${columnId}-${patient.id}`}>
+          <SelectValue placeholder="Seleccionar" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="M">Masculino</SelectItem>
+          <SelectItem value="F">Femenino</SelectItem>
+          <SelectItem value="Other">Otro</SelectItem>
+        </SelectContent>
+      </Select>
+    );
+  }
+
+  if (columnId === "birthDate") {
+    const formattedDate = value && value !== "" ? new Date(value).toISOString().split('T')[0] : "";
+    return (
+      <Input
+        type="date"
+        value={formattedDate}
+        onChange={(e) => handleChange(e.target.value)}
+        className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-8 px-2"
+        data-testid={`input-${columnId}-${patient.id}`}
+      />
+    );
+  }
+
   return (
     <Input
       value={value}
       onChange={(e) => handleChange(e.target.value)}
       className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 h-8 px-2"
-      data-testid={`input-${columnId}-${patientId}`}
+      data-testid={`input-${columnId}-${patient.id}`}
     />
   );
 }
@@ -154,6 +185,30 @@ export function PatientsTable({ patients }: PatientsTableProps) {
         cell: ({ row, column, table }) => (
           <EditableCell
             value={row.getValue("objective")}
+            row={row}
+            column={column}
+            table={table}
+          />
+        ),
+      },
+      {
+        accessorKey: "birthDate",
+        header: "Fecha de Nacimiento",
+        cell: ({ row, column, table }) => (
+          <EditableCell
+            value={row.getValue("birthDate")}
+            row={row}
+            column={column}
+            table={table}
+          />
+        ),
+      },
+      {
+        accessorKey: "gender",
+        header: "Género",
+        cell: ({ row, column, table }) => (
+          <EditableCell
+            value={row.getValue("gender")}
             row={row}
             column={column}
             table={table}

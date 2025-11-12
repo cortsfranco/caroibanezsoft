@@ -17,7 +17,7 @@ import { VersionConflictError } from "./storage";
 const router = Router();
 
 // Helper function for request validation
-function validate<T>(schema: z.ZodSchema<T>, data: unknown): T {
+function validate<T>(schema: z.ZodType<T, any, any>, data: unknown): T {
   return schema.parse(data);
 }
 
@@ -42,6 +42,19 @@ router.get("/api/patients/:id", async (req, res) => {
   } catch (error) {
     console.error("Error fetching patient:", error);
     res.status(500).json({ error: "Failed to fetch patient" });
+  }
+});
+
+router.get("/api/patients/:id/profile", async (req, res) => {
+  try {
+    const profile = await storage.getPatientProfile(req.params.id);
+    if (!profile) {
+      return res.status(404).json({ error: "Patient not found" });
+    }
+    res.json(profile);
+  } catch (error) {
+    console.error("Error fetching patient profile:", error);
+    res.status(500).json({ error: "Failed to fetch patient profile" });
   }
 });
 

@@ -10,8 +10,11 @@ interface DietCardProps {
   protein: number;
   carbs: number;
   fats: number;
-  tags?: string[];
-  description?: string;
+  tags?: string[] | null;
+  description?: string | null;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
 }
 
 export function DietCard({
@@ -23,6 +26,9 @@ export function DietCard({
   fats,
   tags,
   description,
+  onEdit,
+  onDelete,
+  onDuplicate,
 }: DietCardProps) {
   return (
     <Card className="hover-elevate" data-testid={`diet-card-${id}`}>
@@ -64,15 +70,30 @@ export function DietCard({
         )}
       </CardContent>
       <CardFooter className="flex gap-2">
-        <Button variant="outline" size="sm" data-testid={`button-edit-diet-${id}`}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onEdit}
+          data-testid={`button-edit-diet-${id}`}
+        >
           <Edit className="h-3 w-3 mr-1" />
           Editar
         </Button>
-        <Button variant="outline" size="sm" data-testid={`button-copy-diet-${id}`}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={onDuplicate}
+          data-testid={`button-copy-diet-${id}`}
+        >
           <Copy className="h-3 w-3 mr-1" />
           Duplicar
         </Button>
-        <Button variant="ghost" size="sm" data-testid={`button-delete-diet-${id}`}>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onDelete}
+          data-testid={`button-delete-diet-${id}`}
+        >
           <Trash2 className="h-3 w-3" />
         </Button>
       </CardFooter>

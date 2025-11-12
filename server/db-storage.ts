@@ -23,7 +23,7 @@ import {
   type Report,
   type InsertReport,
 } from "@shared/schema";
-import type { IStorage } from "./storage";
+import type { IStorage, PatientProfile } from "./storage";
 import { VersionConflictError } from "./storage";
 
 export class DbStorage implements IStorage {
@@ -35,6 +35,40 @@ export class DbStorage implements IStorage {
   async getPatient(id: string): Promise<Patient | null> {
     const result = await db.select().from(patients).where(eq(patients.id, id)).limit(1);
     return result[0] || null;
+  }
+
+  async getPatientProfile(id: string): Promise<PatientProfile | null> {
+    // Get patient
+    const patient = await this.getPatient(id);
+    if (!patient) {
+      return null;
+    }
+
+    // Get patient's groups
+    const memberships = await this.getGroupMemberships(undefined, id);
+    const groupIds = memberships.map(m => m.groupId);
+    
+    const patientGroups: PatientGroup[] = [];
+    for (const groupId of groupIds) {
+      const group = await this.getPatientGroup(groupId);
+      if (group) {
+        patientGroups.push(group);
+      }
+    }
+
+    // Get latest measurement
+    const latestMeasurement = await this.getLatestMeasurement(id);
+
+    // Get measurement count
+    const allMeasurements = await this.getMeasurements(id);
+    const measurementCount = allMeasurements.length;
+
+    return {
+      patient,
+      groups: patientGroups,
+      latestMeasurement,
+      measurementCount,
+    };
   }
 
   async createPatient(data: InsertPatient): Promise<Patient> {

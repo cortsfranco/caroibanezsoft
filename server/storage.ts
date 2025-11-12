@@ -22,10 +22,18 @@ export class VersionConflictError extends Error {
   }
 }
 
+export type PatientProfile = {
+  patient: Patient;
+  groups: PatientGroup[];
+  latestMeasurement: Measurement | null;
+  measurementCount: number;
+};
+
 export interface IStorage {
   // Patients
   getPatients(): Promise<Patient[]>;
   getPatient(id: string): Promise<Patient | null>;
+  getPatientProfile(id: string): Promise<PatientProfile | null>;
   createPatient(data: InsertPatient): Promise<Patient>;
   updatePatient(id: string, data: Partial<InsertPatient>, expectedVersion?: number): Promise<Patient | null>;
   deletePatient(id: string): Promise<boolean>;
