@@ -10,6 +10,11 @@ import {
   insertDietSchema,
   insertDietAssignmentSchema,
   insertReportSchema,
+  insertMealSchema,
+  insertMealTagSchema,
+  insertMealTagAssignmentSchema,
+  insertWeeklyDietPlanSchema,
+  insertWeeklyPlanMealSchema,
 } from "@shared/schema";
 import { createServer, type Server } from "http";
 import { wsManager } from "./websocket";
@@ -816,6 +821,381 @@ router.patch("/api/diet-templates/:id", async (req, res) => {
   } catch (error) {
     console.error("Error updating diet template:", error);
     res.status(500).json({ error: "Failed to update diet template" });
+  }
+});
+
+// ============================================================================
+// MEAL CATALOG SYSTEM - Carolina's Time-Saving Features
+// ============================================================================
+
+// ===== MEALS =====
+router.get("/api/meals", async (req, res) => {
+  try {
+    const { category, search, tagIds } = req.query;
+    const filters: { category?: string; search?: string; tagIds?: string[] } = {};
+    
+    if (category && typeof category === 'string') {
+      filters.category = category;
+    }
+    if (search && typeof search === 'string') {
+      filters.search = search;
+    }
+    if (tagIds) {
+      filters.tagIds = Array.isArray(tagIds) ? tagIds : [tagIds as string];
+    }
+    
+    const meals = await storage.getMeals(filters);
+    res.json(meals);
+  } catch (error) {
+    console.error("Error fetching meals:", error);
+    res.status(500).json({ error: "Failed to fetch meals" });
+  }
+});
+
+router.get("/api/meals/:id", async (req, res) => {
+  try {
+    const meal = await storage.getMeal(req.params.id);
+    if (!meal) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+    res.json(meal);
+  } catch (error) {
+    console.error("Error fetching meal:", error);
+    res.status(500).json({ error: "Failed to fetch meal" });
+  }
+});
+
+router.post("/api/meals", async (req, res) => {
+  try {
+    const data = validate(insertMealSchema, req.body);
+    const meal = await storage.createMeal(data);
+    res.status(201).json(meal);
+  } catch (error) {
+    console.error("Error creating meal:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to create meal" });
+  }
+});
+
+router.patch("/api/meals/:id", async (req, res) => {
+  try {
+    const { version, ...updateData } = req.body;
+    
+    if (version === undefined || version === null) {
+      return res.status(400).json({ error: "version field is required for updates" });
+    }
+    
+    const versionNum = Number(version);
+    if (isNaN(versionNum)) {
+      return res.status(400).json({ error: "version must be a valid number" });
+    }
+    
+    const data = validate(insertMealSchema.partial(), updateData);
+    const meal = await storage.updateMeal(req.params.id, data, versionNum);
+    
+    if (!meal) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+    
+    res.json(meal);
+  } catch (error) {
+    console.error("Error updating meal:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - record was modified by another user" });
+    }
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update meal" });
+  }
+});
+
+router.delete("/api/meals/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteMeal(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting meal:", error);
+    res.status(500).json({ error: "Failed to delete meal" });
+  }
+});
+
+// ===== MEAL TAGS =====
+router.get("/api/meal-tags", async (req, res) => {
+  try {
+    const { category } = req.query;
+    const tags = await storage.getMealTags(
+      category && typeof category === 'string' ? category : undefined
+    );
+    res.json(tags);
+  } catch (error) {
+    console.error("Error fetching meal tags:", error);
+    res.status(500).json({ error: "Failed to fetch meal tags" });
+  }
+});
+
+router.get("/api/meal-tags/:id", async (req, res) => {
+  try {
+    const tag = await storage.getMealTag(req.params.id);
+    if (!tag) {
+      return res.status(404).json({ error: "Meal tag not found" });
+    }
+    res.json(tag);
+  } catch (error) {
+    console.error("Error fetching meal tag:", error);
+    res.status(500).json({ error: "Failed to fetch meal tag" });
+  }
+});
+
+router.post("/api/meal-tags", async (req, res) => {
+  try {
+    const data = validate(insertMealTagSchema, req.body);
+    const tag = await storage.createMealTag(data);
+    res.status(201).json(tag);
+  } catch (error) {
+    console.error("Error creating meal tag:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to create meal tag" });
+  }
+});
+
+router.patch("/api/meal-tags/:id", async (req, res) => {
+  try {
+    const { version, ...updateData } = req.body;
+    
+    if (version === undefined || version === null) {
+      return res.status(400).json({ error: "version field is required for updates" });
+    }
+    
+    const versionNum = Number(version);
+    if (isNaN(versionNum)) {
+      return res.status(400).json({ error: "version must be a valid number" });
+    }
+    
+    const data = validate(insertMealTagSchema.partial(), updateData);
+    const tag = await storage.updateMealTag(req.params.id, data, versionNum);
+    
+    if (!tag) {
+      return res.status(404).json({ error: "Meal tag not found" });
+    }
+    
+    res.json(tag);
+  } catch (error) {
+    console.error("Error updating meal tag:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - record was modified by another user" });
+    }
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update meal tag" });
+  }
+});
+
+router.delete("/api/meal-tags/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteMealTag(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Meal tag not found" });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting meal tag:", error);
+    res.status(500).json({ error: "Failed to delete meal tag" });
+  }
+});
+
+// ===== MEAL TAG ASSIGNMENTS =====
+router.post("/api/meals/:id/tags", async (req, res) => {
+  try {
+    const { tagIds } = req.body;
+    if (!Array.isArray(tagIds)) {
+      return res.status(400).json({ error: "tagIds must be an array" });
+    }
+    await storage.assignTagsToMeal(req.params.id, tagIds);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error assigning tags to meal:", error);
+    res.status(500).json({ error: "Failed to assign tags to meal" });
+  }
+});
+
+router.get("/api/meal-tag-assignments", async (req, res) => {
+  try {
+    const { mealId, tagId } = req.query;
+    const assignments = await storage.getMealTagAssignments(
+      mealId && typeof mealId === 'string' ? mealId : undefined,
+      tagId && typeof tagId === 'string' ? tagId : undefined
+    );
+    res.json(assignments);
+  } catch (error) {
+    console.error("Error fetching meal tag assignments:", error);
+    res.status(500).json({ error: "Failed to fetch meal tag assignments" });
+  }
+});
+
+// ===== WEEKLY DIET PLANS =====
+router.get("/api/weekly-plans", async (req, res) => {
+  try {
+    const { patientId } = req.query;
+    const plans = await storage.getWeeklyDietPlans(
+      patientId && typeof patientId === 'string' ? patientId : undefined
+    );
+    res.json(plans);
+  } catch (error) {
+    console.error("Error fetching weekly plans:", error);
+    res.status(500).json({ error: "Failed to fetch weekly plans" });
+  }
+});
+
+router.get("/api/weekly-plans/:id", async (req, res) => {
+  try {
+    const plan = await storage.getWeeklyDietPlan(req.params.id);
+    if (!plan) {
+      return res.status(404).json({ error: "Weekly plan not found" });
+    }
+    res.json(plan);
+  } catch (error) {
+    console.error("Error fetching weekly plan:", error);
+    res.status(500).json({ error: "Failed to fetch weekly plan" });
+  }
+});
+
+router.post("/api/weekly-plans", async (req, res) => {
+  try {
+    const data = validate(insertWeeklyDietPlanSchema, req.body);
+    const plan = await storage.createWeeklyDietPlan(data);
+    res.status(201).json(plan);
+  } catch (error) {
+    console.error("Error creating weekly plan:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to create weekly plan" });
+  }
+});
+
+router.patch("/api/weekly-plans/:id", async (req, res) => {
+  try {
+    const { version, ...updateData } = req.body;
+    
+    if (version === undefined || version === null) {
+      return res.status(400).json({ error: "version field is required for updates" });
+    }
+    
+    const versionNum = Number(version);
+    if (isNaN(versionNum)) {
+      return res.status(400).json({ error: "version must be a valid number" });
+    }
+    
+    const data = validate(insertWeeklyDietPlanSchema.partial(), updateData);
+    const plan = await storage.updateWeeklyDietPlan(req.params.id, data, versionNum);
+    
+    if (!plan) {
+      return res.status(404).json({ error: "Weekly plan not found" });
+    }
+    
+    res.json(plan);
+  } catch (error) {
+    console.error("Error updating weekly plan:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - record was modified by another user" });
+    }
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update weekly plan" });
+  }
+});
+
+router.delete("/api/weekly-plans/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteWeeklyDietPlan(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Weekly plan not found" });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting weekly plan:", error);
+    res.status(500).json({ error: "Failed to delete weekly plan" });
+  }
+});
+
+// ===== WEEKLY PLAN MEALS =====
+router.get("/api/weekly-plans/:id/meals", async (req, res) => {
+  try {
+    const meals = await storage.getWeeklyPlanMeals(req.params.id);
+    res.json(meals);
+  } catch (error) {
+    console.error("Error fetching weekly plan meals:", error);
+    res.status(500).json({ error: "Failed to fetch weekly plan meals" });
+  }
+});
+
+router.post("/api/weekly-plan-meals", async (req, res) => {
+  try {
+    const data = validate(insertWeeklyPlanMealSchema, req.body);
+    const planMeal = await storage.createWeeklyPlanMeal(data);
+    res.status(201).json(planMeal);
+  } catch (error) {
+    console.error("Error creating weekly plan meal:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to create weekly plan meal" });
+  }
+});
+
+router.patch("/api/weekly-plan-meals/:id", async (req, res) => {
+  try {
+    const { version, ...updateData } = req.body;
+    
+    if (version === undefined || version === null) {
+      return res.status(400).json({ error: "version field is required for updates" });
+    }
+    
+    const versionNum = Number(version);
+    if (isNaN(versionNum)) {
+      return res.status(400).json({ error: "version must be a valid number" });
+    }
+    
+    const data = validate(insertWeeklyPlanMealSchema.partial(), updateData);
+    const planMeal = await storage.updateWeeklyPlanMeal(req.params.id, data, versionNum);
+    
+    if (!planMeal) {
+      return res.status(404).json({ error: "Weekly plan meal not found" });
+    }
+    
+    res.json(planMeal);
+  } catch (error) {
+    console.error("Error updating weekly plan meal:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - record was modified by another user" });
+    }
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update weekly plan meal" });
+  }
+});
+
+router.delete("/api/weekly-plan-meals/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteWeeklyPlanMeal(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Weekly plan meal not found" });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting weekly plan meal:", error);
+    res.status(500).json({ error: "Failed to delete weekly plan meal" });
   }
 });
 
