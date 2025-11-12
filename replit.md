@@ -68,6 +68,11 @@ Preferred communication style: Simple, everyday language.
 - **Assignments** (`weeklyPlanAssignments`): Reference templates and assign to groups/patients with date ranges
 - **Benefits**: Create 1 template → assign to 20+ patients in seconds, update template → all assignments reflect changes
 - **REST Endpoints**: Full CRUD for plans/assignments plus helper endpoints `/api/weekly-plans/:id/assign-to-group` and `/assign-to-patient`
+- **Frontend Implementation** (`client/src/pages/weekly-diet-planner.tsx`):
+  - Three view modes: list (templates overview), create/edit (drag-and-drop grid), assignment (dialog)
+  - Optimistic locking: Fetches individual plan via GET before editing to ensure correct `version` field
+  - Drag-and-drop: Users can drag meals from catalog to weekly grid, with time editing per meal
+  - Assignment workflow: Select template → choose group/patient → set date range → create assignment
 
 ## AI Integration (In Development)
 
