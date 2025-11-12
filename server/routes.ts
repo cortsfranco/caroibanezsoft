@@ -102,11 +102,25 @@ router.patch("/api/patients/:id", async (req, res) => {
       return res.status(400).json({ error: "version must be a valid number" });
     }
     
+    // Get existing patient to check for avatar change
+    const existingPatient = await storage.getPatient(req.params.id);
+    if (!existingPatient) {
+      return res.status(404).json({ error: "Patient not found" });
+    }
+    
     const data = validate(insertPatientSchema.partial(), updateData);
     const patient = await storage.updatePatient(req.params.id, data, versionNum);
     
     if (!patient) {
       return res.status(404).json({ error: "Patient not found" });
+    }
+    
+    // Delete old avatar if it was changed (after successful update)
+    if (updateData.avatarUrl && existingPatient.avatarUrl && existingPatient.avatarUrl !== updateData.avatarUrl) {
+      await deleteAvatar(existingPatient.avatarUrl).catch(err => {
+        console.error("Failed to delete old avatar:", err);
+        // Don't fail the request if avatar deletion fails
+      });
     }
     
     // Broadcast patient update to all clients
@@ -1050,6 +1064,77 @@ router.get("/api/image-generation/status", async (_req, res) => {
     available: imageService.isAvailable(),
     provider: imageService.isAvailable() ? 'OpenAI DALL-E 3' : null
   });
+});
+
+// ===== PATIENT AVATARS =====
+// Configure multer for patient avatar uploads
+const avatarUploadDir = path.join(process.cwd(), 'attached_assets', 'temp_uploads');
+const avatarUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      try {
+        await fs.mkdir(avatarUploadDir, { recursive: true });
+        cb(null, avatarUploadDir);
+      } catch (error) {
+        cb(error as Error, avatarUploadDir);
+      }
+    },
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'temp-avatar-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB max for avatars
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG and WebP are allowed.'));
+    }
+  }
+});
+
+// Upload avatar for a patient
+router.post("/api/uploads/patient-avatar", avatarUpload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No avatar file provided" });
+    }
+
+    const patientId = req.body.patientId;
+    if (!patientId) {
+      // Clean up temp file if validation fails
+      await fs.unlink(req.file.path).catch(err => console.error("Failed to cleanup temp file:", err));
+      return res.status(400).json({ error: "patientId is required" });
+    }
+
+    // Validate that patient exists (optional but recommended)
+    if (patientId !== "temp") {
+      const patient = await storage.getPatient(patientId);
+      if (!patient) {
+        // Clean up temp file if patient doesn't exist
+        await fs.unlink(req.file.path).catch(err => console.error("Failed to cleanup temp file:", err));
+        return res.status(404).json({ error: "Patient not found" });
+      }
+    }
+
+    const avatarUrl = await saveAvatar(req.file, patientId);
+    
+    res.json({ url: avatarUrl });
+  } catch (error) {
+    console.error("Error uploading patient avatar:", error);
+    // Clean up temp file on error
+    if (req.file?.path) {
+      await fs.unlink(req.file.path).catch(err => console.error("Failed to cleanup temp file:", err));
+    }
+    res.status(500).json({ 
+      error: "Failed to upload avatar",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // ===== MEAL TAGS =====
