@@ -67,7 +67,14 @@ Puedes conectarte a la misma base de datos PostgreSQL de Replit desde tu máquin
 
 1. **Copiar plantilla**:
    ```bash
-   cp .env.local.template .env
+   # En Linux/macOS
+   cp env.example .env
+   
+   # En Windows (Git Bash)
+   cp env.example .env
+   
+   # En Windows (CMD)
+   copy env.example .env
    ```
 
 2. **Editar `.env`** con tus valores:
@@ -87,7 +94,12 @@ Puedes conectarte a la misma base de datos PostgreSQL de Replit desde tu máquin
 
    **Para Replit DB (remoto):**
    ```env
-   DATABASE_URL=postgresql://[usuario]:[password]@[host].neon.tech/[dbname]?sslmode=require
+   DATABASE_URL=postgresql://neondb_owner:npg_8tJ6LgXhBOzV@ep-billowing-frog-ahnc1wss.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require
+   PGHOST=ep-billowing-frog-ahnc1wss.c-3.us-east-1.aws.neon.tech
+   PGPORT=5432
+   PGUSER=neondb_owner
+   PGPASSWORD=npg_8tJ6LgXhBOzV
+   PGDATABASE=neondb
    SESSION_SECRET=mismo-secret-de-replit-o-generar-nuevo
    NODE_ENV=development
    PORT=5000
@@ -124,14 +136,25 @@ psql nutrition_db
 # Ver todas las tablas
 \dt
 
-# Deberías ver:
+# Deberías ver múltiples tablas incluyendo:
 # - patients
 # - patient_groups
 # - group_memberships
 # - measurements
 # - measurement_calculations
 # - diets
+# - diet_assignments
 # - reports
+# - meals
+# - meal_tags
+# - meal_tag_assignments
+# - weekly_diet_plans
+# - weekly_plan_meals
+# - weekly_plan_assignments
+# - diet_templates
+# - diet_generations
+# - diet_meal_plans
+# - diet_exercise_blocks
 
 # Salir
 \q
@@ -217,66 +240,218 @@ npm run db:studio
 
 ```
 patients (pacientes)
-├── id: serial PRIMARY KEY
-├── name: varchar
-├── email: varchar
-├── phone: varchar
-├── birth_date: date
-├── gender: varchar
+├── id: uuid PRIMARY KEY
+├── name: text
+├── email: text
+├── phone: text
+├── birth_date: timestamp
+├── gender: text
+├── objective: text
+├── notes: text
+├── avatar_url: text
+├── exercises_regularly: boolean
+├── sport_type: text
+├── exercise_days: text
+├── exercise_schedule: text
+├── is_vegetarian: boolean
+├── is_vegan: boolean
+├── food_allergies: text
+├── food_dislikes: text
+├── medical_conditions: text
+├── medications: text
 ├── version: integer (optimistic locking)
 ├── created_at: timestamp
 └── updated_at: timestamp
 
 patient_groups (grupos)
-├── id: serial PRIMARY KEY
-├── name: varchar
-├── color: varchar
+├── id: uuid PRIMARY KEY
+├── name: text
+├── description: text
+├── color: text
 ├── version: integer
 ├── created_at: timestamp
 └── updated_at: timestamp
 
 group_memberships (asignaciones)
-├── id: serial PRIMARY KEY
-├── patient_id: serial → patients.id
-├── group_id: serial → patient_groups.id
+├── id: uuid PRIMARY KEY
+├── patient_id: uuid → patients.id
+├── group_id: uuid → patient_groups.id
 ├── version: integer
 ├── created_at: timestamp
 └── updated_at: timestamp
 
-measurements (mediciones)
-├── id: serial PRIMARY KEY
-├── patient_id: serial → patients.id
+measurements (mediciones ISAK 2)
+├── id: uuid PRIMARY KEY
+├── patient_id: uuid → patients.id
 ├── measurement_date: timestamp
-├── weight_kg: numeric
-├── height_cm: numeric
-├── [35+ campos antropométricos ISAK]
+├── weight: decimal (kg)
+├── height: decimal (cm)
+├── seated_height: decimal (cm)
+├── biacromial: decimal (cm)
+├── thorax_transverse: decimal (cm)
+├── thorax_anteroposterior: decimal (cm)
+├── biiliocristideo: decimal (cm)
+├── humeral: decimal (cm)
+├── femoral: decimal (cm)
+├── head: decimal (cm) - perímetro
+├── relaxed_arm: decimal (cm)
+├── flexed_arm: decimal (cm)
+├── forearm: decimal (cm)
+├── thorax_circ: decimal (cm)
+├── waist: decimal (cm)
+├── hip: decimal (cm)
+├── thigh_superior: decimal (cm)
+├── thigh_medial: decimal (cm)
+├── calf: decimal (cm)
+├── triceps: decimal (mm) - pliegue
+├── biceps: decimal (mm)
+├── subscapular: decimal (mm)
+├── suprailiac: decimal (mm)
+├── supraspinal: decimal (mm)
+├── abdominal: decimal (mm)
+├── thigh_skinfold: decimal (mm)
+├── calf_skinfold: decimal (mm)
+├── notes: text
 ├── version: integer
 ├── created_at: timestamp
 └── updated_at: timestamp
 
 measurement_calculations (cálculos ISAK 2)
-├── id: serial PRIMARY KEY
-├── measurement_id: serial → measurements.id
-├── [resultados fraccionamiento 5 componentes]
+├── id: uuid PRIMARY KEY
+├── measurement_id: uuid → measurements.id
+├── bmi: decimal
+├── skin_mass_kg: decimal
+├── skin_mass_percent: decimal
+├── adipose_mass_kg: decimal
+├── adipose_mass_percent: decimal
+├── muscle_mass_kg: decimal
+├── muscle_mass_percent: decimal
+├── bone_mass_kg: decimal
+├── bone_mass_percent: decimal
+├── residual_mass_kg: decimal
+├── residual_mass_percent: decimal
+├── sum_of_4_skinfolds: decimal
+├── sum_of_6_skinfolds: decimal
+├── body_fat_percentage: decimal
+├── lean_mass: decimal
+├── waist_hip_ratio: decimal
+├── endomorphy: decimal
+├── mesomorphy: decimal
+├── ectomorphy: decimal
+├── weight_z_score: decimal
+├── height_z_score: decimal
+├── bmi_z_score: decimal
 ├── version: integer
 ├── created_at: timestamp
 └── updated_at: timestamp
 
 diets (biblioteca de dietas)
-├── id: serial PRIMARY KEY
-├── name: varchar
+├── id: uuid PRIMARY KEY
+├── name: text
 ├── description: text
-├── meal_plan: jsonb
+├── calories: integer
+├── protein: integer (g)
+├── carbs: integer (g)
+├── fats: integer (g)
+├── tags: text[]
+├── meal_plan: text (JSON)
+├── version: integer
+├── created_at: timestamp
+└── updated_at: timestamp
+
+diet_assignments (asignaciones de dietas)
+├── id: uuid PRIMARY KEY
+├── patient_id: uuid → patients.id
+├── diet_id: uuid → diets.id
+├── start_date: timestamp
+├── end_date: timestamp
+├── notes: text
+├── is_active: boolean
 ├── version: integer
 ├── created_at: timestamp
 └── updated_at: timestamp
 
 reports (informes generados)
-├── id: serial PRIMARY KEY
-├── patient_id: serial → patients.id
-├── report_type: varchar
-├── content: jsonb
-├── sent_via: varchar
+├── id: uuid PRIMARY KEY
+├── patient_id: uuid → patients.id
+├── measurement_id: uuid → measurements.id
+├── pdf_url: text
+├── status: text
+├── sent_via: text[]
+├── sent_at: timestamp
+├── version: integer
+├── created_at: timestamp
+└── updated_at: timestamp
+
+meals (catálogo de comidas)
+├── id: uuid PRIMARY KEY
+├── name: text
+├── description: text
+├── category: text
+├── ingredients: jsonb
+├── portion_size: text
+├── calories: integer
+├── protein: decimal (g)
+├── carbs: decimal (g)
+├── fats: decimal (g)
+├── fiber: decimal (g)
+├── prep_time: integer (minutos)
+├── cook_time: integer (minutos)
+├── instructions: text
+├── is_vegetarian: boolean
+├── is_vegan: boolean
+├── is_gluten_free: boolean
+├── is_dairy_free: boolean
+├── image_url: text
+├── notes: text
+├── version: integer
+├── created_at: timestamp
+└── updated_at: timestamp
+
+weekly_diet_plans (planes semanales)
+├── id: uuid PRIMARY KEY
+├── name: text
+├── description: text
+├── is_template: boolean
+├── goal: text
+├── daily_calories: integer
+├── protein_grams: decimal
+├── carbs_grams: decimal
+├── fats_grams: decimal
+├── notes: text
+├── version: integer
+├── created_at: timestamp
+└── updated_at: timestamp
+
+weekly_plan_meals (comidas en plan semanal)
+├── id: uuid PRIMARY KEY
+├── plan_id: uuid → weekly_diet_plans.id
+├── meal_id: uuid → meals.id
+├── day_of_week: integer (1-7)
+├── meal_slot: text
+├── slot_order: integer
+├── custom_name: text
+├── custom_description: text
+├── custom_calories: integer
+├── custom_protein: decimal
+├── custom_carbs: decimal
+├── custom_fats: decimal
+├── suggested_time: text
+├── linked_to_exercise: boolean
+├── notes: text
+├── version: integer
+├── created_at: timestamp
+└── updated_at: timestamp
+
+weekly_plan_assignments (asignaciones de planes)
+├── id: uuid PRIMARY KEY
+├── plan_id: uuid → weekly_diet_plans.id
+├── group_id: uuid → patient_groups.id (opcional)
+├── patient_id: uuid → patients.id (opcional)
+├── start_date: timestamp
+├── end_date: timestamp
+├── status: text
+├── assignment_notes: text
 ├── version: integer
 ├── created_at: timestamp
 └── updated_at: timestamp

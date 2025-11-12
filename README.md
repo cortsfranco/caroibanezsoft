@@ -299,6 +299,15 @@ Esto es normal si la base de datos es nueva. El esquema se aplica pero sin datos
 - ✅ **Eliminación en lote** de pacientes
 - ✅ Checkbox indeterminado para select-all
 
+## 📚 Documentación Adicional
+
+Para información detallada sobre la arquitectura del sistema, consulta:
+
+- **[ARQUITECTURA_SISTEMA.md](./ARQUITECTURA_SISTEMA.md)** - Documentación completa de arquitectura, stack tecnológico, modelo de datos, funcionalidades y guía para desarrolladores
+- **[LOCAL_SETUP.md](./LOCAL_SETUP.md)** - Guía detallada para configuración local paso a paso
+- **[INSTRUCCIONES_LOCALES.md](./INSTRUCCIONES_LOCALES.md)** - Guía alternativa de setup local
+- **[NUTRITION_AI_ARCHITECTURE.md](./NUTRITION_AI_ARCHITECTURE.md)** - Arquitectura específica del sistema de IA
+
 ## 📄 Licencia
 
 Propiedad de Carolina Ibáñez - Sistema de Nutrición Profesional
