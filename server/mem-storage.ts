@@ -1,4 +1,21 @@
 import { nanoid } from "nanoid";
+
+// Paleta de colores sutiles para grupos (hex)
+const GROUP_COLOR_PALETTE = [
+  "#3b82f6", // blue
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#14b8a6", // teal
+  "#6366f1", // indigo
+  "#84cc16", // lime
+  "#f43f5e", // rose
+  "#a855f7", // purple
+];
+
 import type {
   Patient,
   InsertPatient,
@@ -618,12 +635,17 @@ export class MemStorage implements IStorage {
   }
 
   async createPatientGroup(data: InsertPatientGroup): Promise<PatientGroup> {
+    // Asignar color automáticamente si no se proporciona
+    const assignedColor = data.color ?? GROUP_COLOR_PALETTE[this.patientGroups.length % GROUP_COLOR_PALETTE.length];
+    
     const group: PatientGroup = {
       id: nanoid(),
       name: data.name,
       description: data.description ?? null,
-      color: data.color ?? null,
+      color: assignedColor,
       version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     this.patientGroups.push(group);
     return group;

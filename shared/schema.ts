@@ -7,6 +7,7 @@ export const patientGroups = pgTable("patient_groups", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  color: text("color").notNull().default("#3b82f6"), // Color hex para diferenciar grupos visualmente
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
