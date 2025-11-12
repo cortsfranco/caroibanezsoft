@@ -411,63 +411,192 @@ export class MemStorage implements IStorage {
   // ============================================================================
 
   async getPatients(): Promise<Patient[]> {
-    throw new Error("MemStorage getPatients not implemented yet - use DbStorage when Neon is enabled");
+    return [...this.patients].sort((a, b) => {
+      const aName = `${a.lastName}, ${a.firstName}`;
+      const bName = `${b.lastName}, ${b.firstName}`;
+      return aName.localeCompare(bName);
+    });
   }
 
   async getPatient(id: string): Promise<Patient | null> {
-    throw new Error("MemStorage getPatient not implemented yet - use DbStorage when Neon is enabled");
+    return this.patients.find((p) => p.id === id) || null;
   }
 
   async getPatientProfile(id: string): Promise<PatientProfile | null> {
-    throw new Error("MemStorage getPatientProfile not implemented yet - use DbStorage when Neon is enabled");
+    const patient = await this.getPatient(id);
+    if (!patient) return null;
+    
+    const measurements = this.measurements.filter((m) => m.patientId === id);
+    const latestMeasurement = measurements.length > 0 ? measurements[measurements.length - 1] : null;
+    
+    const groupMemberships = this.groupMemberships.filter((gm) => gm.patientId === id);
+    const groupIds = groupMemberships.map((gm) => gm.groupId);
+    const groups = this.patientGroups.filter((g) => groupIds.includes(g.id));
+    
+    return {
+      ...patient,
+      latestMeasurement,
+      groups,
+      measurementCount: measurements.length,
+    };
   }
 
   async createPatient(data: InsertPatient): Promise<Patient> {
-    throw new Error("MemStorage createPatient not implemented yet - use DbStorage when Neon is enabled");
+    const patient: Patient = {
+      id: nanoid(),
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email ?? null,
+      phone: data.phone ?? null,
+      dateOfBirth: data.dateOfBirth ?? null,
+      gender: data.gender ?? null,
+      address: data.address ?? null,
+      emergencyContact: data.emergencyContact ?? null,
+      emergencyPhone: data.emergencyPhone ?? null,
+      medicalHistory: data.medicalHistory ?? null,
+      allergies: data.allergies ?? null,
+      medications: data.medications ?? null,
+      healthObjectives: data.healthObjectives ?? null,
+      dietaryPreferences: data.dietaryPreferences ?? null,
+      activityLevel: data.activityLevel ?? null,
+      occupation: data.occupation ?? null,
+      notes: data.notes ?? null,
+      sportType: data.sportType ?? null,
+      trainingDays: data.trainingDays ?? null,
+      trainingSchedule: data.trainingSchedule ?? null,
+      version: 1,
+    };
+    
+    this.patients.push(patient);
+    return patient;
   }
 
   async updatePatient(id: string, data: Partial<InsertPatient>, expectedVersion?: number): Promise<Patient | null> {
-    throw new Error("MemStorage updatePatient not implemented yet - use DbStorage when Neon is enabled");
+    const index = this.patients.findIndex((p) => p.id === id);
+    if (index === -1) return null;
+    
+    const patient = this.patients[index];
+    
+    // Optimistic locking check
+    if (expectedVersion !== undefined && patient.version !== expectedVersion) {
+      throw new VersionConflictError(
+        `Patient version mismatch: expected ${expectedVersion}, got ${patient.version}`
+      );
+    }
+    
+    // Update patient
+    const updated: Patient = {
+      ...patient,
+      ...data,
+      id: patient.id, // Preserve ID
+      version: patient.version + 1,
+    };
+    
+    this.patients[index] = updated;
+    return updated;
   }
 
   async deletePatient(id: string): Promise<boolean> {
-    throw new Error("MemStorage deletePatient not implemented yet - use DbStorage when Neon is enabled");
+    const index = this.patients.findIndex((p) => p.id === id);
+    if (index === -1) return false;
+    
+    // Also delete related data
+    this.measurements = this.measurements.filter((m) => m.patientId !== id);
+    this.dietAssignments = this.dietAssignments.filter((da) => da.patientId !== id);
+    this.groupMemberships = this.groupMemberships.filter((gm) => gm.patientId !== id);
+    
+    this.patients.splice(index, 1);
+    return true;
   }
 
   async getPatientGroups(): Promise<PatientGroup[]> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    return [...this.patientGroups].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async getPatientGroup(id: string): Promise<PatientGroup | null> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    return this.patientGroups.find((g) => g.id === id) || null;
   }
 
   async createPatientGroup(data: InsertPatientGroup): Promise<PatientGroup> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const group: PatientGroup = {
+      id: nanoid(),
+      name: data.name,
+      description: data.description ?? null,
+      color: data.color ?? null,
+      version: 1,
+    };
+    this.patientGroups.push(group);
+    return group;
   }
 
   async updatePatientGroup(id: string, data: Partial<InsertPatientGroup>, expectedVersion?: number): Promise<PatientGroup | null> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const index = this.patientGroups.findIndex((g) => g.id === id);
+    if (index === -1) return null;
+    
+    const group = this.patientGroups[index];
+    if (expectedVersion !== undefined && group.version !== expectedVersion) {
+      throw new VersionConflictError();
+    }
+    
+    const updated: PatientGroup = {
+      ...group,
+      ...data,
+      id: group.id,
+      version: group.version + 1,
+    };
+    this.patientGroups[index] = updated;
+    return updated;
   }
 
   async deletePatientGroup(id: string): Promise<boolean> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const index = this.patientGroups.findIndex((g) => g.id === id);
+    if (index === -1) return false;
+    
+    // Remove memberships
+    this.groupMemberships = this.groupMemberships.filter((gm) => gm.groupId !== id);
+    
+    this.patientGroups.splice(index, 1);
+    return true;
   }
 
   async getGroupMemberships(groupId?: string, patientId?: string): Promise<GroupMembership[]> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    let results = [...this.groupMemberships];
+    
+    if (groupId) {
+      results = results.filter((gm) => gm.groupId === groupId);
+    }
+    
+    if (patientId) {
+      results = results.filter((gm) => gm.patientId === patientId);
+    }
+    
+    return results;
   }
 
   async createGroupMembership(data: InsertGroupMembership): Promise<GroupMembership> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const membership: GroupMembership = {
+      id: nanoid(),
+      patientId: data.patientId,
+      groupId: data.groupId,
+      joinedAt: new Date(),
+    };
+    this.groupMemberships.push(membership);
+    return membership;
   }
 
   async deleteGroupMembership(id: string): Promise<boolean> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const initialLength = this.groupMemberships.length;
+    this.groupMemberships = this.groupMemberships.filter((gm) => gm.id !== id);
+    return this.groupMemberships.length < initialLength;
   }
 
   async reassignPatientGroup(patientId: string, newGroupId: string): Promise<boolean> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    // Remove old memberships
+    this.groupMemberships = this.groupMemberships.filter((gm) => gm.patientId !== patientId);
+    
+    // Add new membership
+    await this.createGroupMembership({ patientId, groupId: newGroupId });
+    return true;
   }
 
   async getMeasurements(patientId?: string): Promise<Measurement[]> {
@@ -607,7 +736,21 @@ export class MemStorage implements IStorage {
   }
 
   async getGroupStatistics(): Promise<GroupStatistics[]> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const stats: GroupStatistics[] = [];
+    
+    for (const group of this.patientGroups) {
+      const memberships = this.groupMemberships.filter((gm) => gm.groupId === group.id);
+      const patientIds = memberships.map((gm) => gm.patientId);
+      
+      stats.push({
+        groupId: group.id,
+        groupName: group.name,
+        patientCount: patientIds.length,
+        color: group.color,
+      });
+    }
+    
+    return stats.sort((a, b) => b.patientCount - a.patientCount);
   }
 
   async getDietTemplates(): Promise<DietTemplate[]> {

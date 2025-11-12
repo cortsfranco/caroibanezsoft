@@ -175,11 +175,11 @@
   }
   
   [data-sidebar="sidebar"] {
-    background: linear-gradient(180deg, hsla(220, 100%, 42%, 0.96) 0%, hsla(220, 100%, 35%, 0.94) 100%) !important;
+    background: linear-gradient(180deg, hsla(205, 85%, 55%, 0.85) 0%, hsla(220, 90%, 40%, 0.85) 100%) !important;
   }
   
   .dark [data-sidebar="sidebar"] {
-    background: linear-gradient(180deg, hsla(220, 100%, 38%, 0.96) 0%, hsla(220, 100%, 30%, 0.94) 100%) !important;
+    background: linear-gradient(180deg, hsla(205, 80%, 50%, 0.85) 0%, hsla(220, 85%, 35%, 0.85) 100%) !important;
   }
 }
 
