@@ -111,32 +111,127 @@ export function calculateSomatotype(data: {
 }
 
 /**
+ * Calcula el porcentaje de grasa corporal usando fórmula de Durnin & Womersley
+ * @param sum6Skinfolds Suma de 6 pliegues en mm
+ * @param age Edad en años
+ * @param gender Género ('M' o 'F')
+ */
+export function calculateBodyFatPercentage(
+  sum6Skinfolds: string | null,
+  age: number | null,
+  gender: string | null
+): string | null {
+  if (!sum6Skinfolds || !age || !gender) {
+    return null;
+  }
+
+  const sum = parseFloat(sum6Skinfolds);
+  if (isNaN(sum)) {
+    return null;
+  }
+
+  // Fórmula de Durnin & Womersley (simplificada)
+  let densidad: number;
+  
+  if (gender === 'M') {
+    densidad = 1.1765 - 0.0744 * Math.log10(sum);
+  } else if (gender === 'F') {
+    densidad = 1.1567 - 0.0717 * Math.log10(sum);
+  } else {
+    return null;
+  }
+
+  // Fórmula de Siri: % grasa = ((4.95 / densidad) - 4.5) * 100
+  const bodyFat = ((4.95 / densidad) - 4.5) * 100;
+  
+  return bodyFat.toFixed(2);
+}
+
+/**
+ * Calcula la masa magra (lean body mass)
+ * @param weight Peso total en kg
+ * @param bodyFatPercentage Porcentaje de grasa corporal
+ */
+export function calculateLeanMass(
+  weight: string | null,
+  bodyFatPercentage: string | null
+): string | null {
+  if (!weight || !bodyFatPercentage) {
+    return null;
+  }
+
+  const weightNum = parseFloat(weight);
+  const fatPercent = parseFloat(bodyFatPercentage);
+
+  if (isNaN(weightNum) || isNaN(fatPercent)) {
+    return null;
+  }
+
+  const leanMass = weightNum * (1 - fatPercent / 100);
+  return leanMass.toFixed(2);
+}
+
+/**
+ * Calcula el ratio cintura/cadera
+ * @param waist Perímetro de cintura en cm
+ * @param hip Perímetro de cadera en cm
+ */
+export function calculateWaistHipRatio(
+  waist: string | null,
+  hip: string | null
+): string | null {
+  if (!waist || !hip) {
+    return null;
+  }
+
+  const waistNum = parseFloat(waist);
+  const hipNum = parseFloat(hip);
+
+  if (isNaN(waistNum) || isNaN(hipNum) || hipNum === 0) {
+    return null;
+  }
+
+  const ratio = waistNum / hipNum;
+  return ratio.toFixed(3);
+}
+
+/**
  * Interfaz para el resultado completo de cálculos de medición
  */
 export interface MeasurementCalculationResult {
   bmi?: string;
   sumOf6Skinfolds?: string;
+  bodyFatPercentage?: string;
+  leanMass?: string;
+  waistHipRatio?: string;
   endomorphy?: string;
   mesomorphy?: string;
   ectomorphy?: string;
-  // Agregar más campos según se implementen
 }
 
 /**
  * Calcula todos los indicadores antropométricos para una medición
  * @param measurementData Datos de la medición
+ * @param patientAge Edad del paciente (para % grasa)
+ * @param patientGender Género del paciente ('M', 'F', o 'Other')
  * @returns Objeto con todos los cálculos
  */
-export function calculateAll(measurementData: {
-  weight?: string | null;
-  height?: string | null;
-  triceps?: string | null;
-  subscapular?: string | null;
-  supraspinal?: string | null;
-  abdominal?: string | null;
-  thighSkinfold?: string | null;
-  calfSkinfold?: string | null;
-}): MeasurementCalculationResult {
+export function calculateAll(
+  measurementData: {
+    weight?: string | null;
+    height?: string | null;
+    triceps?: string | null;
+    subscapular?: string | null;
+    supraspinal?: string | null;
+    abdominal?: string | null;
+    thighSkinfold?: string | null;
+    calfSkinfold?: string | null;
+    waistCircumference?: string | null;
+    hipCircumference?: string | null;
+  },
+  patientAge?: number | null,
+  patientGender?: string | null
+): MeasurementCalculationResult {
   const result: MeasurementCalculationResult = {};
 
   // 1. Calcular BMI
@@ -151,7 +246,30 @@ export function calculateAll(measurementData: {
     result.sumOf6Skinfolds = sum6;
   }
 
-  // 3. Calcular somatotipo (básico por ahora)
+  // 3. Calcular porcentaje de grasa corporal
+  if (sum6 && patientAge && patientGender) {
+    const bodyFat = calculateBodyFatPercentage(sum6, patientAge, patientGender);
+    if (bodyFat) {
+      result.bodyFatPercentage = bodyFat;
+
+      // 4. Calcular masa magra
+      const leanMass = calculateLeanMass(measurementData.weight ?? null, bodyFat);
+      if (leanMass) {
+        result.leanMass = leanMass;
+      }
+    }
+  }
+
+  // 5. Calcular ratio cintura/cadera
+  const waistHip = calculateWaistHipRatio(
+    measurementData.waistCircumference ?? null,
+    measurementData.hipCircumference ?? null
+  );
+  if (waistHip) {
+    result.waistHipRatio = waistHip;
+  }
+
+  // 6. Calcular somatotipo (básico por ahora)
   const somatotype = calculateSomatotype({
     weight: measurementData.weight,
     height: measurementData.height,

@@ -161,6 +161,9 @@ export const measurementCalculations = pgTable("measurement_calculations", {
   
   // Additional calculations
   sumOf6Skinfolds: decimal("sum_of_6_skinfolds", { precision: 6, scale: 2 }), // mm
+  bodyFatPercentage: decimal("body_fat_percentage", { precision: 5, scale: 2 }), // %
+  leanMass: decimal("lean_mass", { precision: 6, scale: 2 }), // kg
+  waistHipRatio: decimal("waist_hip_ratio", { precision: 5, scale: 3 }), // ratio
   
   // Somatotype (Heath-Carter)
   endomorphy: decimal("endomorphy", { precision: 4, scale: 2 }),
