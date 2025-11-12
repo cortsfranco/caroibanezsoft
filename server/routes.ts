@@ -22,6 +22,8 @@ import { wsManager } from "./websocket";
 import { VersionConflictError } from "./storage";
 import { imageService } from "./services/image-service";
 import { saveAvatar, deleteAvatar } from "./services/avatar-service";
+import { calculateAll } from "./services/measurement-calculations";
+import { generateMeasurementReport } from "./services/pdf-report-service";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
@@ -349,7 +351,25 @@ router.post("/api/measurements", async (req, res) => {
     const data = validate(insertMeasurementSchema, req.body);
     const measurement = await storage.createMeasurement(data);
     
-    // Trigger ISAK 2 calculations here (will implement in next task)
+    // Calcular BMI y otros indicadores automáticamente
+    const calculations = calculateAll({
+      weight: measurement.weight,
+      height: measurement.height,
+      triceps: measurement.triceps,
+      subscapular: measurement.subscapular,
+      supraspinal: measurement.supraspinal,
+      abdominal: measurement.abdominal,
+      thighSkinfold: measurement.thighSkinfold,
+      calfSkinfold: measurement.calfSkinfold
+    });
+    
+    // Guardar los cálculos si hay algún resultado
+    if (Object.keys(calculations).length > 0) {
+      await storage.createMeasurementCalculation({
+        measurementId: measurement.id,
+        ...calculations
+      });
+    }
     
     // Broadcast measurement creation to all clients
     wsManager.notifyMeasurementCreated(measurement);
@@ -385,7 +405,34 @@ router.patch("/api/measurements/:id", async (req, res) => {
       return res.status(404).json({ error: "Measurement not found" });
     }
     
-    // Re-calculate ISAK 2 when measurement is updated
+    // Re-calcular BMI y otros indicadores cuando se actualiza
+    const calculations = calculateAll({
+      weight: measurement.weight,
+      height: measurement.height,
+      triceps: measurement.triceps,
+      subscapular: measurement.subscapular,
+      supraspinal: measurement.supraspinal,
+      abdominal: measurement.abdominal,
+      thighSkinfold: measurement.thighSkinfold,
+      calfSkinfold: measurement.calfSkinfold
+    });
+    
+    // Actualizar o crear cálculos
+    if (Object.keys(calculations).length > 0) {
+      const existingCalculations = await storage.getMeasurementCalculations(measurement.id);
+      if (existingCalculations.length > 0) {
+        await storage.updateMeasurementCalculation(
+          existingCalculations[0].id,
+          calculations,
+          existingCalculations[0].version
+        );
+      } else {
+        await storage.createMeasurementCalculation({
+          measurementId: measurement.id,
+          ...calculations
+        });
+      }
+    }
     
     // Broadcast measurement update to all clients
     wsManager.notifyMeasurementUpdate(measurement.id, measurement);
@@ -717,6 +764,54 @@ router.delete("/api/reports/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting report:", error);
     res.status(500).json({ error: "Failed to delete report" });
+  }
+});
+
+// Generate PDF Report
+router.post("/api/reports/generate", async (req, res) => {
+  try {
+    const { patientId, measurementId } = req.body;
+    
+    if (!patientId || !measurementId) {
+      return res.status(400).json({ error: "patientId and measurementId are required" });
+    }
+    
+    // Obtener datos del paciente y medición
+    const patient = await storage.getPatient(patientId);
+    if (!patient) {
+      return res.status(404).json({ error: "Patient not found" });
+    }
+    
+    const measurement = await storage.getMeasurement(measurementId);
+    if (!measurement) {
+      return res.status(404).json({ error: "Measurement not found" });
+    }
+    
+    // Obtener cálculos si existen
+    const calculations = await storage.getMeasurementCalculations(measurementId);
+    
+    // Generar PDF
+    const pdfUrl = await generateMeasurementReport({
+      patient,
+      measurement,
+      calculations: calculations.length > 0 ? calculations : undefined
+    });
+    
+    // Crear registro de report
+    const report = await storage.createReport({
+      patientId,
+      measurementId,
+      pdfUrl,
+      status: 'generated'
+    });
+    
+    // Broadcast report creation
+    wsManager.notifyReportCreated(report);
+    
+    res.status(201).json(report);
+  } catch (error) {
+    console.error("Error generating report PDF:", error);
+    res.status(500).json({ error: "Failed to generate report" });
   }
 });
 

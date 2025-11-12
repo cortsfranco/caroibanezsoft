@@ -20,6 +20,7 @@ app.use(express.urlencoded({ extended: false }));
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));
 app.use('/assets', express.static('attached_assets'));
+app.use('/reports', express.static('reports'));
 
 app.use((req, res, next) => {
   const start = Date.now();
