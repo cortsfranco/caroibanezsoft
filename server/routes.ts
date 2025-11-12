@@ -1152,7 +1152,7 @@ router.post("/api/meals/:id/generate-image", async (req, res) => {
   try {
     if (!imageService.isAvailable()) {
       return res.status(503).json({ 
-        error: "AI image generation not available. Please configure OPENAI_API_KEY environment variable." 
+        error: "Generación de imágenes IA no disponible. Por favor configura la variable GOOGLE_API_KEY." 
       });
     }
 
@@ -1195,11 +1195,39 @@ router.post("/api/meals/:id/generate-image", async (req, res) => {
   }
 });
 
+// Delete image for a meal
+router.delete("/api/meals/:id/image", async (req, res) => {
+  try {
+    const meal = await storage.getMeal(req.params.id);
+    if (!meal) {
+      return res.status(404).json({ error: "Meal not found" });
+    }
+
+    const updatedMeal = await storage.updateMeal(
+      req.params.id,
+      { imageUrl: null },
+      meal.version
+    );
+
+    if (!updatedMeal) {
+      return res.status(404).json({ error: "Failed to update meal" });
+    }
+
+    res.json({ meal: updatedMeal });
+  } catch (error) {
+    console.error("Error deleting meal image:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - record was modified by another user" });
+    }
+    res.status(500).json({ error: "Failed to delete image" });
+  }
+});
+
 // Check if AI image generation is available
 router.get("/api/image-generation/status", async (_req, res) => {
   res.json({ 
     available: imageService.isAvailable(),
-    provider: imageService.isAvailable() ? 'OpenAI DALL-E 3' : null
+    provider: imageService.isAvailable() ? 'Google Gemini 2.5 Flash Image' : null
   });
 });
 

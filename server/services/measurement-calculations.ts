@@ -52,7 +52,41 @@ export function calculateBMI(weight: string | null, height: string | null): BMIR
 }
 
 /**
+ * Calcula la suma de 4 pliegues cutáneos para Durnin & Womersley
+ * Triceps + Biceps + Subscapular + Suprailiac
+ * @param skinfolds Objeto con los 4 pliegues cutáneos específicos en mm
+ */
+export function calculateSum4Skinfolds(skinfolds: {
+  triceps?: string | null;
+  biceps?: string | null;
+  subscapular?: string | null;
+  suprailiac?: string | null;
+}): string | null {
+  const values = [
+    skinfolds.triceps,
+    skinfolds.biceps,
+    skinfolds.subscapular,
+    skinfolds.suprailiac
+  ];
+
+  // Filtrar valores nulos y convertir a números
+  const numericValues = values
+    .filter(v => v !== null && v !== undefined)
+    .map(v => parseFloat(v!))
+    .filter(v => !isNaN(v));
+
+  // Si no tenemos los 4 valores requeridos, no calculamos
+  if (numericValues.length < 4) {
+    return null;
+  }
+
+  const sum = numericValues.reduce((acc, val) => acc + val, 0);
+  return sum.toFixed(2);
+}
+
+/**
  * Calcula la suma de 6 pliegues cutáneos (ISAK 2)
+ * Triceps + Subscapular + Supraspinal + Abdominal + Thigh + Calf
  * @param skinfolds Objeto con los pliegues cutáneos en mm
  */
 export function calculateSum6Skinfolds(skinfolds: {
@@ -112,21 +146,22 @@ export function calculateSomatotype(data: {
 
 /**
  * Calcula el porcentaje de grasa corporal usando fórmula de Durnin & Womersley
- * Esta fórmula usa constantes específicas por edad y género
- * @param sum6Skinfolds Suma de 6 pliegues en mm
+ * Esta fórmula usa la suma de 4 pliegues específicos (triceps, biceps, subscapular, suprailiac)
+ * con constantes específicas por edad y género
+ * @param sum4Skinfolds Suma de 4 pliegues en mm (Durnin & Womersley)
  * @param age Edad en años
  * @param gender Género ('M' o 'F')
  */
 export function calculateBodyFatPercentage(
-  sum6Skinfolds: string | null,
+  sum4Skinfolds: string | null,
   age: number | null,
   gender: string | null
 ): string | null {
-  if (!sum6Skinfolds || !age || !gender) {
+  if (!sum4Skinfolds || !age || !gender) {
     return null;
   }
 
-  const sum = parseFloat(sum6Skinfolds);
+  const sum = parseFloat(sum4Skinfolds);
   if (isNaN(sum) || sum <= 0) {
     return null;
   }
@@ -252,8 +287,9 @@ export function calculateWaistHipRatio(
  */
 export interface MeasurementCalculationResult {
   bmi?: string;
-  sumOf6Skinfolds?: string;
-  bodyFatPercentage?: string;
+  sumOf4Skinfolds?: string; // Durnin & Womersley (4 pliegues)
+  sumOf6Skinfolds?: string; // ISAK 2 (6 pliegues)
+  bodyFatPercentage?: string; // Basado en sum4
   leanMass?: string;
   waistHipRatio?: string;
   endomorphy?: string;
@@ -273,7 +309,9 @@ export function calculateAll(
     weight?: string | null;
     height?: string | null;
     triceps?: string | null;
+    biceps?: string | null;
     subscapular?: string | null;
+    suprailiac?: string | null;
     supraspinal?: string | null;
     abdominal?: string | null;
     thighSkinfold?: string | null;
@@ -292,19 +330,37 @@ export function calculateAll(
     result.bmi = bmiResult.bmi;
   }
 
-  // 2. Calcular suma de 6 pliegues
-  const sum6 = calculateSum6Skinfolds(measurementData);
+  // 2. Calcular suma de 4 pliegues (Durnin & Womersley)
+  const sum4 = calculateSum4Skinfolds({
+    triceps: measurementData.triceps,
+    biceps: measurementData.biceps,
+    subscapular: measurementData.subscapular,
+    suprailiac: measurementData.suprailiac
+  });
+  if (sum4) {
+    result.sumOf4Skinfolds = sum4;
+  }
+
+  // 3. Calcular suma de 6 pliegues (ISAK 2)
+  const sum6 = calculateSum6Skinfolds({
+    triceps: measurementData.triceps,
+    subscapular: measurementData.subscapular,
+    supraspinal: measurementData.supraspinal,
+    abdominal: measurementData.abdominal,
+    thighSkinfold: measurementData.thighSkinfold,
+    calfSkinfold: measurementData.calfSkinfold
+  });
   if (sum6) {
     result.sumOf6Skinfolds = sum6;
   }
 
-  // 3. Calcular porcentaje de grasa corporal
-  if (sum6 && patientAge && patientGender) {
-    const bodyFat = calculateBodyFatPercentage(sum6, patientAge, patientGender);
+  // 4. Calcular porcentaje de grasa corporal (usando sum4 - Durnin & Womersley)
+  if (sum4 && patientAge && patientGender) {
+    const bodyFat = calculateBodyFatPercentage(sum4, patientAge, patientGender);
     if (bodyFat) {
       result.bodyFatPercentage = bodyFat;
 
-      // 4. Calcular masa magra
+      // 5. Calcular masa magra
       const leanMass = calculateLeanMass(measurementData.weight ?? null, bodyFat);
       if (leanMass) {
         result.leanMass = leanMass;
@@ -312,7 +368,7 @@ export function calculateAll(
     }
   }
 
-  // 5. Calcular ratio cintura/cadera
+  // 6. Calcular ratio cintura/cadera
   const waistHip = calculateWaistHipRatio(
     measurementData.waistCircumference ?? null,
     measurementData.hipCircumference ?? null
@@ -321,7 +377,7 @@ export function calculateAll(
     result.waistHipRatio = waistHip;
   }
 
-  // 6. Calcular somatotipo (básico por ahora)
+  // 7. Calcular somatotipo (básico por ahora)
   const somatotype = calculateSomatotype({
     weight: measurementData.weight,
     height: measurementData.height,

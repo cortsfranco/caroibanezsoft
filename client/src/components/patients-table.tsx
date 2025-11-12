@@ -116,6 +116,43 @@ export function PatientsTable({ patients }: PatientsTableProps) {
     },
   });
 
+  const sortedAndFilteredPatients = useMemo(() => {
+    // First filter
+    let result = patients.filter((patient) =>
+      patient.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
+      patient.email?.toLowerCase().includes(globalFilter.toLowerCase()) ||
+      patient.phone?.toLowerCase().includes(globalFilter.toLowerCase())
+    );
+
+    // Then sort
+    if (sortColumn && sortDirection) {
+      result = [...result].sort((a, b) => {
+        let aValue = a[sortColumn];
+        let bValue = b[sortColumn];
+
+        // Handle nulls
+        if (aValue === null || aValue === undefined) return sortDirection === "asc" ? 1 : -1;
+        if (bValue === null || bValue === undefined) return sortDirection === "asc" ? -1 : 1;
+
+        // Handle dates
+        if (sortColumn === "birthDate") {
+          const aDate = new Date(aValue as string).getTime();
+          const bDate = new Date(bValue as string).getTime();
+          return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
+        }
+
+        // Handle strings
+        const comparison = String(aValue).localeCompare(String(bValue), 'es', { sensitivity: 'base' });
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [patients, globalFilter, sortColumn, sortDirection]);
+
+  const isAllSelected = sortedAndFilteredPatients.length > 0 && selectedIds.size === sortedAndFilteredPatients.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < sortedAndFilteredPatients.length;
+
   const handleEdit = (patient: Patient) => {
     setEditingId(patient.id);
     setEditedData({
@@ -208,9 +245,6 @@ export function PatientsTable({ patients }: PatientsTableProps) {
     }
   };
 
-  const isAllSelected = sortedAndFilteredPatients.length > 0 && selectedIds.size === sortedAndFilteredPatients.length;
-  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < sortedAndFilteredPatients.length;
-
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       // Toggle direction: asc -> desc -> null -> asc
@@ -235,40 +269,6 @@ export function PatientsTable({ patients }: PatientsTableProps) {
     }
     return <ArrowDown className="h-3 w-3 ml-1" />;
   };
-
-  const sortedAndFilteredPatients = useMemo(() => {
-    // First filter
-    let result = patients.filter((patient) =>
-      patient.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-      patient.email?.toLowerCase().includes(globalFilter.toLowerCase()) ||
-      patient.phone?.toLowerCase().includes(globalFilter.toLowerCase())
-    );
-
-    // Then sort
-    if (sortColumn && sortDirection) {
-      result = [...result].sort((a, b) => {
-        let aValue = a[sortColumn];
-        let bValue = b[sortColumn];
-
-        // Handle nulls
-        if (aValue === null || aValue === undefined) return sortDirection === "asc" ? 1 : -1;
-        if (bValue === null || bValue === undefined) return sortDirection === "asc" ? -1 : 1;
-
-        // Handle dates
-        if (sortColumn === "birthDate") {
-          const aDate = new Date(aValue as string).getTime();
-          const bDate = new Date(bValue as string).getTime();
-          return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
-        }
-
-        // Handle strings
-        const comparison = String(aValue).localeCompare(String(bValue), 'es', { sensitivity: 'base' });
-        return sortDirection === "asc" ? comparison : -comparison;
-      });
-    }
-
-    return result;
-  }, [patients, globalFilter, sortColumn, sortDirection]);
 
   return (
     <>

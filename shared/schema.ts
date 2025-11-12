@@ -116,7 +116,9 @@ export const measurements = pgTable("measurements", {
   
   // Skinfolds (Pliegues Cutáneos)
   triceps: decimal("triceps", { precision: 5, scale: 2 }), // mm
+  biceps: decimal("biceps", { precision: 5, scale: 2 }), // mm - Required for Durnin & Womersley
   subscapular: decimal("subscapular", { precision: 5, scale: 2 }), // mm
+  suprailiac: decimal("suprailiac", { precision: 5, scale: 2 }), // mm - Required for Durnin & Womersley
   supraspinal: decimal("supraspinal", { precision: 5, scale: 2 }), // mm
   abdominal: decimal("abdominal", { precision: 5, scale: 2 }), // mm
   thighSkinfold: decimal("thigh_skinfold", { precision: 5, scale: 2 }), // mm
@@ -160,8 +162,9 @@ export const measurementCalculations = pgTable("measurement_calculations", {
   residualMassPercent: decimal("residual_mass_percent", { precision: 5, scale: 2 }),
   
   // Additional calculations
-  sumOf6Skinfolds: decimal("sum_of_6_skinfolds", { precision: 6, scale: 2 }), // mm
-  bodyFatPercentage: decimal("body_fat_percentage", { precision: 5, scale: 2 }), // %
+  sumOf4Skinfolds: decimal("sum_of_4_skinfolds", { precision: 6, scale: 2 }), // mm - Durnin & Womersley (triceps + biceps + subscapular + suprailiac)
+  sumOf6Skinfolds: decimal("sum_of_6_skinfolds", { precision: 6, scale: 2 }), // mm - ISAK (triceps + subscapular + supraspinal + abdominal + thigh + calf)
+  bodyFatPercentage: decimal("body_fat_percentage", { precision: 5, scale: 2 }), // % - Based on Durnin & Womersley (4 skinfolds)
   leanMass: decimal("lean_mass", { precision: 6, scale: 2 }), // kg
   waistHipRatio: decimal("waist_hip_ratio", { precision: 5, scale: 3 }), // ratio
   

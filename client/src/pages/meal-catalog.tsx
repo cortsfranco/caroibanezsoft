@@ -245,6 +245,34 @@ export default function MealCatalogPage() {
     },
   });
 
+  // Delete image mutation
+  const deleteImageMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/meals/${id}/image`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete image");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      toast({
+        title: "Imagen eliminada",
+        description: "La imagen se ha eliminado exitosamente.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar la imagen",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Check AI image generation status
   const { data: aiStatus } = useQuery<{ available: boolean; provider: string | null }>({
     queryKey: ["/api/image-generation/status"],
@@ -828,47 +856,94 @@ export default function MealCatalogPage() {
                 </div>
               </CardContent>
               <CardFooter className="flex gap-2 border-t pt-4">
-                <label htmlFor={`upload-${meal.id}`} className="flex-1">
-                  <input
-                    id={`upload-${meal.id}`}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        uploadImageMutation.mutate({ id: meal.id, file });
-                      }
-                    }}
-                    data-testid={`input-upload-image-${meal.id}`}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    disabled={uploadImageMutation.isPending}
-                    asChild
-                  >
-                    <span>
-                      <Upload className="w-3 h-3 mr-1" />
-                      {uploadImageMutation.isPending ? "Subiendo..." : "Subir"}
-                    </span>
-                  </Button>
-                </label>
-                {aiStatus?.available && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => generateImageMutation.mutate(meal.id)}
-                    disabled={generateImageMutation.isPending}
-                    data-testid={`button-generate-image-${meal.id}`}
-                  >
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    {generateImageMutation.isPending ? "Generando..." : "Generar IA"}
-                  </Button>
+                {meal.imageUrl ? (
+                  <>
+                    <label htmlFor={`upload-${meal.id}`} className="flex-1">
+                      <input
+                        id={`upload-${meal.id}`}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            uploadImageMutation.mutate({ id: meal.id, file });
+                          }
+                        }}
+                        data-testid={`input-upload-image-${meal.id}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        disabled={uploadImageMutation.isPending}
+                        asChild
+                      >
+                        <span>
+                          <Upload className="w-3 h-3 mr-1" />
+                          {uploadImageMutation.isPending ? "Subiendo..." : "Cambiar"}
+                        </span>
+                      </Button>
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => deleteImageMutation.mutate(meal.id)}
+                      disabled={deleteImageMutation.isPending}
+                      data-testid={`button-delete-image-${meal.id}`}
+                    >
+                      <Trash2 className="w-3 h-3 mr-1" />
+                      {deleteImageMutation.isPending ? "Borrando..." : "Borrar"}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor={`upload-${meal.id}`} className="flex-1">
+                      <input
+                        id={`upload-${meal.id}`}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            uploadImageMutation.mutate({ id: meal.id, file });
+                          }
+                        }}
+                        data-testid={`input-upload-image-${meal.id}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        disabled={uploadImageMutation.isPending}
+                        asChild
+                      >
+                        <span>
+                          <Upload className="w-3 h-3 mr-1" />
+                          {uploadImageMutation.isPending ? "Subiendo..." : "Subir"}
+                        </span>
+                      </Button>
+                    </label>
+                    {aiStatus?.available && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => generateImageMutation.mutate(meal.id)}
+                        disabled={generateImageMutation.isPending}
+                        data-testid={`button-generate-image-${meal.id}`}
+                      >
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        {generateImageMutation.isPending ? "Generando..." : "Generar IA"}
+                      </Button>
+                    )}
+                  </>
                 )}
               </CardFooter>
             </Card>
