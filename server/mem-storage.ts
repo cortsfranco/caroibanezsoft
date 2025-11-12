@@ -507,23 +507,63 @@ export class MemStorage implements IStorage {
   }
 
   async getDiets(): Promise<Diet[]> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    return [...this.diets].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async getDiet(id: string): Promise<Diet | null> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    return this.diets.find((d) => d.id === id) || null;
   }
 
   async createDiet(data: InsertDiet): Promise<Diet> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const diet: Diet = {
+      id: nanoid(),
+      name: data.name,
+      description: data.description ?? null,
+      calories: data.calories ?? null,
+      protein: data.protein ?? null,
+      carbs: data.carbs ?? null,
+      fats: data.fats ?? null,
+      fiber: data.fiber ?? null,
+      mealPlan: data.mealPlan ?? null,
+      notes: data.notes ?? null,
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.diets.push(diet);
+    return diet;
   }
 
   async updateDiet(id: string, data: Partial<InsertDiet>, expectedVersion?: number): Promise<Diet | null> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const index = this.diets.findIndex((d) => d.id === id);
+    if (index === -1) return null;
+
+    const diet = this.diets[index];
+    if (expectedVersion !== undefined && diet.version !== expectedVersion) {
+      throw new VersionConflictError(
+        `Diet version mismatch: expected ${expectedVersion}, got ${diet.version}`
+      );
+    }
+
+    const updated: Diet = {
+      ...diet,
+      ...data,
+      id: diet.id,
+      version: diet.version + 1,
+      updatedAt: new Date(),
+    };
+    this.diets[index] = updated;
+    return updated;
   }
 
   async deleteDiet(id: string): Promise<boolean> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const index = this.diets.findIndex((d) => d.id === id);
+    if (index === -1) return false;
+    
+    this.diets.splice(index, 1);
+    // Clean up related assignments
+    this.dietAssignments = this.dietAssignments.filter((a) => a.dietId !== id);
+    return true;
   }
 
   async getDietAssignments(patientId?: string, dietId?: string): Promise<DietAssignment[]> {
@@ -571,23 +611,58 @@ export class MemStorage implements IStorage {
   }
 
   async getDietTemplates(): Promise<DietTemplate[]> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    return [...this.dietTemplates].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async getDietTemplate(id: string): Promise<DietTemplate | null> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    return this.dietTemplates.find((t) => t.id === id) || null;
   }
 
   async createDietTemplate(data: InsertDietTemplate): Promise<DietTemplate> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const template: DietTemplate = {
+      id: nanoid(),
+      name: data.name,
+      description: data.description ?? null,
+      objective: data.objective ?? null,
+      content: data.content,
+      targetCalories: data.targetCalories ?? null,
+      isActive: data.isActive ?? true,
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.dietTemplates.push(template);
+    return template;
   }
 
   async updateDietTemplate(id: string, data: Partial<InsertDietTemplate>, expectedVersion?: number): Promise<DietTemplate | null> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const index = this.dietTemplates.findIndex((t) => t.id === id);
+    if (index === -1) return null;
+
+    const template = this.dietTemplates[index];
+    if (expectedVersion !== undefined && template.version !== expectedVersion) {
+      throw new VersionConflictError(
+        `Diet template version mismatch: expected ${expectedVersion}, got ${template.version}`
+      );
+    }
+
+    const updated: DietTemplate = {
+      ...template,
+      ...data,
+      id: template.id,
+      version: template.version + 1,
+      updatedAt: new Date(),
+    };
+    this.dietTemplates[index] = updated;
+    return updated;
   }
 
   async deleteDietTemplate(id: string): Promise<boolean> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const index = this.dietTemplates.findIndex((t) => t.id === id);
+    if (index === -1) return false;
+    
+    this.dietTemplates.splice(index, 1);
+    return true;
   }
 
   async getDietGenerations(patientId?: string): Promise<DietGeneration[]> {

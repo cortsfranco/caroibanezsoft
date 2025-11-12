@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Reports() {
+  const [selectedReport, setSelectedReport] = useState<any>(null);
   const mockReports = [
     {
       id: "1",
@@ -118,6 +127,7 @@ export default function Reports() {
                     variant="outline"
                     size="sm"
                     disabled={report.status === "Pendiente"}
+                    onClick={() => setSelectedReport(report)}
                     data-testid={`button-view-report-${report.id}`}
                   >
                     <Eye className="h-4 w-4 mr-1" />
@@ -151,6 +161,105 @@ export default function Reports() {
           </Button>
         </CardContent>
       </Card>
+
+      <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Informe de Composición Corporal</DialogTitle>
+            <DialogDescription>
+              {selectedReport?.patient} - Medición #{selectedReport?.measurementNumber} - {selectedReport?.date}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Paciente</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{selectedReport?.patient}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Fecha de Medición</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{selectedReport?.date}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Fraccionamiento de 5 Componentes (D. Kerr 1988)</CardTitle>
+                <CardDescription>Valores según método ISAK 2</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-md">
+                    <span className="font-medium">Masa Muscular</span>
+                    <span className="text-xl font-bold">45.2 kg (42.1%)</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-md">
+                    <span className="font-medium">Masa Adiposa</span>
+                    <span className="text-xl font-bold">12.8 kg (11.9%)</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-md">
+                    <span className="font-medium">Masa Ósea</span>
+                    <span className="text-xl font-bold">10.5 kg (9.8%)</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-md">
+                    <span className="font-medium">Masa Residual</span>
+                    <span className="text-xl font-bold">24.1 kg (22.4%)</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted rounded-md">
+                    <span className="font-medium">Masa Piel</span>
+                    <span className="text-xl font-bold">3.8 kg (3.5%)</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Medidas Antropométricas</CardTitle>
+                <CardDescription>Pliegues, perímetros y diámetros</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium mb-2">Pliegues (mm)</p>
+                    <div className="space-y-1 text-muted-foreground">
+                      <p>Tríceps: 12.5</p>
+                      <p>Subescapular: 10.2</p>
+                      <p>Bíceps: 8.3</p>
+                      <p>Supraespinal: 9.8</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-medium mb-2">Perímetros (cm)</p>
+                    <div className="space-y-1 text-muted-foreground">
+                      <p>Brazo relajado: 32.4</p>
+                      <p>Brazo contraído: 34.8</p>
+                      <p>Cintura: 78.5</p>
+                      <p>Cadera: 95.2</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="bg-muted p-4 rounded-md">
+              <p className="text-sm text-muted-foreground text-center">
+                Este es un informe de ejemplo con datos de muestra. 
+                La funcionalidad completa de generación de informes se implementará en la siguiente fase.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

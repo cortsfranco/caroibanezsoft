@@ -62,20 +62,20 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
+      <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/20 text-white backdrop-blur-sm">
             <Activity className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold">Nutrición</h2>
-            <p className="text-xs text-muted-foreground">Carolina Ibáñez</p>
+            <h2 className="text-sm font-semibold text-white">Nutrición</h2>
+            <p className="text-xs text-white/70">Carolina Ibáñez</p>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menú Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-white/90 font-semibold">Menú Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -96,16 +96,16 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+            <AvatarFallback className="bg-white/20 text-white text-xs backdrop-blur-sm">
               CI
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 text-sm">
-            <p className="font-medium">Carolina Ibáñez</p>
-            <p className="text-xs text-muted-foreground">Nutricionista</p>
+            <p className="font-medium text-white">Carolina Ibáñez</p>
+            <p className="text-xs text-white/70">Nutricionista</p>
           </div>
         </div>
       </SidebarFooter>

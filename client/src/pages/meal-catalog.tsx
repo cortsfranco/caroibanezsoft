@@ -73,7 +73,7 @@ const MEAL_CATEGORIES = [
 export default function MealCatalogPage() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
@@ -83,7 +83,7 @@ export default function MealCatalogPage() {
     queryKey: ["/api/meals", { category: selectedCategory, search: searchQuery, tagIds: selectedTags }],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedCategory) params.set("category", selectedCategory);
+      if (selectedCategory && selectedCategory !== "all") params.set("category", selectedCategory);
       if (searchQuery) params.set("search", searchQuery);
       selectedTags.forEach(tagId => params.append("tagIds", tagId));
       
@@ -599,7 +599,7 @@ export default function MealCatalogPage() {
                   <SelectValue placeholder="Todas las categorías" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   {MEAL_CATEGORIES.map((cat) => (
                     <SelectItem key={cat.value} value={cat.value}>
                       {cat.label}
