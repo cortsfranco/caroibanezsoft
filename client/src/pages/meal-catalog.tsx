@@ -43,7 +43,7 @@ import {
 const mealFormSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   description: z.string().optional(),
-  category: z.string().min(1, "La categoría es requerida"),
+  category: z.string().optional(),
   ingredients: z.string().optional(),
   portionSize: z.string().optional(),
   calories: z.string().optional(),
@@ -62,13 +62,6 @@ const mealFormSchema = z.object({
 });
 
 type MealFormValues = z.infer<typeof mealFormSchema>;
-
-const MEAL_CATEGORIES = [
-  { value: "breakfast", label: "Desayuno" },
-  { value: "lunch", label: "Almuerzo" },
-  { value: "dinner", label: "Cena" },
-  { value: "snack", label: "Colación" },
-];
 
 export default function MealCatalogPage() {
   const { toast } = useToast();
@@ -92,6 +85,15 @@ export default function MealCatalogPage() {
       return response.json();
     },
   });
+
+  // Get unique categories from existing meals for suggestions
+  const existingCategories = Array.from(
+    new Set(
+      meals
+        .map(meal => meal.category)
+        .filter((cat): cat is string => cat !== null && cat !== undefined && cat !== "")
+    )
+  ).sort();
 
   // Fetch meal tags
   const { data: allTags = [] } = useQuery<MealTag[]>({
@@ -429,21 +431,25 @@ export default function MealCatalogPage() {
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Categoría</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-meal-category">
-                            <SelectValue placeholder="Selecciona una categoría" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {MEAL_CATEGORIES.map((cat) => (
-                            <SelectItem key={cat.value} value={cat.value}>
-                              {cat.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Categoría (opcional)</FormLabel>
+                      <FormControl>
+                        <div>
+                          <Input 
+                            {...field} 
+                            list="categories-suggestions"
+                            placeholder="ej: Desayuno, Almuerzo, Cena, Colación..."
+                            data-testid="input-meal-category"
+                          />
+                          <datalist id="categories-suggestions">
+                            {existingCategories.map((cat) => (
+                              <option key={cat} value={cat} />
+                            ))}
+                          </datalist>
+                        </div>
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Escribe una categoría nueva o selecciona una existente
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -667,9 +673,9 @@ export default function MealCatalogPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
-                  {MEAL_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
+                  {existingCategories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -745,9 +751,11 @@ export default function MealCatalogPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-lg">{meal.name}</CardTitle>
-                    <Badge variant="outline" className="mt-1">
-                      {MEAL_CATEGORIES.find(c => c.value === meal.category)?.label || meal.category}
-                    </Badge>
+                    {meal.category && (
+                      <Badge variant="outline" className="mt-1">
+                        {meal.category}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex gap-1">
                     <Button
