@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Mail, Phone, User, Edit, FileDown, Activity, Utensils, Heart } from "lucide-react";
+import { Calendar, Mail, Phone, User, Edit, FileDown, Activity, Utensils, Heart, MessageSquareShare, MessageCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssignDietDialog } from "@/components/assign-diet-dialog";
 import { PatientEditDialog } from "@/components/patient-edit-dialog";
 import { MeasurementsHistory } from "@/components/measurements-history";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Patient, DietAssignment } from "@shared/schema";
 
 export default function PatientProfile() {
@@ -52,6 +53,22 @@ export default function PatientProfile() {
     },
     enabled: !!patientId,
   });
+
+  const formattedPhone = useMemo(() => {
+    if (!patient?.phone) return null;
+    const digits = patient.phone.replace(/[^0-9]/g, "");
+    return digits.length >= 10 ? digits : null;
+  }, [patient?.phone]);
+
+  const handleWhatsAppOpen = (mode: "simple" | "with_documents") => {
+    if (!formattedPhone) return;
+    const baseUrl = `https://wa.me/${formattedPhone}`;
+    const defaultText = mode === "with_documents"
+      ? `Hola ${patient?.name?.split(" ")[0] || ""}! Te comparto tu plan e informe actualizados. Cualquier duda me escribis ❤️`
+      : `Hola ${patient?.name?.split(" ")[0] || ""}! ¿Cómo venís con el plan nutricional?`;
+    const encoded = encodeURIComponent(defaultText);
+    window.open(`${baseUrl}?text=${encoded}`, "_blank");
+  };
 
   if (!match || !patientId) {
     return (
@@ -95,9 +112,9 @@ export default function PatientProfile() {
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card className="shadow-lg border-2">
+      <Card className="shadow-lg border-2 border-primary/10">
         <CardContent className="pt-6">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24 border-4 border-primary/20">
                 {patient.avatarUrl ? (
@@ -109,10 +126,10 @@ export default function PatientProfile() {
                 )}
               </Avatar>
               <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold">{patient.name}</h1>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-3xl font-bold text-primary">{patient.name}</h1>
                   {patient.objective && (
-                    <Badge className="text-sm px-3 py-1">
+                    <Badge className="text-sm px-3 py-1 bg-gradient-to-r from-primary/80 to-primary text-white">
                       {patient.objective}
                     </Badge>
                   )}
@@ -127,13 +144,41 @@ export default function PatientProfile() {
                   {patient.email && (
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4" />
-                      <span>{patient.email}</span>
+                      <a href={`mailto:${patient.email}`} className="hover:text-primary transition-colors">
+                        {patient.email}
+                      </a>
                     </div>
                   )}
                   {patient.phone && (
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
-                      <span>{patient.phone}</span>
+                      {formattedPhone ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="link" className="px-0 h-auto text-primary">
+                              {patient.phone}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-64">
+                            <DropdownMenuLabel>Contacto rápido</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => handleWhatsAppOpen("simple")}>
+                              <MessageCircle className="h-4 w-4 mr-2 text-primary" />
+                              Enviar mensaje por WhatsApp
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleWhatsAppOpen("with_documents")}> 
+                              <MessageSquareShare className="h-4 w-4 mr-2 text-primary" />
+                              Compartir plan + informe
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => navigator.clipboard.writeText(patient.phone!)}>
+                              Copiar número
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <span>{patient.phone}</span>
+                      )}
                     </div>
                   )}
                   {patient.birthDate && (
@@ -144,13 +189,13 @@ export default function PatientProfile() {
                   )}
                 </div>
                 {patient.notes && (
-                  <p className="text-sm text-muted-foreground italic mt-2">
+                  <p className="text-sm text-muted-foreground italic mt-2 max-w-3xl">
                     {patient.notes}
                   </p>
                 )}
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <AssignDietDialog patientId={patient.id} patientName={patient.name} />
               <Button 
                 variant="outline" 
@@ -161,9 +206,9 @@ export default function PatientProfile() {
                 <Edit className="h-4 w-4 mr-2" />
                 Editar
               </Button>
-              <Button size="sm" data-testid="button-export-patient">
+              <Button size="sm" variant="secondary" data-testid="button-export-patient">
                 <FileDown className="h-4 w-4 mr-2" />
-                Exportar
+                Exportar ficha
               </Button>
             </div>
           </div>
@@ -172,7 +217,7 @@ export default function PatientProfile() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 bg-primary/10">
           <TabsTrigger value="datos" data-testid="tab-datos">Datos Personales</TabsTrigger>
           <TabsTrigger value="dietas" data-testid="tab-dietas">Dietas Asignadas</TabsTrigger>
           <TabsTrigger value="mediciones" data-testid="tab-mediciones">Mediciones</TabsTrigger>
