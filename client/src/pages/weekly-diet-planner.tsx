@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, GripVertical, X, Clock, Plus, Save, ArrowLeft, Edit, Copy, Users, User, Calendar } from "lucide-react";
+import { Search, GripVertical, X, Clock, Plus, Save, ArrowLeft, Edit, Copy, Users, User, Calendar, FileText } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -244,6 +244,29 @@ export default function WeeklyDietPlanner() {
       toast({
         title: "Error",
         description: "No se pudo asignar el plan al paciente",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Generate PDF mutation
+  const generatePDFMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      const response = await apiRequest("POST", `/api/weekly-plans/${planId}/generate-pdf`, {});
+      return await response.json();
+    },
+    onSuccess: (data: { pdfUrl: string }) => {
+      toast({
+        title: "PDF generado",
+        description: "El plan fue exportado a PDF exitosamente",
+      });
+      // Open PDF in new tab
+      window.open(data.pdfUrl, "_blank");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo generar el PDF",
         variant: "destructive",
       });
     },
@@ -516,24 +539,36 @@ export default function WeeklyDietPlanner() {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-2 pt-2">
+                  <div className="space-y-2 pt-2">
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handleEditPlan(plan)} 
+                        variant="outline" 
+                        className="flex-1"
+                        data-testid={`button-edit-${plan.id}`}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Editar
+                      </Button>
+                      <Button 
+                        onClick={() => handleOpenAssignment(plan.id)}
+                        variant="default"
+                        className="flex-1"
+                        data-testid={`button-assign-${plan.id}`}
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Asignar
+                      </Button>
+                    </div>
                     <Button 
-                      onClick={() => handleEditPlan(plan)} 
-                      variant="outline" 
-                      className="flex-1"
-                      data-testid={`button-edit-${plan.id}`}
+                      onClick={() => generatePDFMutation.mutate(plan.id)}
+                      variant="secondary"
+                      className="w-full"
+                      disabled={generatePDFMutation.isPending}
+                      data-testid={`button-pdf-${plan.id}`}
                     >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Editar
-                    </Button>
-                    <Button 
-                      onClick={() => handleOpenAssignment(plan.id)}
-                      variant="default"
-                      className="flex-1"
-                      data-testid={`button-assign-${plan.id}`}
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      Asignar
+                      <FileText className="w-4 h-4 mr-2" />
+                      {generatePDFMutation.isPending ? "Generando..." : "Generar PDF"}
                     </Button>
                   </div>
                 </CardContent>
@@ -882,40 +917,68 @@ export default function WeeklyDietPlanner() {
                       <div className="font-medium text-sm py-2 flex items-center">
                         {mealTime.label}
                       </div>
-                      {DAYS_OF_WEEK.map((day) => (
-                        <div
-                          key={`${day}-${mealTime.id}`}
-                          onDragOver={handleDragOver}
-                          onDrop={() => handleDrop(day, mealTime.id, mealTime.defaultTime)}
-                          className="border-2 border-dashed rounded-md p-2 min-h-[100px] space-y-1 hover-elevate"
-                          data-testid={`dropzone-${day}-${mealTime.id}`}
-                        >
-                          {weeklyPlan[day][mealTime.id].map((plannedMeal) => (
-                            <div
-                              key={plannedMeal.id}
-                              className="bg-primary/10 border border-primary/20 rounded p-2 text-xs relative group"
-                            >
-                              <button
-                                onClick={() => handleRemoveMeal(day, mealTime.id, plannedMeal.id)}
-                                className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                data-testid={`button-remove-${plannedMeal.id}`}
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                              <p className="font-medium truncate pr-4">{plannedMeal.meal.name}</p>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Clock className="w-3 h-3 text-muted-foreground" />
-                                <input
-                                  type="time"
-                                  value={plannedMeal.time}
-                                  onChange={(e) => handleTimeChange(day, mealTime.id, plannedMeal.id, e.target.value)}
-                                  className="text-xs bg-transparent border-none w-16 focus:outline-none"
-                                />
+                      {DAYS_OF_WEEK.map((day) => {
+                        const mealsForSlot = weeklyPlan[day][mealTime.id];
+                        const hasMultipleMeals = mealsForSlot.length > 1;
+                        const mealTime_display = mealsForSlot.length > 0 ? mealsForSlot[0].time : mealTime.defaultTime;
+
+                        return (
+                          <div
+                            key={`${day}-${mealTime.id}`}
+                            onDragOver={handleDragOver}
+                            onDrop={() => handleDrop(day, mealTime.id, mealTime.defaultTime)}
+                            className="border-2 border-dashed rounded-md min-h-[100px] hover-elevate"
+                            data-testid={`dropzone-${day}-${mealTime.id}`}
+                          >
+                            {mealsForSlot.length > 0 && (
+                              <div className="p-2 space-y-2">
+                                {/* Horario - Solo una vez */}
+                                <div className="flex items-center gap-1 pb-1 border-b">
+                                  <Clock className="w-3 h-3 text-muted-foreground" />
+                                  <input
+                                    type="time"
+                                    value={mealTime_display}
+                                    onChange={(e) => {
+                                      // Update time for ALL meals in this slot
+                                      mealsForSlot.forEach((meal) => {
+                                        handleTimeChange(day, mealTime.id, meal.id, e.target.value);
+                                      });
+                                    }}
+                                    className="text-xs font-semibold bg-transparent border-none w-16 focus:outline-none"
+                                    data-testid={`input-time-${day}-${mealTime.id}`}
+                                  />
+                                </div>
+
+                                {/* Alimentos con símbolo + */}
+                                <div className="space-y-1">
+                                  {mealsForSlot.map((plannedMeal, index) => (
+                                    <div key={plannedMeal.id}>
+                                      {index > 0 && (
+                                        <div className="flex items-center justify-center py-1">
+                                          <Plus className="w-3 h-3 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                      <div className="bg-primary/10 border border-primary/20 rounded p-2 text-xs relative group">
+                                        <button
+                                          onClick={() => handleRemoveMeal(day, mealTime.id, plannedMeal.id)}
+                                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                          data-testid={`button-remove-${plannedMeal.id}`}
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </button>
+                                        <p className="font-medium truncate pr-4">{plannedMeal.meal.name}</p>
+                                        {plannedMeal.meal.calories && (
+                                          <p className="text-muted-foreground mt-0.5">{plannedMeal.meal.calories} kcal</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>

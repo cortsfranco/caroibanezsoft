@@ -24,6 +24,7 @@ import { imageService } from "./services/image-service";
 import { saveAvatar, deleteAvatar } from "./services/avatar-service";
 import { calculateAll } from "./services/measurement-calculations";
 import { generateMeasurementReport } from "./services/pdf-report-service";
+import { generateWeeklyPlanPDF } from "./services/weekly-plan-pdf-service";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
@@ -802,7 +803,8 @@ router.post("/api/reports/generate", async (req, res) => {
       patientId,
       measurementId,
       pdfUrl,
-      status: 'generated'
+      status: 'generated',
+      sentAt: null
     });
     
     // Broadcast report creation
@@ -1488,8 +1490,8 @@ router.patch("/api/weekly-plan-assignments/:id", async (req, res) => {
     const expectedVersion = req.body.version;
     delete req.body.version;
     
-    const data = validate(insertWeeklyPlanAssignmentSchema.partial(), req.body);
-    const assignment = await storage.updateWeeklyPlanAssignment(req.params.id, data, expectedVersion);
+    // Don't validate with .partial() on a ZodEffects - just pass the data
+    const assignment = await storage.updateWeeklyPlanAssignment(req.params.id, req.body, expectedVersion);
     
     if (!assignment) {
       return res.status(404).json({ error: "Assignment not found" });
@@ -1628,6 +1630,71 @@ router.delete("/api/weekly-plan-meals/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting weekly plan meal:", error);
     res.status(500).json({ error: "Failed to delete weekly plan meal" });
+  }
+});
+
+// Generate PDF for weekly plan assignment
+router.post("/api/weekly-plans/:id/generate-pdf", async (req, res) => {
+  try {
+    const { assignmentId } = req.body;
+    
+    // Get the plan
+    const plan = await storage.getWeeklyDietPlan(req.params.id);
+    if (!plan) {
+      return res.status(404).json({ error: "Weekly plan not found" });
+    }
+
+    // Get the meals
+    const meals = await storage.getWeeklyPlanMeals(req.params.id);
+    
+    // Fetch meal details for each planned meal
+    const mealsWithDetails = await Promise.all(
+      meals.map(async (planMeal) => {
+        if (planMeal.mealId) {
+          const mealDetails = await storage.getMeal(planMeal.mealId);
+          return { ...planMeal, mealDetails: mealDetails || undefined };
+        }
+        return planMeal;
+      })
+    );
+
+    // Get assignment details if provided
+    let patient = undefined;
+    let group = undefined;
+    let assignmentNotes = undefined;
+    let startDate = undefined;
+    let endDate = undefined;
+
+    if (assignmentId) {
+      const assignment = await storage.getWeeklyPlanAssignment(assignmentId);
+      if (assignment) {
+        assignmentNotes = assignment.assignmentNotes || undefined;
+        startDate = assignment.startDate || undefined;
+        endDate = assignment.endDate || undefined;
+        
+        if (assignment.patientId) {
+          patient = await storage.getPatient(assignment.patientId) || undefined;
+        } else if (assignment.groupId) {
+          group = await storage.getPatientGroup(assignment.groupId) || undefined;
+        }
+      }
+    }
+
+    // Generate PDF
+    const pdfUrl = await generateWeeklyPlanPDF({
+      plan,
+      meals: mealsWithDetails,
+      patient,
+      group,
+      assignmentNotes,
+      startDate,
+      endDate,
+    });
+
+    res.json({ pdfUrl });
+  } catch (error) {
+    console.error("Error generating weekly plan PDF:", error);
+    res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
 

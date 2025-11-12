@@ -866,47 +866,97 @@ export class DbStorage implements IStorage {
   }
 
   async getWeeklyDietPlans(filters?: { isTemplate?: boolean; search?: string }): Promise<WeeklyDietPlan[]> {
-    console.warn("getWeeklyDietPlans called but database is not ready");
-    return [];
+    let query = db.select().from(weeklyDietPlans);
+
+    const conditions = [];
+    
+    if (filters?.isTemplate !== undefined) {
+      conditions.push(eq(weeklyDietPlans.isTemplate, filters.isTemplate));
+    }
+    
+    if (filters?.search) {
+      conditions.push(sql`LOWER(${weeklyDietPlans.name}) LIKE LOWER(${'%' + filters.search + '%'})`);
+    }
+
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions)).orderBy(desc(weeklyDietPlans.createdAt));
+    }
+    
+    return await query.orderBy(desc(weeklyDietPlans.createdAt));
   }
 
   async getWeeklyDietPlan(id: string): Promise<WeeklyDietPlan | null> {
-    console.warn("getWeeklyDietPlan called but database is not ready");
-    return null;
+    const result = await db.select().from(weeklyDietPlans).where(eq(weeklyDietPlans.id, id)).limit(1);
+    return result[0] || null;
   }
 
   async createWeeklyDietPlan(data: InsertWeeklyDietPlan): Promise<WeeklyDietPlan> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.insert(weeklyDietPlans).values(data).returning();
+    return result[0];
   }
 
   async updateWeeklyDietPlan(id: string, data: Partial<InsertWeeklyDietPlan>, expectedVersion?: number): Promise<WeeklyDietPlan | null> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    if (expectedVersion !== undefined) {
+      const existing = await this.getWeeklyDietPlan(id);
+      if (!existing) return null;
+      if (existing.version !== expectedVersion) {
+        throw new VersionConflictError("Version conflict - record was modified by another user");
+      }
+    }
+
+    const result = await db
+      .update(weeklyDietPlans)
+      .set({ ...data, version: sql`${weeklyDietPlans.version} + 1`, updatedAt: new Date() })
+      .where(eq(weeklyDietPlans.id, id))
+      .returning();
+    
+    return result[0] || null;
   }
 
   async deleteWeeklyDietPlan(id: string): Promise<boolean> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.delete(weeklyDietPlans).where(eq(weeklyDietPlans.id, id)).returning();
+    return result.length > 0;
   }
 
   async getWeeklyPlanMeals(planId: string): Promise<WeeklyPlanMeal[]> {
-    console.warn("getWeeklyPlanMeals called but database is not ready");
-    return [];
+    return await db
+      .select()
+      .from(weeklyPlanMeals)
+      .where(eq(weeklyPlanMeals.planId, planId))
+      .orderBy(weeklyPlanMeals.dayOfWeek, weeklyPlanMeals.mealSlot, weeklyPlanMeals.slotOrder);
   }
 
   async getWeeklyPlanMeal(id: string): Promise<WeeklyPlanMeal | null> {
-    console.warn("getWeeklyPlanMeal called but database is not ready");
-    return null;
+    const result = await db.select().from(weeklyPlanMeals).where(eq(weeklyPlanMeals.id, id)).limit(1);
+    return result[0] || null;
   }
 
   async createWeeklyPlanMeal(data: InsertWeeklyPlanMeal): Promise<WeeklyPlanMeal> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.insert(weeklyPlanMeals).values(data).returning();
+    return result[0];
   }
 
   async updateWeeklyPlanMeal(id: string, data: Partial<InsertWeeklyPlanMeal>, expectedVersion?: number): Promise<WeeklyPlanMeal | null> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    if (expectedVersion !== undefined) {
+      const existing = await this.getWeeklyPlanMeal(id);
+      if (!existing) return null;
+      if (existing.version !== expectedVersion) {
+        throw new VersionConflictError("Version conflict - record was modified by another user");
+      }
+    }
+
+    const result = await db
+      .update(weeklyPlanMeals)
+      .set({ ...data, version: sql`${weeklyPlanMeals.version} + 1`, updatedAt: new Date() })
+      .where(eq(weeklyPlanMeals.id, id))
+      .returning();
+    
+    return result[0] || null;
   }
 
   async deleteWeeklyPlanMeal(id: string): Promise<boolean> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.delete(weeklyPlanMeals).where(eq(weeklyPlanMeals.id, id)).returning();
+    return result.length > 0;
   }
 
   // Weekly Plan Assignments

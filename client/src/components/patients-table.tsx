@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Save, X, Trash2, Search } from "lucide-react";
+import { Edit, Save, X, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import type { Patient } from "@shared/schema";
 
 interface PatientsTableProps {
@@ -46,9 +46,14 @@ type EditedPatient = {
   notes: string;
 };
 
+type SortColumn = "name" | "email" | "phone" | "birthDate" | "gender" | "objective" | "notes";
+type SortDirection = "asc" | "desc" | null;
+
 export function PatientsTable({ patients }: PatientsTableProps) {
   const { toast } = useToast();
   const [globalFilter, setGlobalFilter] = useState("");
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editedData, setEditedData] = useState<EditedPatient>({
     name: "",
@@ -153,11 +158,64 @@ export function PatientsTable({ patients }: PatientsTableProps) {
     }
   };
 
-  const filteredPatients = patients.filter((patient) =>
-    patient.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-    patient.email?.toLowerCase().includes(globalFilter.toLowerCase()) ||
-    patient.phone?.toLowerCase().includes(globalFilter.toLowerCase())
-  );
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      // Toggle direction: asc -> desc -> null -> asc
+      if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else if (sortDirection === "desc") {
+        setSortDirection(null);
+        setSortColumn(null);
+      }
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    }
+    if (sortDirection === "asc") {
+      return <ArrowUp className="h-3 w-3 ml-1" />;
+    }
+    return <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const sortedAndFilteredPatients = useMemo(() => {
+    // First filter
+    let result = patients.filter((patient) =>
+      patient.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
+      patient.email?.toLowerCase().includes(globalFilter.toLowerCase()) ||
+      patient.phone?.toLowerCase().includes(globalFilter.toLowerCase())
+    );
+
+    // Then sort
+    if (sortColumn && sortDirection) {
+      result = [...result].sort((a, b) => {
+        let aValue = a[sortColumn];
+        let bValue = b[sortColumn];
+
+        // Handle nulls
+        if (aValue === null || aValue === undefined) return sortDirection === "asc" ? 1 : -1;
+        if (bValue === null || bValue === undefined) return sortDirection === "asc" ? -1 : 1;
+
+        // Handle dates
+        if (sortColumn === "birthDate") {
+          const aDate = new Date(aValue as string).getTime();
+          const bDate = new Date(bValue as string).getTime();
+          return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
+        }
+
+        // Handle strings
+        const comparison = String(aValue).localeCompare(String(bValue), 'es', { sensitivity: 'base' });
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+
+    return result;
+  }, [patients, globalFilter, sortColumn, sortDirection]);
 
   return (
     <>
@@ -179,22 +237,104 @@ export function PatientsTable({ patients }: PatientsTableProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>Fecha de Nacimiento</TableHead>
-                <TableHead>Género</TableHead>
-                <TableHead>Objetivo</TableHead>
-                <TableHead>Notas</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 -ml-3 hover:bg-transparent"
+                    onClick={() => handleSort("name")}
+                    data-testid="sort-name"
+                  >
+                    Nombre
+                    {getSortIcon("name")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 -ml-3 hover:bg-transparent"
+                    onClick={() => handleSort("email")}
+                    data-testid="sort-email"
+                  >
+                    Email
+                    {getSortIcon("email")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 -ml-3 hover:bg-transparent"
+                    onClick={() => handleSort("phone")}
+                    data-testid="sort-phone"
+                  >
+                    Teléfono
+                    {getSortIcon("phone")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 -ml-3 hover:bg-transparent"
+                    onClick={() => handleSort("birthDate")}
+                    data-testid="sort-birthDate"
+                  >
+                    Fecha de Nacimiento
+                    {getSortIcon("birthDate")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 -ml-3 hover:bg-transparent"
+                    onClick={() => handleSort("gender")}
+                    data-testid="sort-gender"
+                  >
+                    Género
+                    {getSortIcon("gender")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 -ml-3 hover:bg-transparent"
+                    onClick={() => handleSort("objective")}
+                    data-testid="sort-objective"
+                  >
+                    Objetivo
+                    {getSortIcon("objective")}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 -ml-3 hover:bg-transparent"
+                    onClick={() => handleSort("notes")}
+                    data-testid="sort-notes"
+                  >
+                    Notas
+                    {getSortIcon("notes")}
+                  </Button>
+                </TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPatients.length > 0 ? (
-                filteredPatients.map((patient) => {
+              {sortedAndFilteredPatients.length > 0 ? (
+                sortedAndFilteredPatients.map((patient, index) => {
                   const isEditing = editingId === patient.id;
+                  const isEvenRow = index % 2 === 0;
                   return (
-                    <TableRow key={patient.id} data-testid={`row-patient-${patient.id}`}>
+                    <TableRow 
+                      key={patient.id} 
+                      data-testid={`row-patient-${patient.id}`}
+                      className={`${isEvenRow ? 'bg-sky-50/50 dark:bg-sky-950/10' : ''} ${isEditing ? 'ring-2 ring-primary/40' : ''}`}
+                    >
                       <TableCell>
                         {isEditing ? (
                           <Input
@@ -358,7 +498,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div>
-            Mostrando {filteredPatients.length} de {patients.length} pacientes
+            Mostrando {sortedAndFilteredPatients.length} de {patients.length} pacientes
           </div>
         </div>
       </div>
