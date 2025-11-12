@@ -41,6 +41,8 @@ export const insertPatientSchema = createInsertSchema(patients).omit({
   version: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  birthDate: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
 });
 export type InsertPatient = z.infer<typeof insertPatientSchema>;
 export type Patient = typeof patients.$inferSelect;
@@ -114,6 +116,8 @@ export const insertMeasurementSchema = createInsertSchema(measurements).omit({
   version: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  measurementDate: z.string().transform(val => new Date(val)),
 });
 export type InsertMeasurement = z.infer<typeof insertMeasurementSchema>;
 export type Measurement = typeof measurements.$inferSelect;
@@ -209,6 +213,8 @@ export const insertReportSchema = createInsertSchema(reports).omit({
   version: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  sentAt: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
 });
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;

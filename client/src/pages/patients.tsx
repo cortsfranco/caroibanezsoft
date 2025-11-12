@@ -50,9 +50,14 @@ export default function Patients() {
 
   const createPatientMutation = useMutation({
     mutationFn: async (data: typeof newPatient) => {
-      const payload = {
-        ...data,
-        birthDate: data.birthDate ? new Date(data.birthDate).toISOString() : null,
+      const payload: any = {
+        name: data.name,
+        email: data.email || null,
+        phone: data.phone || null,
+        birthDate: data.birthDate || null,
+        gender: data.gender || null,
+        objective: data.objective || null,
+        notes: data.notes || null,
       };
       return await apiRequest("POST", "/api/patients", payload);
     },
