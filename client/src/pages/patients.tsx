@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, LayoutGrid, Table2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,16 @@ export default function Patients() {
     gender: "",
     objective: "",
     notes: "",
+    exercisesRegularly: false,
+    sportType: "",
+    exerciseDays: "",
+    exerciseSchedule: "",
+    isVegetarian: false,
+    isVegan: false,
+    foodAllergies: "",
+    foodDislikes: "",
+    medicalConditions: "",
+    medications: "",
   });
 
   // Fetch patients from API
@@ -59,6 +70,16 @@ export default function Patients() {
         gender: data.gender || null,
         objective: data.objective || null,
         notes: data.notes || null,
+        exercisesRegularly: data.exercisesRegularly,
+        sportType: data.sportType || null,
+        exerciseDays: data.exerciseDays || null,
+        exerciseSchedule: data.exerciseSchedule || null,
+        isVegetarian: data.isVegetarian,
+        isVegan: data.isVegan,
+        foodAllergies: data.foodAllergies || null,
+        foodDislikes: data.foodDislikes || null,
+        medicalConditions: data.medicalConditions || null,
+        medications: data.medications || null,
       };
       return await apiRequest("POST", "/api/patients", payload);
     },
@@ -73,6 +94,16 @@ export default function Patients() {
         gender: "",
         objective: "",
         notes: "",
+        exercisesRegularly: false,
+        sportType: "",
+        exerciseDays: "",
+        exerciseSchedule: "",
+        isVegetarian: false,
+        isVegan: false,
+        foodAllergies: "",
+        foodDislikes: "",
+        medicalConditions: "",
+        medications: "",
       });
       toast({
         title: "Paciente creado",
@@ -113,7 +144,7 @@ export default function Patients() {
                 Nuevo Paciente
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl" data-testid="dialog-create-patient">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="dialog-create-patient">
             <DialogHeader>
               <DialogTitle>Crear Nuevo Paciente</DialogTitle>
               <DialogDescription>
@@ -196,12 +227,135 @@ export default function Patients() {
               </div>
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="notes">Notas</Label>
-                <Input
+                <Textarea
                   id="notes"
                   data-testid="input-patient-notes"
                   placeholder="Observaciones adicionales..."
                   value={newPatient.notes}
                   onChange={(e) => setNewPatient({ ...newPatient, notes: e.target.value })}
+                  className="min-h-20"
+                />
+              </div>
+
+              {/* Activity Section */}
+              <div className="col-span-2 pt-4 border-t">
+                <h3 className="font-semibold mb-3">Actividad Física</h3>
+              </div>
+              <div className="col-span-2 flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="exercisesRegularly"
+                  checked={newPatient.exercisesRegularly}
+                  onChange={(e) => setNewPatient({ ...newPatient, exercisesRegularly: e.target.checked })}
+                  className="h-4 w-4 rounded border-primary"
+                />
+                <Label htmlFor="exercisesRegularly" className="font-normal cursor-pointer">
+                  Hace ejercicio regularmente
+                </Label>
+              </div>
+              {newPatient.exercisesRegularly && (
+                <>
+                  <div className="col-span-2 space-y-2">
+                    <Label htmlFor="sportType">Tipo de Deporte/Actividad</Label>
+                    <Input
+                      id="sportType"
+                      placeholder="Ej: Fútbol, Gimnasio, Natación..."
+                      value={newPatient.sportType}
+                      onChange={(e) => setNewPatient({ ...newPatient, sportType: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exerciseDays">Días que Entrena</Label>
+                    <Input
+                      id="exerciseDays"
+                      placeholder="Ej: Lunes, Miércoles, Viernes"
+                      value={newPatient.exerciseDays}
+                      onChange={(e) => setNewPatient({ ...newPatient, exerciseDays: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exerciseSchedule">Horarios</Label>
+                    <Input
+                      id="exerciseSchedule"
+                      placeholder="Ej: 18:00-19:30"
+                      value={newPatient.exerciseSchedule}
+                      onChange={(e) => setNewPatient({ ...newPatient, exerciseSchedule: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Dietary Preferences Section */}
+              <div className="col-span-2 pt-4 border-t">
+                <h3 className="font-semibold mb-3">Preferencias Dietarias</h3>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isVegetarian"
+                  checked={newPatient.isVegetarian}
+                  onChange={(e) => setNewPatient({ ...newPatient, isVegetarian: e.target.checked })}
+                  className="h-4 w-4 rounded border-primary"
+                />
+                <Label htmlFor="isVegetarian" className="font-normal cursor-pointer">
+                  Vegetariano
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isVegan"
+                  checked={newPatient.isVegan}
+                  onChange={(e) => setNewPatient({ ...newPatient, isVegan: e.target.checked })}
+                  className="h-4 w-4 rounded border-primary"
+                />
+                <Label htmlFor="isVegan" className="font-normal cursor-pointer">
+                  Vegano
+                </Label>
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="foodAllergies">Alergias Alimentarias</Label>
+                <Textarea
+                  id="foodAllergies"
+                  placeholder="Ej: Maní, mariscos, lácteos..."
+                  value={newPatient.foodAllergies}
+                  onChange={(e) => setNewPatient({ ...newPatient, foodAllergies: e.target.value })}
+                  className="min-h-16"
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="foodDislikes">Alimentos que No Consume</Label>
+                <Textarea
+                  id="foodDislikes"
+                  placeholder="Alimentos que no le gustan o prefiere evitar..."
+                  value={newPatient.foodDislikes}
+                  onChange={(e) => setNewPatient({ ...newPatient, foodDislikes: e.target.value })}
+                  className="min-h-16"
+                />
+              </div>
+
+              {/* Medical Information Section */}
+              <div className="col-span-2 pt-4 border-t">
+                <h3 className="font-semibold mb-3">Información Médica</h3>
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="medicalConditions">Condiciones Médicas</Label>
+                <Textarea
+                  id="medicalConditions"
+                  placeholder="Ej: Diabetes, hipertensión, hipotiroidismo..."
+                  value={newPatient.medicalConditions}
+                  onChange={(e) => setNewPatient({ ...newPatient, medicalConditions: e.target.value })}
+                  className="min-h-16"
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="medications">Medicamentos Actuales</Label>
+                <Textarea
+                  id="medications"
+                  placeholder="Medicamentos que toma actualmente..."
+                  value={newPatient.medications}
+                  onChange={(e) => setNewPatient({ ...newPatient, medications: e.target.value })}
+                  className="min-h-16"
                 />
               </div>
             </div>

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Calendar, Mail, Phone, User, Edit, FileDown } from "lucide-react";
+import { Calendar, Mail, Phone, User, Edit, FileDown, Activity, Utensils, Heart } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssignDietDialog } from "@/components/assign-diet-dialog";
 import { MeasurementsHistory } from "@/components/measurements-history";
@@ -201,6 +201,86 @@ export default function PatientProfile() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Objetivo</p>
                 <p className="text-lg font-semibold">{patient.objective || "-"}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Activity Section */}
+          <Card className="shadow-md">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-primary" />
+                <CardTitle>Actividad Física</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-6">
+              <div className="col-span-2">
+                <p className="text-sm font-medium text-muted-foreground">Realiza Ejercicio</p>
+                <p className="text-lg font-semibold">{patient.exercisesRegularly ? "Sí" : "No"}</p>
+              </div>
+              {patient.exercisesRegularly && (
+                <>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Tipo de Deporte/Actividad</p>
+                    <p className="text-lg font-semibold">{patient.sportType || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Días que Entrena</p>
+                    <p className="text-lg font-semibold">{patient.exerciseDays || "-"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium text-muted-foreground">Horarios</p>
+                    <p className="text-lg font-semibold">{patient.exerciseSchedule || "-"}</p>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Dietary Preferences Section */}
+          <Card className="shadow-md">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Utensils className="h-5 w-5 text-primary" />
+                <CardTitle>Preferencias Dietarias</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Vegetariano</p>
+                <p className="text-lg font-semibold">{patient.isVegetarian ? "Sí" : "No"}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Vegano</p>
+                <p className="text-lg font-semibold">{patient.isVegan ? "Sí" : "No"}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-sm font-medium text-muted-foreground">Alergias Alimentarias</p>
+                <p className="text-lg">{patient.foodAllergies || "-"}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-sm font-medium text-muted-foreground">Alimentos que No Consume</p>
+                <p className="text-lg">{patient.foodDislikes || "-"}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Medical Information Section */}
+          <Card className="shadow-md">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-primary" />
+                <CardTitle>Información Médica</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Condiciones Médicas</p>
+                <p className="text-lg">{patient.medicalConditions || "-"}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Medicamentos Actuales</p>
+                <p className="text-lg">{patient.medications || "-"}</p>
               </div>
             </CardContent>
           </Card>
