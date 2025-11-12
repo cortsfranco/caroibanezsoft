@@ -2,7 +2,7 @@
 
 Sistema de Nutrición Carolina Ibáñez is a comprehensive nutrition management platform designed for nutritionists to track patient data, manage anthropometric measurements, assign diets, and generate reports. The application uses a modern full-stack architecture with React frontend and Express backend, connected to a PostgreSQL database via Neon serverless.
 
-The system implements the ISAK 2 anthropometric measurement standard (5 components - D. Kerr 1988) and provides real-time data synchronization via WebSockets, Excel import/export capabilities, and AI-powered diet generation using Azure OpenAI integration.
+The system implements the ISAK 2 anthropometric measurement standard (5 components - D. Kerr 1988) with **automatic BMI calculation**, provides real-time data synchronization via WebSockets, Excel import/export capabilities, AI-powered diet generation using Azure OpenAI integration, and **automated PDF report generation** for professional nutrition assessments.
 
 # User Preferences
 
@@ -151,3 +151,64 @@ Preferred communication style: Simple, everyday language.
 ## Session Management
 
 **connect-pg-simple**: PostgreSQL-backed session store for Express sessions (dependency present but not actively configured in visible code - likely for future authentication implementation).
+
+# Recent Updates (November 12, 2025)
+
+## Automatic BMI Calculation
+**Service**: `server/services/measurement-calculations.ts`
+- Automatically calculates BMI when measurements are created or updated
+- Calculates sum of 6 skinfolds (ISAK 2 standard)
+- Results persisted in `measurementCalculations` table
+- Integrated in POST and PATCH `/api/measurements` endpoints
+
+**Functions**:
+- `calculateBMI(weight, height)` - Returns BMI value and classification (Bajo peso, Normal, Sobrepeso, Obesidad I/II/III)
+- `calculateSum6Skinfolds()` - Sums triceps, subscapular, supraspinal, abdominal, thigh, calf skinfolds
+- `calculateAll()` - Orchestrates all anthropometric calculations
+
+## PDF Report Generation
+**Service**: `server/services/pdf-report-service.ts`
+- Generates professional PDF reports using jsPDF + autoTable
+- Includes patient data, basic measurements (weight, height, BMI), skinfolds, perimeters, and notes
+- Saves PDFs to `/reports` directory with unique filenames
+- Returns relative path `/reports/filename.pdf` for database storage
+
+**Endpoint**: POST `/api/reports/generate`
+- Request body: `{ patientId, measurementId }`
+- Fetches patient and measurement data
+- Calls `generateMeasurementReport()` to create PDF
+- Creates report record with `pdfUrl` and `status: 'generated'`
+- Broadcasts via WebSocket for real-time updates
+- PDFs accessible via HTTP at `/reports/filename.pdf`
+
+**Static File Serving**: Added `app.use('/reports', express.static('reports'))` in `server/index.ts`
+
+## Sample Data Seeding
+**Script**: `server/seed-data.ts`
+- Creates comprehensive sample data for testing and demonstration
+- Run with: `tsx server/seed-data.ts`
+
+**Data Created**:
+- 12 meal tags (categories: dietary, timing, objective)
+- 26 meals with complete nutritional information (proteins, carbs, fats, calories, portions)
+- 26 tag assignments linking meals to categories
+- 3 patient groups (Gimnasia Artística, Consultorio General, Pérdida de Peso)
+- 3 sample patients with exercise habits and dietary preferences
+- 3 weekly diet plan templates (2500 kcal, 1600 kcal, 2000 kcal)
+- 17 meal entries distributed across plans (breakfast, lunch, dinner, snacks)
+
+**Helper Function**: `toDecimalString()` - Converts numbers to strings for PostgreSQL decimal fields (Drizzle requirement)
+
+## Storage Implementation
+**DbStorage Enhancements**: `server/db-storage.ts`
+- Implemented all missing `IStorage` interface methods for weekly plan assignments
+- Methods: `getWeeklyPlanAssignments`, `getWeeklyPlanAssignment`, `createWeeklyPlanAssignment`, `updateWeeklyPlanAssignment`, `deleteWeeklyPlanAssignment`
+- Helper methods: `assignPlanToGroup`, `assignPlanToPatient`
+- All methods follow optimistic locking pattern with version control
+- Proper error handling with `VersionConflictError` for concurrent updates
+
+## UI Improvements
+**Theme Colors**: Updated card background colors for better visibility
+- Light mode: 200° hue, 40% saturation (noticeable light blue/green tint)
+- Dark mode: 200° hue, 25% saturation (subtle tint that respects dark theme)
+- Changes in `client/src/index.css`
