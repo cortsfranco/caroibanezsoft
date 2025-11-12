@@ -480,7 +480,7 @@ export default function Groups() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => {
             const groupPatients = getGroupPatients(group.id);
-            const isEditing = editingGroupId === group.id;
+            const isEditing = editingGroup?.id === group.id;
             const isExpanded = expandedGroups.has(group.id);
             const groupColor = group.color || "#3b82f6";
 
