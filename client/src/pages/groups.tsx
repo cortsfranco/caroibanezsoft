@@ -22,9 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Users, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Link } from "wouter";
 import type { PatientGroup } from "@shared/schema";
+import { getGroupGradient, getGroupBorderColor, getGroupBadgeBg, getGroupAccentColor } from "@/lib/group-colors";
 
 type Patient = {
   id: string;
@@ -49,6 +52,7 @@ export default function Groups() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedGroupForPatient, setSelectedGroupForPatient] = useState<string | null>(null);
   const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const { data: groups = [], isLoading: loadingGroups } = useQuery<PatientGroup[]>({
     queryKey: ["/api/groups"],
@@ -324,12 +328,18 @@ export default function Groups() {
           {groups.map((group) => {
             const groupPatients = getGroupPatients(group.id);
             const isEditing = editingGroupId === group.id;
+            const isExpanded = expandedGroups.has(group.id);
+            const groupColor = group.color || "#3b82f6";
 
             return (
               <Card
                 key={group.id}
-                className="hover-elevate"
+                className="hover-elevate relative overflow-hidden"
                 data-testid={`card-group-${group.id}`}
+                style={{
+                  background: getGroupGradient(groupColor),
+                  borderColor: getGroupBorderColor(groupColor),
+                }}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
@@ -381,41 +391,85 @@ export default function Groups() {
                   )}
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Pacientes</span>
-                    <Badge variant="secondary" data-testid={`badge-patient-count-${group.id}`}>
-                      {groupPatients.length}
-                    </Badge>
-                  </div>
-
-                  {groupPatients.length > 0 ? (
-                    <div className="space-y-2">
-                      {groupPatients.map((patient) => {
-                        const membershipId = getMembershipId(patient.id, group.id);
-                        return (
-                          <div
-                            key={patient.id}
-                            className="flex items-center justify-between p-2 rounded-md bg-muted/50"
-                            data-testid={`patient-item-${patient.id}-${group.id}`}
+                  <Collapsible
+                    open={isExpanded}
+                    onOpenChange={(open) => {
+                      const newExpanded = new Set(expandedGroups);
+                      if (open) {
+                        newExpanded.add(group.id);
+                      } else {
+                        newExpanded.delete(group.id);
+                      }
+                      setExpandedGroups(newExpanded);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex items-center gap-2 p-0 hover:bg-transparent"
+                          data-testid={`button-toggle-patients-${group.id}`}
+                        >
+                          <span className="text-sm font-medium">Pacientes</span>
+                          <Badge 
+                            variant="secondary" 
+                            data-testid={`badge-patient-count-${group.id}`}
+                            style={{
+                              backgroundColor: getGroupBadgeBg(groupColor),
+                              color: getGroupAccentColor(groupColor),
+                              borderColor: getGroupBorderColor(groupColor),
+                            }}
                           >
-                            <span className="text-sm">{patient.name}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => membershipId && deleteMembershipMutation.mutate(membershipId)}
-                              data-testid={`button-remove-patient-${patient.id}-${group.id}`}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        );
-                      })}
+                            {groupPatients.length}
+                          </Badge>
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No hay pacientes en este grupo
-                    </p>
-                  )}
+
+                    <CollapsibleContent className="space-y-2 pt-2">
+                      {groupPatients.length > 0 ? (
+                        <div className="space-y-2">
+                          {groupPatients.map((patient) => {
+                            const membershipId = getMembershipId(patient.id, group.id);
+                            return (
+                              <div
+                                key={patient.id}
+                                className="flex items-center justify-between p-2 rounded-md bg-muted/50 hover-elevate"
+                                data-testid={`patient-item-${patient.id}-${group.id}`}
+                              >
+                                <Link
+                                  href={`/patients/${patient.id}`}
+                                  className="text-sm hover:underline flex-1"
+                                  data-testid={`link-patient-${patient.id}`}
+                                  style={{ color: getGroupAccentColor(groupColor) }}
+                                >
+                                  {patient.name}
+                                </Link>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => membershipId && deleteMembershipMutation.mutate(membershipId)}
+                                  data-testid={`button-remove-patient-${patient.id}-${group.id}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No hay pacientes en este grupo
+                        </p>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   <Dialog
                     open={selectedGroupForPatient === group.id}
