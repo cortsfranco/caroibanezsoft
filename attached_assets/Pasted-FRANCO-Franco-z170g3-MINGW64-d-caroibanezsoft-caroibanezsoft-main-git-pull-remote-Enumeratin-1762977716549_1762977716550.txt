@@ -1,0 +1,58 @@
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git pull
+remote: Enumerating objects: 24, done.
+remote: Counting objects: 100% (24/24), done.
+remote: Compressing objects: 100% (10/10), done.
+remote: Total 18 (delta 8), reused 18 (delta 8), pack-reused 0 (from 0)
+Unpacking objects: 100% (18/18), 244.85 KiB | 244.00 KiB/s, done.
+From https://github.com/cortsfranco/caroibanezsoft
+   5ed73ba..ba4789e  main       -> origin/main
+Updating 5ed73ba..ba4789e
+error: Your local changes to the following files would be overwritten by merge:
+        package.json
+Please commit your changes or stash them before you merge.
+Aborting
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git pull
+Updating 5ed73ba..ba4789e
+error: Your local changes to the following files would be overwritten by merge:
+        package.json
+Please commit your changes or stash them before you merge.
+Aborting
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ gitr add . 
+bash: gitr: command not found
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ gitt add .
+bash: gitt: command not found
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git add .
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git commit -m"v1.0 cursor"
+[main 412ee51] v1.0 cursor
+ 7 files changed, 744 insertions(+), 472 deletions(-)
+ delete mode 100644 .env.example
+ create mode 100644 env.example
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git push
+To https://github.com/cortsfranco/caroibanezsoft.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to 'https://github.com/cortsfranco/caroibanezsoft.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git push origin master
+error: src refspec master does not match any
+error: failed to push some refs to 'https://github.com/cortsfranco/caroibanezsoft.git'
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$
