@@ -695,6 +695,100 @@ router.delete("/api/reports/:id", async (req, res) => {
   }
 });
 
+// ===== AI DIET GENERATION =====
+import { SimpleDietAiService } from "./services/diet-ai-service-simple";
+const dietAiService = new SimpleDietAiService(storage);
+
+router.post("/api/patients/:id/diets/generate", async (req, res) => {
+  try {
+    const request = {
+      patientId: req.params.id,
+      goal: req.body.goal || 'Mejorar composición corporal',
+      durationWeeks: req.body.durationWeeks || 4,
+      preferences: req.body.preferences,
+    };
+
+    const result = await dietAiService.generateDiet(request);
+    
+    wsManager.notifyPatientUpdate(request.patientId);
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Error generating diet:", error);
+    res.status(500).json({ error: "Failed to generate diet plan" });
+  }
+});
+
+router.get("/api/patients/:id/diet-generations", async (req, res) => {
+  try {
+    const generations = await storage.getDietGenerations(req.params.id);
+    res.json(generations);
+  } catch (error) {
+    console.error("Error fetching diet generations:", error);
+    res.status(500).json({ error: "Failed to fetch diet generations" });
+  }
+});
+
+router.get("/api/diet-generations/:id", async (req, res) => {
+  try {
+    const generation = await storage.getDietGeneration(req.params.id);
+    if (!generation) {
+      return res.status(404).json({ error: "Diet generation not found" });
+    }
+    res.json(generation);
+  } catch (error) {
+    console.error("Error fetching diet generation:", error);
+    res.status(500).json({ error: "Failed to fetch diet generation" });
+  }
+});
+
+router.get("/api/diet-generations/:id/meals", async (req, res) => {
+  try {
+    const meals = await storage.getDietMealPlans(req.params.id);
+    res.json(meals);
+  } catch (error) {
+    console.error("Error fetching meals:", error);
+    res.status(500).json({ error: "Failed to fetch meal plans" });
+  }
+});
+
+router.get("/api/diet-generations/:id/exercises", async (req, res) => {
+  try {
+    const exercises = await storage.getDietExerciseBlocks(req.params.id);
+    res.json(exercises);
+  } catch (error) {
+    console.error("Error fetching exercises:", error);
+    res.status(500).json({ error: "Failed to fetch exercise blocks" });
+  }
+});
+
+router.get("/api/diet-templates", async (req, res) => {
+  try {
+    const templates = await storage.getDietTemplates();
+    res.json(templates);
+  } catch (error) {
+    console.error("Error fetching diet templates:", error);
+    res.status(500).json({ error: "Failed to fetch diet templates" });
+  }
+});
+
+router.post("/api/diet-templates", async (req, res) => {
+  try {
+    const data = {
+      name: req.body.name,
+      description: req.body.description || null,
+      content: req.body.content,
+      isActive: req.body.isActive ?? true,
+    };
+    
+    const template = await storage.createDietTemplate(data);
+    res.status(201).json(template);
+  } catch (error) {
+    console.error("Error creating diet template:", error);
+    res.status(500).json({ error: "Failed to create diet template" });
+  }
+});
+
 // Export router for testing
 export { router };
 

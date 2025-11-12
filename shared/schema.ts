@@ -271,6 +271,9 @@ export const dietTemplates = pgTable("diet_templates", {
   description: text("description"),
   objective: text("objective"), // "pérdida", "ganancia", "mantenimiento"
   
+  // Carolina's actual diet plan content (for AI prompt examples)
+  content: text("content"), // Full text of Carolina's weekly plan examples
+  
   // Nutritional guidelines
   targetCalories: integer("target_calories"), // Daily calorie target
   macros: jsonb("macros"), // { protein: 30, carbs: 40, fats: 30 } (percentages)
@@ -305,22 +308,28 @@ export const dietGenerations = pgTable("diet_generations", {
   patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
   templateId: uuid("template_id").references(() => dietTemplates.id),
   
+  // Business metadata
+  goal: text("goal").notNull(), // "Pérdida de peso", "Ganancia muscular", etc.
+  durationWeeks: integer("duration_weeks").notNull().default(4),
+  preferences: text("preferences"), // Additional dietary preferences/notes
+  
   // Generation input context
   inputContext: jsonb("input_context"), // Patient data snapshot used for generation
   promptHash: text("prompt_hash"), // Hash of the prompt for deduplication
   
   // AI generation metadata
-  model: text("model").notNull(), // "gpt-4", "gpt-4-turbo"
-  tokensUsed: integer("tokens_used"),
+  aiModel: text("ai_model").notNull(), // "gpt-4", "azure-openai", "manual"
+  promptTokens: integer("prompt_tokens"),
+  completionTokens: integer("completion_tokens"),
   generationTimeMs: integer("generation_time_ms"),
   
   // Generation output
   rawResponse: text("raw_response"), // Full LLM response
-  structuredPlan: jsonb("structured_plan"), // Parsed and validated meal plan
+  weeklyPlan: jsonb("weekly_plan"), // Parsed and validated weekly meal plan
   
   // Validation and review
   validationErrors: jsonb("validation_errors"), // Array of validation issues
-  reviewStatus: text("review_status").notNull().default("pending"), // "pending", "approved", "rejected", "revised"
+  status: text("status").notNull().default("draft"), // "draft", "approved", "rejected"
   reviewerNotes: text("reviewer_notes"),
   reviewedAt: timestamp("reviewed_at"),
   
@@ -387,7 +396,7 @@ export const dietExerciseBlocks = pgTable("diet_exercise_blocks", {
   // Schedule
   dayOfWeek: integer("day_of_week").notNull(), // 1-7 (Monday-Sunday)
   startTime: text("start_time").notNull(), // "18:00"
-  duration: integer("duration"), // minutes
+  durationMinutes: integer("duration_minutes"), // Exercise duration in minutes
   
   // Exercise details
   exerciseType: text("exercise_type").notNull(), // "Cardio", "Fuerza", "HIIT", etc.
