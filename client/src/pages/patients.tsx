@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { PatientCard } from "@/components/patient-card";
 import { PatientsTable } from "@/components/patients-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Plus, Search, LayoutGrid, Table2 } from "lucide-react";
 import {
   Select,
@@ -12,17 +14,72 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 import type { Patient } from "@shared/schema";
 
 export default function Patients() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("all");
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newPatient, setNewPatient] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    birthDate: "",
+    gender: "",
+    objective: "",
+    notes: "",
+  });
 
   // Fetch patients from API
   const { data: patients = [], isLoading } = useQuery<Patient[]>({
     queryKey: ["/api/patients"],
+  });
+
+  const createPatientMutation = useMutation({
+    mutationFn: async (data: typeof newPatient) => {
+      const payload = {
+        ...data,
+        birthDate: data.birthDate ? new Date(data.birthDate).toISOString() : null,
+      };
+      return await apiRequest("POST", "/api/patients", payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+      setIsCreateDialogOpen(false);
+      setNewPatient({
+        name: "",
+        email: "",
+        phone: "",
+        birthDate: "",
+        gender: "",
+        objective: "",
+        notes: "",
+      });
+      toast({
+        title: "Paciente creado",
+        description: "El paciente se creó exitosamente",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo crear el paciente",
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredPatients = patients.filter((patient) => {
@@ -41,10 +98,123 @@ export default function Patients() {
             Gestiona tus pacientes y sus mediciones
           </p>
         </div>
-        <Button data-testid="button-add-patient">
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Paciente
-        </Button>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-add-patient">
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Paciente
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl" data-testid="dialog-create-patient">
+            <DialogHeader>
+              <DialogTitle>Crear Nuevo Paciente</DialogTitle>
+              <DialogDescription>
+                Completa los datos del nuevo paciente
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre Completo *</Label>
+                <Input
+                  id="name"
+                  data-testid="input-patient-name"
+                  placeholder="Juan Pérez"
+                  value={newPatient.name}
+                  onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  data-testid="input-patient-email"
+                  placeholder="juan@example.com"
+                  value={newPatient.email}
+                  onChange={(e) => setNewPatient({ ...newPatient, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Teléfono</Label>
+                <Input
+                  id="phone"
+                  data-testid="input-patient-phone"
+                  placeholder="+56 9 1234 5678"
+                  value={newPatient.phone}
+                  onChange={(e) => setNewPatient({ ...newPatient, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">Fecha de Nacimiento</Label>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  data-testid="input-patient-birthdate"
+                  value={newPatient.birthDate}
+                  onChange={(e) => setNewPatient({ ...newPatient, birthDate: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Género</Label>
+                <Select
+                  value={newPatient.gender}
+                  onValueChange={(value) => setNewPatient({ ...newPatient, gender: value })}
+                >
+                  <SelectTrigger id="gender" data-testid="select-patient-gender">
+                    <SelectValue placeholder="Seleccionar género" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Masculino</SelectItem>
+                    <SelectItem value="F">Femenino</SelectItem>
+                    <SelectItem value="Other">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="objective">Objetivo</Label>
+                <Select
+                  value={newPatient.objective}
+                  onValueChange={(value) => setNewPatient({ ...newPatient, objective: value })}
+                >
+                  <SelectTrigger id="objective" data-testid="select-patient-objective">
+                    <SelectValue placeholder="Seleccionar objetivo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pérdida">Pérdida de peso</SelectItem>
+                    <SelectItem value="ganancia">Ganancia de masa</SelectItem>
+                    <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="notes">Notas</Label>
+                <Input
+                  id="notes"
+                  data-testid="input-patient-notes"
+                  placeholder="Observaciones adicionales..."
+                  value={newPatient.notes}
+                  onChange={(e) => setNewPatient({ ...newPatient, notes: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+                data-testid="button-cancel-create-patient"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => createPatientMutation.mutate(newPatient)}
+                disabled={!newPatient.name.trim() || createPatientMutation.isPending}
+                data-testid="button-submit-create-patient"
+              >
+                {createPatientMutation.isPending ? "Creando..." : "Crear Paciente"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex gap-4 flex-wrap items-center">
