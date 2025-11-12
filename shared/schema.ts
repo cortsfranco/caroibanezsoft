@@ -218,3 +218,29 @@ export const insertReportSchema = createInsertSchema(reports).omit({
 });
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;
+
+// Diet Assignments Table (Many-to-Many relationship between patients and diets)
+export const dietAssignments = pgTable("diet_assignments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  dietId: uuid("diet_id").notNull().references(() => diets.id, { onDelete: "cascade" }),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  notes: text("notes"),
+  isActive: boolean("is_active").notNull().default(true),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDietAssignmentSchema = createInsertSchema(dietAssignments).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  startDate: z.string().transform(val => new Date(val)),
+  endDate: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
+});
+export type InsertDietAssignment = z.infer<typeof insertDietAssignmentSchema>;
+export type DietAssignment = typeof dietAssignments.$inferSelect;

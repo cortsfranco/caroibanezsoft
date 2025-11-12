@@ -86,7 +86,7 @@ export function PatientCard({
           variant="outline" 
           size="sm" 
           className="flex-1" 
-          onClick={() => setLocation(`/patients/${id}`)}
+          onClick={() => setLocation(`/pacientes/${id}`)}
           data-testid={`button-view-patient-${id}`}
         >
           <FileText className="h-4 w-4 mr-1" />

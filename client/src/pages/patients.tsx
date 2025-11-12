@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { PatientCard } from "@/components/patient-card";
 import { PatientsTable } from "@/components/patients-table";
+import { ExcelImportExport } from "@/components/excel-import-export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,13 +104,15 @@ export default function Patients() {
             Gestiona tus pacientes y sus mediciones
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button data-testid="button-add-patient">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Paciente
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <ExcelImportExport patients={patients} />
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-add-patient">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Paciente
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl" data-testid="dialog-create-patient">
             <DialogHeader>
               <DialogTitle>Crear Nuevo Paciente</DialogTitle>
@@ -219,7 +222,8 @@ export default function Patients() {
               </Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
 
       <div className="flex gap-4 flex-wrap items-center">

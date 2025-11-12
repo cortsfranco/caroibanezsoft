@@ -8,6 +8,7 @@ import {
   insertMeasurementSchema,
   insertMeasurementCalculationSchema,
   insertDietSchema,
+  insertDietAssignmentSchema,
   insertReportSchema,
 } from "@shared/schema";
 import { createServer, type Server } from "http";
@@ -498,6 +499,95 @@ router.delete("/api/diets/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting diet:", error);
     res.status(500).json({ error: "Failed to delete diet" });
+  }
+});
+
+// ===== DIET ASSIGNMENTS =====
+router.get("/api/diet-assignments", async (req, res) => {
+  try {
+    const { patientId, dietId } = req.query;
+    const assignments = await storage.getDietAssignments(
+      patientId as string | undefined,
+      dietId as string | undefined
+    );
+    res.json(assignments);
+  } catch (error) {
+    console.error("Error fetching diet assignments:", error);
+    res.status(500).json({ error: "Failed to fetch diet assignments" });
+  }
+});
+
+router.get("/api/diet-assignments/:id", async (req, res) => {
+  try {
+    const assignment = await storage.getDietAssignment(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ error: "Diet assignment not found" });
+    }
+    res.json(assignment);
+  } catch (error) {
+    console.error("Error fetching diet assignment:", error);
+    res.status(500).json({ error: "Failed to fetch diet assignment" });
+  }
+});
+
+router.post("/api/diet-assignments", async (req, res) => {
+  try {
+    const data = validate(insertDietAssignmentSchema, req.body);
+    const assignment = await storage.createDietAssignment(data);
+    res.status(201).json(assignment);
+  } catch (error) {
+    console.error("Error creating diet assignment:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to create diet assignment" });
+  }
+});
+
+router.patch("/api/diet-assignments/:id", async (req, res) => {
+  try {
+    const { version, ...updateData } = req.body;
+    
+    if (version === undefined || version === null) {
+      return res.status(400).json({ error: "version field is required for updates" });
+    }
+    
+    const versionNum = Number(version);
+    if (isNaN(versionNum)) {
+      return res.status(400).json({ error: "version must be a valid number" });
+    }
+    
+    const data = validate(insertDietAssignmentSchema.partial(), updateData);
+    const assignment = await storage.updateDietAssignment(req.params.id, data, versionNum);
+    
+    if (!assignment) {
+      return res.status(404).json({ error: "Diet assignment not found" });
+    }
+    
+    res.json(assignment);
+  } catch (error) {
+    console.error("Error updating diet assignment:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - record was modified by another user" });
+    }
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update diet assignment" });
+  }
+});
+
+router.delete("/api/diet-assignments/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteDietAssignment(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Diet assignment not found" });
+    }
+    
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting diet assignment:", error);
+    res.status(500).json({ error: "Failed to delete diet assignment" });
   }
 });
 

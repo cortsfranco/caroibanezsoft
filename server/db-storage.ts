@@ -7,6 +7,7 @@ import {
   measurements,
   measurementCalculations,
   diets,
+  dietAssignments,
   reports,
   type Patient,
   type InsertPatient,
@@ -20,6 +21,8 @@ import {
   type InsertMeasurementCalculation,
   type Diet,
   type InsertDiet,
+  type DietAssignment,
+  type InsertDietAssignment,
   type Report,
   type InsertReport,
 } from "@shared/schema";
@@ -321,6 +324,67 @@ export class DbStorage implements IStorage {
 
   async deleteDiet(id: string): Promise<boolean> {
     const result = await db.delete(diets).where(eq(diets.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Diet Assignments
+  async getDietAssignments(patientId?: string, dietId?: string): Promise<DietAssignment[]> {
+    if (patientId && dietId) {
+      return await db
+        .select()
+        .from(dietAssignments)
+        .where(and(eq(dietAssignments.patientId, patientId), eq(dietAssignments.dietId, dietId)))
+        .orderBy(desc(dietAssignments.startDate));
+    } else if (patientId) {
+      return await db
+        .select()
+        .from(dietAssignments)
+        .where(eq(dietAssignments.patientId, patientId))
+        .orderBy(desc(dietAssignments.startDate));
+    } else if (dietId) {
+      return await db
+        .select()
+        .from(dietAssignments)
+        .where(eq(dietAssignments.dietId, dietId))
+        .orderBy(desc(dietAssignments.startDate));
+    }
+    return await db.select().from(dietAssignments).orderBy(desc(dietAssignments.startDate));
+  }
+
+  async getDietAssignment(id: string): Promise<DietAssignment | null> {
+    const result = await db.select().from(dietAssignments).where(eq(dietAssignments.id, id)).limit(1);
+    return result[0] || null;
+  }
+
+  async createDietAssignment(data: InsertDietAssignment): Promise<DietAssignment> {
+    const result = await db.insert(dietAssignments).values(data).returning();
+    return result[0];
+  }
+
+  async updateDietAssignment(id: string, data: Partial<InsertDietAssignment>, expectedVersion?: number): Promise<DietAssignment | null> {
+    const whereConditions = expectedVersion !== undefined
+      ? and(eq(dietAssignments.id, id), eq(dietAssignments.version, expectedVersion))
+      : eq(dietAssignments.id, id);
+
+    const result = await db
+      .update(dietAssignments)
+      .set({
+        ...data,
+        version: sql`${dietAssignments.version} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(whereConditions)
+      .returning();
+
+    if (expectedVersion !== undefined && result.length === 0) {
+      throw new VersionConflictError();
+    }
+
+    return result[0] || null;
+  }
+
+  async deleteDietAssignment(id: string): Promise<boolean> {
+    const result = await db.delete(dietAssignments).where(eq(dietAssignments.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
 

@@ -11,6 +11,8 @@ import type {
   InsertMeasurementCalculation,
   Diet,
   InsertDiet,
+  DietAssignment,
+  InsertDietAssignment,
   Report,
   InsertReport,
 } from "@shared/schema";
@@ -70,6 +72,13 @@ export interface IStorage {
   createDiet(data: InsertDiet): Promise<Diet>;
   updateDiet(id: string, data: Partial<InsertDiet>, expectedVersion?: number): Promise<Diet | null>;
   deleteDiet(id: string): Promise<boolean>;
+
+  // Diet Assignments
+  getDietAssignments(patientId?: string, dietId?: string): Promise<DietAssignment[]>;
+  getDietAssignment(id: string): Promise<DietAssignment | null>;
+  createDietAssignment(data: InsertDietAssignment): Promise<DietAssignment>;
+  updateDietAssignment(id: string, data: Partial<InsertDietAssignment>, expectedVersion?: number): Promise<DietAssignment | null>;
+  deleteDietAssignment(id: string): Promise<boolean>;
 
   // Reports
   getReports(patientId?: string): Promise<Report[]>;
