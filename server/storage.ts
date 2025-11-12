@@ -15,6 +15,14 @@ import type {
   InsertDietAssignment,
   Report,
   InsertReport,
+  DietTemplate,
+  InsertDietTemplate,
+  DietGeneration,
+  InsertDietGeneration,
+  DietMealPlan,
+  InsertDietMealPlan,
+  DietExerciseBlock,
+  InsertDietExerciseBlock,
 } from "@shared/schema";
 
 export class VersionConflictError extends Error {
@@ -102,4 +110,30 @@ export interface IStorage {
 
   // Dashboard Statistics
   getGroupStatistics(): Promise<GroupStatistics[]>;
+
+  // AI Diet Generation System
+  // Diet Templates
+  getDietTemplates(): Promise<DietTemplate[]>;
+  getDietTemplate(id: string): Promise<DietTemplate | null>;
+  createDietTemplate(data: InsertDietTemplate): Promise<DietTemplate>;
+  updateDietTemplate(id: string, data: Partial<InsertDietTemplate>, expectedVersion?: number): Promise<DietTemplate | null>;
+  deleteDietTemplate(id: string): Promise<boolean>;
+
+  // Diet Generations
+  getDietGenerations(patientId?: string): Promise<DietGeneration[]>;
+  getDietGeneration(id: string): Promise<DietGeneration | null>;
+  createDietGeneration(data: InsertDietGeneration): Promise<DietGeneration>;
+  updateDietGeneration(id: string, data: Partial<InsertDietGeneration>, expectedVersion?: number): Promise<DietGeneration | null>;
+  deleteDietGeneration(id: string): Promise<boolean>;
+
+  // Diet Meal Plans
+  getDietMealPlans(generationId: string): Promise<DietMealPlan[]>;
+  createDietMealPlan(data: InsertDietMealPlan): Promise<DietMealPlan>;
+
+  // Diet Exercise Blocks
+  getDietExerciseBlocks(generationId: string): Promise<DietExerciseBlock[]>;
+  createDietExerciseBlock(data: InsertDietExerciseBlock): Promise<DietExerciseBlock>;
+
+  // Helper method for diet AI service
+  getMeasurementsByPatient(patientId: string): Promise<Measurement[]>;
 }

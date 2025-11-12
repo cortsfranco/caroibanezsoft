@@ -1,4 +1,4 @@
-import { pgTable, text, integer, decimal, timestamp, uuid, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, decimal, timestamp, uuid, boolean, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -259,3 +259,157 @@ export const insertDietAssignmentSchema = createInsertSchema(dietAssignments).om
 });
 export type InsertDietAssignment = z.infer<typeof insertDietAssignmentSchema>;
 export type DietAssignment = typeof dietAssignments.$inferSelect;
+
+// ===================================
+// AI DIET GENERATION SYSTEM TABLES
+// ===================================
+
+// Diet Templates Table (Carolina's curated examples)
+export const dietTemplates = pgTable("diet_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(), // Template name (e.g., "Pérdida de Peso - Bajo Carbohidratos")
+  description: text("description"),
+  objective: text("objective"), // "pérdida", "ganancia", "mantenimiento"
+  
+  // Nutritional guidelines
+  targetCalories: integer("target_calories"), // Daily calorie target
+  macros: jsonb("macros"), // { protein: 30, carbs: 40, fats: 30 } (percentages)
+  
+  // Diet structure and examples
+  mealStructure: jsonb("meal_structure"), // { breakfast: {...}, lunch: {...}, dinner: {...}, snacks: [...] }
+  sampleMeals: jsonb("sample_meals"), // Array of meal examples with recipes
+  restrictions: jsonb("restrictions"), // { vegetarian: false, vegan: false, allergies: [] }
+  
+  // Metadata
+  tags: text("tags").array(), // ["bajo-carbohidratos", "alto-proteina", "vegetariano"]
+  isActive: boolean("is_active").notNull().default(true),
+  successRate: integer("success_rate"), // 0-100, based on patient outcomes
+  
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDietTemplateSchema = createInsertSchema(dietTemplates).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDietTemplate = z.infer<typeof insertDietTemplateSchema>;
+export type DietTemplate = typeof dietTemplates.$inferSelect;
+
+// Diet Generations Table (AI generation metadata and audit log)
+export const dietGenerations = pgTable("diet_generations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  templateId: uuid("template_id").references(() => dietTemplates.id),
+  
+  // Generation input context
+  inputContext: jsonb("input_context"), // Patient data snapshot used for generation
+  promptHash: text("prompt_hash"), // Hash of the prompt for deduplication
+  
+  // AI generation metadata
+  model: text("model").notNull(), // "gpt-4", "gpt-4-turbo"
+  tokensUsed: integer("tokens_used"),
+  generationTimeMs: integer("generation_time_ms"),
+  
+  // Generation output
+  rawResponse: text("raw_response"), // Full LLM response
+  structuredPlan: jsonb("structured_plan"), // Parsed and validated meal plan
+  
+  // Validation and review
+  validationErrors: jsonb("validation_errors"), // Array of validation issues
+  reviewStatus: text("review_status").notNull().default("pending"), // "pending", "approved", "rejected", "revised"
+  reviewerNotes: text("reviewer_notes"),
+  reviewedAt: timestamp("reviewed_at"),
+  
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDietGenerationSchema = createInsertSchema(dietGenerations).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  reviewedAt: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
+});
+export type InsertDietGeneration = z.infer<typeof insertDietGenerationSchema>;
+export type DietGeneration = typeof dietGenerations.$inferSelect;
+
+// Diet Meal Plans Table (Detailed daily meal schedules)
+export const dietMealPlans = pgTable("diet_meal_plans", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  generationId: uuid("generation_id").notNull().references(() => dietGenerations.id, { onDelete: "cascade" }),
+  
+  // Day and meal slot
+  dayOfWeek: integer("day_of_week").notNull(), // 1-7 (Monday-Sunday)
+  mealType: text("meal_type").notNull(), // "breakfast", "lunch", "dinner", "snack"
+  mealOrder: integer("meal_order").notNull(), // Order within the day
+  
+  // Meal details
+  name: text("name").notNull(), // "Avena con Frutas y Almendras"
+  description: text("description"), // Detailed recipe/instructions
+  ingredients: jsonb("ingredients"), // Array of { name, quantity, unit }
+  
+  // Nutritional info
+  calories: integer("calories"),
+  protein: decimal("protein", { precision: 5, scale: 2 }), // grams
+  carbs: decimal("carbs", { precision: 5, scale: 2 }), // grams
+  fats: decimal("fats", { precision: 5, scale: 2 }), // grams
+  
+  // Timing
+  suggestedTime: text("suggested_time"), // "07:00", "12:30"
+  
+  notes: text("notes"),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDietMealPlanSchema = createInsertSchema(dietMealPlans).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDietMealPlan = z.infer<typeof insertDietMealPlanSchema>;
+export type DietMealPlan = typeof dietMealPlans.$inferSelect;
+
+// Diet Exercise Blocks Table (Exercise schedules aligned with meal plans)
+export const dietExerciseBlocks = pgTable("diet_exercise_blocks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  generationId: uuid("generation_id").notNull().references(() => dietGenerations.id, { onDelete: "cascade" }),
+  
+  // Schedule
+  dayOfWeek: integer("day_of_week").notNull(), // 1-7 (Monday-Sunday)
+  startTime: text("start_time").notNull(), // "18:00"
+  duration: integer("duration"), // minutes
+  
+  // Exercise details
+  exerciseType: text("exercise_type").notNull(), // "Cardio", "Fuerza", "HIIT", etc.
+  description: text("description"),
+  intensity: text("intensity"), // "baja", "moderada", "alta"
+  
+  // Recommendations
+  preWorkoutMeal: text("pre_workout_meal"), // Reference to meal or description
+  postWorkoutMeal: text("post_workout_meal"),
+  hydrationNotes: text("hydration_notes"),
+  
+  notes: text("notes"),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDietExerciseBlockSchema = createInsertSchema(dietExerciseBlocks).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertDietExerciseBlock = z.infer<typeof insertDietExerciseBlockSchema>;
+export type DietExerciseBlock = typeof dietExerciseBlocks.$inferSelect;
