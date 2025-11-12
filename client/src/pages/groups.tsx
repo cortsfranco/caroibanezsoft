@@ -48,11 +48,21 @@ type GroupMembership = {
 export default function Groups() {
   const { toast } = useToast();
   const confirmDialog = useConfirmDialog();
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
-  const [editingGroupName, setEditingGroupName] = useState("");
+  
+  // Estados para CREAR grupo
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDescription, setNewGroupDescription] = useState("");
+  const [newGroupColor, setNewGroupColor] = useState("#3b82f6");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  
+  // Estados para EDITAR grupo
+  const [editGroupName, setEditGroupName] = useState("");
+  const [editGroupDescription, setEditGroupDescription] = useState("");
+  const [editGroupColor, setEditGroupColor] = useState("#3b82f6");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<PatientGroup | null>(null);
+  
+  // Otros estados
   const [selectedGroupForPatient, setSelectedGroupForPatient] = useState<string | null>(null);
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -70,7 +80,7 @@ export default function Groups() {
   });
 
   const createGroupMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string }) => {
+    mutationFn: async (data: { name: string; description: string; color: string }) => {
       return await apiRequest("POST", "/api/groups", data);
     },
     onSuccess: () => {
@@ -78,6 +88,7 @@ export default function Groups() {
       setIsCreateDialogOpen(false);
       setNewGroupName("");
       setNewGroupDescription("");
+      setNewGroupColor("#3b82f6");
       toast({
         title: "Grupo creado",
         description: "El grupo se creó exitosamente",
@@ -93,12 +104,12 @@ export default function Groups() {
   });
 
   const updateGroupMutation = useMutation({
-    mutationFn: async ({ id, name, description, version }: { id: string; name: string; description?: string; version: number }) => {
-      return await apiRequest("PATCH", `/api/groups/${id}`, { name, description, version });
+    mutationFn: async ({ id, name, description, color, version }: { id: string; name: string; description?: string; color?: string; version: number }) => {
+      return await apiRequest("PATCH", `/api/groups/${id}`, { name, description, color, version });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
-      setEditingGroupId(null);
+      handleCloseEditDialog();
       toast({
         title: "Grupo actualizado",
         description: "El grupo se actualizó exitosamente",
@@ -193,22 +204,32 @@ export default function Groups() {
     return patients.filter((p) => !assignedPatientIds.has(p.id));
   };
 
-  const handleSaveGroupName = (group: PatientGroup) => {
-    if (editingGroupName.trim() && editingGroupName !== group.name) {
-      updateGroupMutation.mutate({
-        id: group.id,
-        name: editingGroupName,
-        description: group.description || undefined,
-        version: group.version,
-      });
-    } else {
-      setEditingGroupId(null);
-    }
+  const handleOpenEditDialog = (group: PatientGroup) => {
+    setEditingGroup(group);
+    setEditGroupName(group.name);
+    setEditGroupDescription(group.description || "");
+    setEditGroupColor(group.color || "#3b82f6");
+    setIsEditDialogOpen(true);
   };
 
-  const handleStartEdit = (group: PatientGroup) => {
-    setEditingGroupId(group.id);
-    setEditingGroupName(group.name);
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false);
+    setEditingGroup(null);
+    setEditGroupName("");
+    setEditGroupDescription("");
+    setEditGroupColor("#3b82f6");
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingGroup) return;
+    
+    updateGroupMutation.mutate({
+      id: editingGroup.id,
+      name: editGroupName,
+      description: editGroupDescription || undefined,
+      color: editGroupColor,
+      version: editingGroup.version,
+    });
   };
 
   const handleAddPatientToGroup = () => {
@@ -316,6 +337,28 @@ export default function Groups() {
                   onChange={(e) => setNewGroupDescription(e.target.value)}
                 />
               </div>
+              <div className="space-y-2">
+                <label htmlFor="groupColor" className="text-sm font-medium">
+                  Color del Grupo
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    id="groupColor"
+                    data-testid="input-group-color"
+                    value={newGroupColor}
+                    onChange={(e) => setNewGroupColor(e.target.value)}
+                    className="h-10 w-20 rounded-md border border-input cursor-pointer"
+                  />
+                  <div 
+                    className="flex-1 h-10 rounded-md border"
+                    style={{
+                      background: getGroupGradient(newGroupColor),
+                      borderColor: getGroupBorderColor(newGroupColor)
+                    }}
+                  />
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button
@@ -330,6 +373,7 @@ export default function Groups() {
                   createGroupMutation.mutate({
                     name: newGroupName,
                     description: newGroupDescription,
+                    color: newGroupColor,
                   })
                 }
                 disabled={!newGroupName.trim() || createGroupMutation.isPending}
@@ -341,6 +385,82 @@ export default function Groups() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Diálogo de Editar Grupo */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent data-testid="dialog-edit-group">
+          <DialogHeader>
+            <DialogTitle>Editar Grupo</DialogTitle>
+            <DialogDescription>
+              Modifica la información del grupo
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="editGroupName" className="text-sm font-medium">
+                Nombre del Grupo *
+              </label>
+              <Input
+                id="editGroupName"
+                data-testid="input-edit-group-name"
+                placeholder="Ej: Deportistas, Adultos Mayores, etc."
+                value={editGroupName}
+                onChange={(e) => setEditGroupName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="editGroupDescription" className="text-sm font-medium">
+                Descripción (opcional)
+              </label>
+              <Input
+                id="editGroupDescription"
+                data-testid="input-edit-group-description"
+                placeholder="Describe el grupo..."
+                value={editGroupDescription}
+                onChange={(e) => setEditGroupDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="editGroupColor" className="text-sm font-medium">
+                Color del Grupo
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  id="editGroupColor"
+                  data-testid="input-edit-group-color"
+                  value={editGroupColor}
+                  onChange={(e) => setEditGroupColor(e.target.value)}
+                  className="h-10 w-20 rounded-md border border-input cursor-pointer"
+                />
+                <div 
+                  className="flex-1 h-10 rounded-md border"
+                  style={{
+                    background: getGroupGradient(editGroupColor),
+                    borderColor: getGroupBorderColor(editGroupColor)
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCloseEditDialog}
+              data-testid="button-cancel-edit"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={!editGroupName.trim() || updateGroupMutation.isPending}
+              data-testid="button-submit-edit"
+            >
+              {updateGroupMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {groups.length === 0 ? (
         <Card>
@@ -376,33 +496,17 @@ export default function Groups() {
               >
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2">
-                    {isEditing ? (
-                      <Input
-                        data-testid={`input-edit-group-${group.id}`}
-                        value={editingGroupName}
-                        onChange={(e) => setEditingGroupName(e.target.value)}
-                        onBlur={() => handleSaveGroupName(group)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveGroupName(group);
-                          if (e.key === "Escape") setEditingGroupId(null);
-                        }}
-                        autoFocus
-                        className="flex-1"
-                      />
-                    ) : (
-                      <CardTitle
-                        className="flex-1 cursor-pointer"
-                        onClick={() => handleStartEdit(group)}
-                        data-testid={`text-group-name-${group.id}`}
-                      >
-                        {group.name}
-                      </CardTitle>
-                    )}
+                    <CardTitle
+                      className="flex-1"
+                      data-testid={`text-group-name-${group.id}`}
+                    >
+                      {group.name}
+                    </CardTitle>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleStartEdit(group)}
+                        onClick={() => handleOpenEditDialog(group)}
                         data-testid={`button-edit-group-${group.id}`}
                       >
                         <Pencil className="h-4 w-4" />

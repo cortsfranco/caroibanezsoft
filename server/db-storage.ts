@@ -720,69 +720,149 @@ export class DbStorage implements IStorage {
   }
 
   // ============================================================================
-  // MEAL CATALOG SYSTEM - Stub implementations (will be fully implemented when Neon is enabled)
+  // MEAL CATALOG SYSTEM
   // ============================================================================
 
   async getMeals(filters?: { category?: string; search?: string; tagIds?: string[] }): Promise<Meal[]> {
-    // TODO: Implement when database is enabled
-    console.warn("getMeals called but database is not ready");
-    return [];
+    let query = db.select().from(meals);
+
+    const conditions = [];
+    
+    if (filters?.category) {
+      conditions.push(eq(meals.category, filters.category));
+    }
+    
+    if (filters?.search) {
+      conditions.push(sql`LOWER(${meals.name}) LIKE LOWER(${'%' + filters.search + '%'})`);
+    }
+
+    // Filter by tags if provided (requires join with assignments)
+    if (filters?.tagIds && filters.tagIds.length > 0) {
+      const mealsWithTags = await db
+        .selectDistinct({ id: meals.id })
+        .from(meals)
+        .leftJoin(mealTagAssignments, eq(meals.id, mealTagAssignments.mealId))
+        .where(inArray(mealTagAssignments.tagId, filters.tagIds));
+      
+      const mealIds = mealsWithTags.map(m => m.id);
+      if (mealIds.length > 0) {
+        conditions.push(inArray(meals.id, mealIds));
+      } else {
+        return []; // No meals found with those tags
+      }
+    }
+
+    if (conditions.length > 0) {
+      return await query.where(and(...conditions)).orderBy(meals.name);
+    }
+    
+    return await query.orderBy(meals.name);
   }
 
   async getMeal(id: string): Promise<Meal | null> {
-    console.warn("getMeal called but database is not ready");
-    return null;
+    const result = await db.select().from(meals).where(eq(meals.id, id)).limit(1);
+    return result[0] || null;
   }
 
   async createMeal(data: InsertMeal): Promise<Meal> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.insert(meals).values(data).returning();
+    return result[0];
   }
 
   async updateMeal(id: string, data: Partial<InsertMeal>, expectedVersion?: number): Promise<Meal | null> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    if (expectedVersion !== undefined) {
+      const existing = await this.getMeal(id);
+      if (!existing) return null;
+      if (existing.version !== expectedVersion) {
+        throw new VersionConflictError("Version conflict - record was modified by another user");
+      }
+    }
+
+    const result = await db
+      .update(meals)
+      .set({ ...data, version: sql`${meals.version} + 1`, updatedAt: new Date() })
+      .where(eq(meals.id, id))
+      .returning();
+    
+    return result[0] || null;
   }
 
   async deleteMeal(id: string): Promise<boolean> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.delete(meals).where(eq(meals.id, id)).returning();
+    return result.length > 0;
   }
 
   async getMealTags(category?: string): Promise<MealTag[]> {
-    console.warn("getMealTags called but database is not ready");
-    return [];
+    if (category) {
+      return await db.select().from(mealTags)
+        .where(eq(mealTags.category, category))
+        .orderBy(mealTags.name);
+    }
+    return await db.select().from(mealTags).orderBy(mealTags.category, mealTags.name);
   }
 
   async getMealTag(id: string): Promise<MealTag | null> {
-    console.warn("getMealTag called but database is not ready");
-    return null;
+    const result = await db.select().from(mealTags).where(eq(mealTags.id, id)).limit(1);
+    return result[0] || null;
   }
 
   async createMealTag(data: InsertMealTag): Promise<MealTag> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.insert(mealTags).values(data).returning();
+    return result[0];
   }
 
   async updateMealTag(id: string, data: Partial<InsertMealTag>, expectedVersion?: number): Promise<MealTag | null> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    if (expectedVersion !== undefined) {
+      const existing = await this.getMealTag(id);
+      if (!existing) return null;
+      if (existing.version !== expectedVersion) {
+        throw new VersionConflictError("Version conflict - record was modified by another user");
+      }
+    }
+
+    const result = await db
+      .update(mealTags)
+      .set({ ...data, version: sql`${mealTags.version} + 1`, updatedAt: new Date() })
+      .where(eq(mealTags.id, id))
+      .returning();
+    
+    return result[0] || null;
   }
 
   async deleteMealTag(id: string): Promise<boolean> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.delete(mealTags).where(eq(mealTags.id, id)).returning();
+    return result.length > 0;
   }
 
   async getMealTagAssignments(mealId?: string, tagId?: string): Promise<MealTagAssignment[]> {
-    console.warn("getMealTagAssignments called but database is not ready");
-    return [];
+    const conditions = [];
+    if (mealId) conditions.push(eq(mealTagAssignments.mealId, mealId));
+    if (tagId) conditions.push(eq(mealTagAssignments.tagId, tagId));
+
+    if (conditions.length > 0) {
+      return await db.select().from(mealTagAssignments).where(and(...conditions));
+    }
+    return await db.select().from(mealTagAssignments);
   }
 
   async createMealTagAssignment(data: InsertMealTagAssignment): Promise<MealTagAssignment> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.insert(mealTagAssignments).values(data).returning();
+    return result[0];
   }
 
   async deleteMealTagAssignment(id: string): Promise<boolean> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    const result = await db.delete(mealTagAssignments).where(eq(mealTagAssignments.id, id)).returning();
+    return result.length > 0;
   }
 
   async assignTagsToMeal(mealId: string, tagIds: string[]): Promise<void> {
-    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+    // Transactional replacement: delete all existing tags and insert new ones
+    await db.delete(mealTagAssignments).where(eq(mealTagAssignments.mealId, mealId));
+    
+    if (tagIds.length > 0) {
+      const assignments = tagIds.map(tagId => ({ mealId, tagId }));
+      await db.insert(mealTagAssignments).values(assignments);
+    }
   }
 
   async getWeeklyDietPlans(filters?: { isTemplate?: boolean; search?: string }): Promise<WeeklyDietPlan[]> {
