@@ -325,3 +325,178 @@ export function getETM(measurementKey: keyof typeof ETM_VALUES): number {
 export function getReferenceValues(measurementKey: keyof typeof REFERENCE_VALUES): { mean: number; sd: number } {
   return REFERENCE_VALUES[measurementKey] || { mean: 0, sd: 1 };
 }
+
+/**
+ * Additional calculations for real-time editing
+ */
+
+/**
+ * Calculate BMI classification in Spanish
+ */
+export function getBMIClassification(bmi: number): string {
+  if (bmi < 18.5) {
+    return "Bajo peso";
+  } else if (bmi < 25) {
+    return "Normal";
+  } else if (bmi < 30) {
+    return "Sobrepeso";
+  } else if (bmi < 35) {
+    return "Obesidad I";
+  } else if (bmi < 40) {
+    return "Obesidad II";
+  } else {
+    return "Obesidad III";
+  }
+}
+
+/**
+ * Calculate age from birth date
+ */
+export function calculateAge(birthDate?: string | null): number | undefined {
+  if (!birthDate) return undefined;
+
+  const birth = new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+
+  return age >= 0 ? age : undefined;
+}
+
+/**
+ * Calculate sum of 4 skinfolds (Durnin & Womersley)
+ * Triceps + Biceps + Subscapular + Suprailiac
+ */
+export function calculateSum4Skinfolds(
+  triceps?: number | null,
+  biceps?: number | null,
+  subscapular?: number | null,
+  suprailiac?: number | null
+): number | undefined {
+  if (!triceps || !biceps || !subscapular || !suprailiac) {
+    return undefined;
+  }
+
+  return triceps + biceps + subscapular + suprailiac;
+}
+
+/**
+ * Calculate body fat percentage using Durnin & Womersley formula
+ */
+export function calculateBodyFatPercentageDW(
+  sum4Skinfolds: number,
+  age: number,
+  gender: 'M' | 'F' | 'Other'
+): number | undefined {
+  if (!sum4Skinfolds || !age || (gender !== 'M' && gender !== 'F')) {
+    return undefined;
+  }
+
+  // Durnin & Womersley (1974) constants
+  let c: number;
+  let m: number;
+
+  if (gender === 'M') {
+    if (age < 17) {
+      c = 1.1533;
+      m = 0.0643;
+    } else if (age < 20) {
+      c = 1.1620;
+      m = 0.0630;
+    } else if (age < 30) {
+      c = 1.1631;
+      m = 0.0632;
+    } else if (age < 40) {
+      c = 1.1422;
+      m = 0.0544;
+    } else if (age < 50) {
+      c = 1.1620;
+      m = 0.0700;
+    } else {
+      c = 1.1715;
+      m = 0.0779;
+    }
+  } else {
+    if (age < 17) {
+      c = 1.1369;
+      m = 0.0598;
+    } else if (age < 20) {
+      c = 1.1549;
+      m = 0.0678;
+    } else if (age < 30) {
+      c = 1.1599;
+      m = 0.0717;
+    } else if (age < 40) {
+      c = 1.1423;
+      m = 0.0632;
+    } else if (age < 50) {
+      c = 1.1333;
+      m = 0.0612;
+    } else {
+      c = 1.1339;
+      m = 0.0645;
+    }
+  }
+
+  const bodyDensity = c - m * Math.log10(sum4Skinfolds);
+  const bodyFat = ((4.95 / bodyDensity) - 4.50) * 100;
+
+  return Math.round(bodyFat * 10) / 10;
+}
+
+/**
+ * Calculate lean mass (kg)
+ */
+export function calculateLeanMass(weight: number, bodyFatPercentage: number): number {
+  const leanMass = weight * (1 - bodyFatPercentage / 100);
+  return Math.round(leanMass * 10) / 10;
+}
+
+/**
+ * Calculate fat mass (kg)
+ */
+export function calculateFatMass(weight: number, bodyFatPercentage: number): number {
+  const fatMass = weight * (bodyFatPercentage / 100);
+  return Math.round(fatMass * 10) / 10;
+}
+
+/**
+ * Calculate waist-hip ratio and classification
+ */
+export function calculateWaistHipRatio(
+  waist?: number | null,
+  hip?: number | null,
+  gender?: 'M' | 'F' | 'Other' | null
+): { value?: number; classification?: string } {
+  if (!waist || !hip || waist <= 0 || hip <= 0) {
+    return {};
+  }
+
+  const ratio = waist / hip;
+  const value = Math.round(ratio * 100) / 100;
+
+  let classification = "";
+  if (gender === 'M') {
+    if (ratio < 0.90) {
+      classification = "Bajo riesgo";
+    } else if (ratio < 1.0) {
+      classification = "Riesgo moderado";
+    } else {
+      classification = "Riesgo alto";
+    }
+  } else if (gender === 'F') {
+    if (ratio < 0.80) {
+      classification = "Bajo riesgo";
+    } else if (ratio < 0.85) {
+      classification = "Riesgo moderado";
+    } else {
+      classification = "Riesgo alto";
+    }
+  }
+
+  return { value, classification };
+}
