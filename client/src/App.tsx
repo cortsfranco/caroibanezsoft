@@ -15,6 +15,7 @@ import Measurements from "@/pages/measurements";
 import Diets from "@/pages/diets";
 import DietLibrary from "@/pages/diet-library";
 import MealCatalog from "@/pages/meal-catalog";
+import WeeklyDietPlanner from "@/pages/weekly-diet-planner";
 import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/dietas" component={Diets} />
       <Route path="/biblioteca-dietas" component={DietLibrary} />
       <Route path="/catalogo-comidas" component={MealCatalog} />
+      <Route path="/crear-plan-semanal" component={WeeklyDietPlanner} />
       <Route path="/informes" component={Reports} />
       <Route component={NotFound} />
     </Switch>

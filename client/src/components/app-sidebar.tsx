@@ -1,4 +1,4 @@
-import { Home, Users, FolderKanban, Ruler, UtensilsCrossed, FileText, Activity, BookOpen, CookingPot } from "lucide-react";
+import { Home, Users, FolderKanban, Ruler, UtensilsCrossed, FileText, Activity, BookOpen, CookingPot, Calendar } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -49,6 +49,11 @@ const menuItems = [
     title: "Catálogo de Comidas",
     url: "/catalogo-comidas",
     icon: CookingPot,
+  },
+  {
+    title: "Crear Plan Semanal",
+    url: "/crear-plan-semanal",
+    icon: Calendar,
   },
   {
     title: "Informes",

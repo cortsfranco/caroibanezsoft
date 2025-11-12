@@ -121,7 +121,7 @@ export default function Patients() {
 
   const filteredPatients = patients.filter((patient) => {
     const matchesSearch = patient.name
-      .toLowerCase()
+      ?.toLowerCase()
       .includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
