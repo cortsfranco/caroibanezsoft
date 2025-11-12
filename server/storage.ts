@@ -23,6 +23,16 @@ import type {
   InsertDietMealPlan,
   DietExerciseBlock,
   InsertDietExerciseBlock,
+  Meal,
+  InsertMeal,
+  MealTag,
+  InsertMealTag,
+  MealTagAssignment,
+  InsertMealTagAssignment,
+  WeeklyDietPlan,
+  InsertWeeklyDietPlan,
+  WeeklyPlanMeal,
+  InsertWeeklyPlanMeal,
 } from "@shared/schema";
 
 export class VersionConflictError extends Error {
@@ -136,4 +146,42 @@ export interface IStorage {
 
   // Helper method for diet AI service
   getMeasurementsByPatient(patientId: string): Promise<Measurement[]>;
+
+  // ============================================================================
+  // MEAL CATALOG SYSTEM - Carolina's Pre-loaded Meals
+  // ============================================================================
+
+  // Meals
+  getMeals(filters?: { category?: string; search?: string; tagIds?: string[] }): Promise<Meal[]>;
+  getMeal(id: string): Promise<Meal | null>;
+  createMeal(data: InsertMeal): Promise<Meal>;
+  updateMeal(id: string, data: Partial<InsertMeal>, expectedVersion?: number): Promise<Meal | null>;
+  deleteMeal(id: string): Promise<boolean>;
+
+  // Meal Tags
+  getMealTags(category?: string): Promise<MealTag[]>;
+  getMealTag(id: string): Promise<MealTag | null>;
+  createMealTag(data: InsertMealTag): Promise<MealTag>;
+  updateMealTag(id: string, data: Partial<InsertMealTag>, expectedVersion?: number): Promise<MealTag | null>;
+  deleteMealTag(id: string): Promise<boolean>;
+
+  // Meal Tag Assignments
+  getMealTagAssignments(mealId?: string, tagId?: string): Promise<MealTagAssignment[]>;
+  createMealTagAssignment(data: InsertMealTagAssignment): Promise<MealTagAssignment>;
+  deleteMealTagAssignment(id: string): Promise<boolean>;
+  assignTagsToMeal(mealId: string, tagIds: string[]): Promise<void>;
+
+  // Weekly Diet Plans
+  getWeeklyDietPlans(patientId?: string): Promise<WeeklyDietPlan[]>;
+  getWeeklyDietPlan(id: string): Promise<WeeklyDietPlan | null>;
+  createWeeklyDietPlan(data: InsertWeeklyDietPlan): Promise<WeeklyDietPlan>;
+  updateWeeklyDietPlan(id: string, data: Partial<InsertWeeklyDietPlan>, expectedVersion?: number): Promise<WeeklyDietPlan | null>;
+  deleteWeeklyDietPlan(id: string): Promise<boolean>;
+
+  // Weekly Plan Meals
+  getWeeklyPlanMeals(planId: string): Promise<WeeklyPlanMeal[]>;
+  getWeeklyPlanMeal(id: string): Promise<WeeklyPlanMeal | null>;
+  createWeeklyPlanMeal(data: InsertWeeklyPlanMeal): Promise<WeeklyPlanMeal>;
+  updateWeeklyPlanMeal(id: string, data: Partial<InsertWeeklyPlanMeal>, expectedVersion?: number): Promise<WeeklyPlanMeal | null>;
+  deleteWeeklyPlanMeal(id: string): Promise<boolean>;
 }

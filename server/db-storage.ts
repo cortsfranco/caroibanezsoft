@@ -13,6 +13,11 @@ import {
   dietGenerations,
   dietMealPlans,
   dietExerciseBlocks,
+  meals,
+  mealTags,
+  mealTagAssignments,
+  weeklyDietPlans,
+  weeklyPlanMeals,
   type Patient,
   type InsertPatient,
   type PatientGroup,
@@ -37,6 +42,16 @@ import {
   type InsertDietMealPlan,
   type DietExerciseBlock,
   type InsertDietExerciseBlock,
+  type Meal,
+  type InsertMeal,
+  type MealTag,
+  type InsertMealTag,
+  type MealTagAssignment,
+  type InsertMealTagAssignment,
+  type WeeklyDietPlan,
+  type InsertWeeklyDietPlan,
+  type WeeklyPlanMeal,
+  type InsertWeeklyPlanMeal,
 } from "@shared/schema";
 import type { IStorage, PatientProfile } from "./storage";
 import { VersionConflictError } from "./storage";
@@ -700,6 +715,126 @@ export class DbStorage implements IStorage {
       .where(eq(measurements.patientId, patientId))
       .orderBy(desc(measurements.measurementDate));
   }
+
+  // ============================================================================
+  // MEAL CATALOG SYSTEM - Stub implementations (will be fully implemented when Neon is enabled)
+  // ============================================================================
+
+  async getMeals(filters?: { category?: string; search?: string; tagIds?: string[] }): Promise<Meal[]> {
+    // TODO: Implement when database is enabled
+    console.warn("getMeals called but database is not ready");
+    return [];
+  }
+
+  async getMeal(id: string): Promise<Meal | null> {
+    console.warn("getMeal called but database is not ready");
+    return null;
+  }
+
+  async createMeal(data: InsertMeal): Promise<Meal> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async updateMeal(id: string, data: Partial<InsertMeal>, expectedVersion?: number): Promise<Meal | null> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async deleteMeal(id: string): Promise<boolean> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async getMealTags(category?: string): Promise<MealTag[]> {
+    console.warn("getMealTags called but database is not ready");
+    return [];
+  }
+
+  async getMealTag(id: string): Promise<MealTag | null> {
+    console.warn("getMealTag called but database is not ready");
+    return null;
+  }
+
+  async createMealTag(data: InsertMealTag): Promise<MealTag> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async updateMealTag(id: string, data: Partial<InsertMealTag>, expectedVersion?: number): Promise<MealTag | null> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async deleteMealTag(id: string): Promise<boolean> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async getMealTagAssignments(mealId?: string, tagId?: string): Promise<MealTagAssignment[]> {
+    console.warn("getMealTagAssignments called but database is not ready");
+    return [];
+  }
+
+  async createMealTagAssignment(data: InsertMealTagAssignment): Promise<MealTagAssignment> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async deleteMealTagAssignment(id: string): Promise<boolean> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async assignTagsToMeal(mealId: string, tagIds: string[]): Promise<void> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async getWeeklyDietPlans(patientId?: string): Promise<WeeklyDietPlan[]> {
+    console.warn("getWeeklyDietPlans called but database is not ready");
+    return [];
+  }
+
+  async getWeeklyDietPlan(id: string): Promise<WeeklyDietPlan | null> {
+    console.warn("getWeeklyDietPlan called but database is not ready");
+    return null;
+  }
+
+  async createWeeklyDietPlan(data: InsertWeeklyDietPlan): Promise<WeeklyDietPlan> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async updateWeeklyDietPlan(id: string, data: Partial<InsertWeeklyDietPlan>, expectedVersion?: number): Promise<WeeklyDietPlan | null> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async deleteWeeklyDietPlan(id: string): Promise<boolean> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async getWeeklyPlanMeals(planId: string): Promise<WeeklyPlanMeal[]> {
+    console.warn("getWeeklyPlanMeals called but database is not ready");
+    return [];
+  }
+
+  async getWeeklyPlanMeal(id: string): Promise<WeeklyPlanMeal | null> {
+    console.warn("getWeeklyPlanMeal called but database is not ready");
+    return null;
+  }
+
+  async createWeeklyPlanMeal(data: InsertWeeklyPlanMeal): Promise<WeeklyPlanMeal> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async updateWeeklyPlanMeal(id: string, data: Partial<InsertWeeklyPlanMeal>, expectedVersion?: number): Promise<WeeklyPlanMeal | null> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
+
+  async deleteWeeklyPlanMeal(id: string): Promise<boolean> {
+    throw new Error("Database not available. Enable Neon endpoint and run db:push");
+  }
 }
 
-export const storage = new DbStorage();
+import { MemStorage } from "./mem-storage";
+
+// Feature toggle: Use MemStorage for meal catalog development while Neon DB is unavailable
+// Set USE_MEM_STORAGE=false when Neon endpoint is enabled
+const USE_MEM_STORAGE = process.env.USE_MEM_STORAGE !== "false";
+
+export const storage: IStorage = USE_MEM_STORAGE 
+  ? new MemStorage()
+  : new DbStorage();
+
+console.log(`[Storage] Using ${USE_MEM_STORAGE ? "MemStorage" : "DbStorage"} (meal catalog: ${USE_MEM_STORAGE ? "READY" : "requires Neon DB"})`);

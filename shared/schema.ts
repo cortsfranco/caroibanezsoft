@@ -422,3 +422,173 @@ export const insertDietExerciseBlockSchema = createInsertSchema(dietExerciseBloc
 });
 export type InsertDietExerciseBlock = z.infer<typeof insertDietExerciseBlockSchema>;
 export type DietExerciseBlock = typeof dietExerciseBlocks.$inferSelect;
+
+// ============================================================================
+// MEAL CATALOG SYSTEM - Carolina's Pre-loaded Meals
+// ============================================================================
+
+// Meals Table (Individual meal catalog - Carolina's time-saving database)
+export const meals = pgTable("meals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(), // "Omelette de 1 huevo + 1 clara"
+  description: text("description"), // Detailed preparation instructions
+  category: text("category").notNull(), // "breakfast", "lunch", "dinner", "snack", "pre-workout", "post-workout"
+  
+  // Ingredients with portions
+  ingredients: jsonb("ingredients"), // [{ name: "Huevo", quantity: 1, unit: "unidad" }, ...]
+  portionSize: text("portion_size"), // "1 porción", "180gr", "½ taza"
+  
+  // Macronutrients
+  calories: integer("calories"),
+  protein: decimal("protein", { precision: 5, scale: 2 }), // grams
+  carbs: decimal("carbs", { precision: 5, scale: 2 }), // grams
+  fats: decimal("fats", { precision: 5, scale: 2 }), // grams
+  fiber: decimal("fiber", { precision: 5, scale: 2 }), // grams
+  
+  // Preparation
+  prepTime: integer("prep_time"), // minutes
+  cookTime: integer("cook_time"), // minutes
+  instructions: text("instructions"),
+  
+  // Metadata for filtering
+  isVegetarian: boolean("is_vegetarian").default(false),
+  isVegan: boolean("is_vegan").default(false),
+  isGlutenFree: boolean("is_gluten_free").default(false),
+  isDairyFree: boolean("is_dairy_free").default(false),
+  
+  notes: text("notes"),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertMealSchema = createInsertSchema(meals).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertMeal = z.infer<typeof insertMealSchema>;
+export type Meal = typeof meals.$inferSelect;
+
+// Meal Tags Table (For filtering: group, sport, objective, timing)
+export const mealTags = pgTable("meal_tags", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(), // "Gimnasia", "Running", "Post-entreno", "Alto-proteína"
+  category: text("category").notNull(), // "group", "sport", "objective", "timing", "dietary"
+  description: text("description"),
+  color: text("color"), // Hex color for UI display
+  
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertMealTagSchema = createInsertSchema(mealTags).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertMealTag = z.infer<typeof insertMealTagSchema>;
+export type MealTag = typeof mealTags.$inferSelect;
+
+// Meal Tag Assignments (Many-to-Many)
+export const mealTagAssignments = pgTable("meal_tag_assignments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  mealId: uuid("meal_id").notNull().references(() => meals.id, { onDelete: "cascade" }),
+  tagId: uuid("tag_id").notNull().references(() => mealTags.id, { onDelete: "cascade" }),
+  
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertMealTagAssignmentSchema = createInsertSchema(mealTagAssignments).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertMealTagAssignment = z.infer<typeof insertMealTagAssignmentSchema>;
+export type MealTagAssignment = typeof mealTagAssignments.$inferSelect;
+
+// ============================================================================
+// WEEKLY DIET PLAN SYSTEM - Carolina's Fast Diet Assignment
+// ============================================================================
+
+// Weekly Diet Plans Table (7-day x 4-meal grids assigned to patients)
+export const weeklyDietPlans = pgTable("weekly_diet_plans", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  
+  // Plan metadata
+  name: text("name").notNull(), // "Plan Running Septiembre 2024"
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  goal: text("goal"), // "Aumento masa muscular", "Pérdida peso"
+  
+  // Nutritional targets
+  dailyCalories: integer("daily_calories"),
+  proteinGrams: decimal("protein_grams", { precision: 5, scale: 2 }),
+  carbsGrams: decimal("carbs_grams", { precision: 5, scale: 2 }),
+  fatsGrams: decimal("fats_grams", { precision: 5, scale: 2 }),
+  
+  // Status
+  status: text("status").notNull().default("draft"), // "draft", "active", "completed"
+  notes: text("notes"),
+  
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWeeklyDietPlanSchema = createInsertSchema(weeklyDietPlans).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  startDate: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
+  endDate: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
+});
+export type InsertWeeklyDietPlan = z.infer<typeof insertWeeklyDietPlanSchema>;
+export type WeeklyDietPlan = typeof weeklyDietPlans.$inferSelect;
+
+// Weekly Plan Meals Table (Individual slots in the 7x4 grid)
+export const weeklyPlanMeals = pgTable("weekly_plan_meals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  planId: uuid("plan_id").notNull().references(() => weeklyDietPlans.id, { onDelete: "cascade" }),
+  mealId: uuid("meal_id").references(() => meals.id, { onDelete: "set null" }), // Can be null for custom entries
+  
+  // Grid position
+  dayOfWeek: integer("day_of_week").notNull(), // 1=Monday, 7=Sunday
+  mealSlot: text("meal_slot").notNull(), // "breakfast", "lunch", "snack", "dinner"
+  slotOrder: integer("slot_order").default(1), // For multiple snacks
+  
+  // Custom meal override (if mealId is null)
+  customName: text("custom_name"),
+  customDescription: text("custom_description"),
+  customCalories: integer("custom_calories"),
+  customProtein: decimal("custom_protein", { precision: 5, scale: 2 }),
+  customCarbs: decimal("custom_carbs", { precision: 5, scale: 2 }),
+  customFats: decimal("custom_fats", { precision: 5, scale: 2 }),
+  
+  // Timing
+  suggestedTime: text("suggested_time"), // "09:00", "13:30", "21:00"
+  linkedToExercise: boolean("linked_to_exercise").default(false), // Pre/post workout flag
+  
+  notes: text("notes"),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWeeklyPlanMealSchema = createInsertSchema(weeklyPlanMeals).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertWeeklyPlanMeal = z.infer<typeof insertWeeklyPlanMealSchema>;
+export type WeeklyPlanMeal = typeof weeklyPlanMeals.$inferSelect;
