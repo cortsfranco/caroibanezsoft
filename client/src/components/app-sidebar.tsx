@@ -1,4 +1,4 @@
-import { Home, Users, Ruler, UtensilsCrossed, FileText, Activity } from "lucide-react";
+import { Home, Users, FolderKanban, Ruler, UtensilsCrossed, FileText, Activity } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -24,6 +24,11 @@ const menuItems = [
     title: "Pacientes",
     url: "/pacientes",
     icon: Users,
+  },
+  {
+    title: "Grupos",
+    url: "/grupos",
+    icon: FolderKanban,
   },
   {
     title: "Mediciones",
