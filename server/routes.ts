@@ -829,6 +829,8 @@ router.patch("/api/diet-templates/:id", async (req, res) => {
 // ============================================================================
 
 // ===== MEALS =====
+// NOTE: Meals are a GLOBAL catalog, not patient-specific
+// Patient filtering happens at the weekly plan level
 router.get("/api/meals", async (req, res) => {
   try {
     const { category, search, tagIds } = req.query;
