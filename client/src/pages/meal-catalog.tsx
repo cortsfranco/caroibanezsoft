@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Filter, Edit, Trash2, Upload, Sparkles, Image as ImageIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -177,6 +177,73 @@ export default function MealCatalogPage() {
         variant: "destructive",
       });
     },
+  });
+
+  // Upload image mutation
+  const uploadImageMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch(`/api/meals/${id}/upload-image`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to upload image");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      toast({
+        title: "Imagen subida",
+        description: "La imagen se ha agregado exitosamente a la comida.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo subir la imagen",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Generate AI image mutation
+  const generateImageMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/meals/${id}/generate-image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to generate image");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
+      toast({
+        title: "Imagen generada",
+        description: "La imagen se ha generado exitosamente con IA.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo generar la imagen",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Check AI image generation status
+  const { data: aiStatus } = useQuery<{ available: boolean; provider: string | null }>({
+    queryKey: ["/api/image-generation/status"],
+    staleTime: Infinity,
   });
 
   // Form for create/edit
@@ -664,6 +731,16 @@ export default function MealCatalogPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {meals.map((meal) => (
             <Card key={meal.id} className="hover-elevate" data-testid={`card-meal-${meal.id}`}>
+              {meal.imageUrl && (
+                <div className="relative w-full h-48 overflow-hidden rounded-t-md">
+                  <img 
+                    src={meal.imageUrl} 
+                    alt={meal.name}
+                    className="w-full h-full object-cover"
+                    data-testid={`img-meal-${meal.id}`}
+                  />
+                </div>
+              )}
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -731,6 +808,50 @@ export default function MealCatalogPage() {
                   {meal.isDairyFree && <Badge variant="secondary">Sin Lácteos</Badge>}
                 </div>
               </CardContent>
+              <CardFooter className="flex gap-2 border-t pt-4">
+                <label htmlFor={`upload-${meal.id}`} className="flex-1">
+                  <input
+                    id={`upload-${meal.id}`}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        uploadImageMutation.mutate({ id: meal.id, file });
+                      }
+                    }}
+                    data-testid={`input-upload-image-${meal.id}`}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={uploadImageMutation.isPending}
+                    asChild
+                  >
+                    <span>
+                      <Upload className="w-3 h-3 mr-1" />
+                      {uploadImageMutation.isPending ? "Subiendo..." : "Subir"}
+                    </span>
+                  </Button>
+                </label>
+                {aiStatus?.available && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => generateImageMutation.mutate(meal.id)}
+                    disabled={generateImageMutation.isPending}
+                    data-testid={`button-generate-image-${meal.id}`}
+                  >
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    {generateImageMutation.isPending ? "Generando..." : "Generar IA"}
+                  </Button>
+                )}
+              </CardFooter>
             </Card>
           ))}
         </div>
