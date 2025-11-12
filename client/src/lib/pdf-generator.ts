@@ -1,7 +1,15 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { type Measurement } from '@/../../shared/schema';
-import { calculateBodyComposition, type MeasurementData, type BodyCompositionResult } from './isak-calculations';
+import { 
+  calculateBodyComposition, 
+  type MeasurementData, 
+  type BodyCompositionResult,
+  calculateAdjustedValue,
+  getETM,
+  getReferenceValues,
+  calculateZScore 
+} from './isak-calculations';
 
 export interface PDFReportData {
   patient: {
@@ -94,17 +102,36 @@ function generatePage1(pdf: jsPDF, data: PDFReportData, pageWidth: number, pageH
   };
   
   // Función auxiliar para formatear valores
-  const fmt = (val: number | string | null | undefined): string => {
+  const fmt = (val: number | string | null | undefined, decimals: number = 2): string => {
     if (val === null || val === undefined) return '';
     const num = parseFloat(String(val));
     if (isNaN(num)) return '';
-    return num.toFixed(2);
+    return num.toFixed(decimals);
   };
   
   // Versión segura para asegurar compatibilidad con autoTable
   const fmtSafe = (val: number | string | null | undefined): string | number | null => {
     const result = fmt(val);
     return result || null;
+  };
+  
+  // Calcula valor ajustado con formato
+  const getAdjusted = (rawValue: number | string | null | undefined, type: 'skinfold' | 'perimeter' | 'diameter' | 'basic'): string => {
+    if (!rawValue) return '';
+    const num = parseFloat(String(rawValue));
+    if (isNaN(num)) return '';
+    const adjusted = calculateAdjustedValue(num, type);
+    return adjusted.toFixed(2);
+  };
+  
+  // Calcula Score-Z con formato
+  const getZScore = (rawValue: number | string | null | undefined, measureKey: keyof typeof import('./isak-calculations').REFERENCE_VALUES): string => {
+    if (!rawValue) return '';
+    const num = parseFloat(String(rawValue));
+    if (isNaN(num)) return '';
+    const ref = getReferenceValues(measureKey);
+    const zScore = calculateZScore(num, ref.mean, ref.sd);
+    return zScore.toFixed(2);
   };
   
   // Tabla principal
@@ -123,40 +150,40 @@ function generatePage1(pdf: jsPDF, data: PDFReportData, pageWidth: number, pageH
     body: [
       // BÁSICOS
       [{ content: 'BÁSICOS', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }],
-      ['Peso (kg)', fmtSafe(m.weight), '', '0.05', diff(m.weight, prev?.weight), '-0.06'],
-      ['Talla (cm)', fmtSafe(m.height), '', '0.11', '', ''],
-      ['Talla sentado (cm)', fmtSafe(m.seatedHeight), '', '0.23', '', '-0.70'],
+      ['Peso (kg)', fmtSafe(m.weight), getAdjusted(m.weight, 'basic'), fmt(getETM('weight')), diff(m.weight, prev?.weight), getZScore(m.weight, 'weight')],
+      ['Talla (cm)', fmtSafe(m.height), '', fmt(getETM('height')), '', ''],
+      ['Talla sentado (cm)', fmtSafe(m.seatedHeight), getAdjusted(m.seatedHeight, 'basic'), fmt(getETM('seatedHeight')), '', getZScore(m.seatedHeight, 'seatedHeight')],
       
       // DIÁMETROS
       [{ content: 'DIÁMETROS (cm)', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }],
-      ['Biacromial', fmtSafe(m.biacromial), '', '0.39', '', '0.45'],
-      ['Tórax Transverso', fmtSafe(m.thoraxTransverse), '', '0.61', '', '-1.00'],
-      ['Tórax Anteroposterior', fmtSafe(m.thoraxAnteroposterior), '', '0.68', '', '0.87'],
-      ['Bi-iliocrestídeo', fmtSafe(m.biiliocristideo), '', '0.64', '', '0.62'],
-      ['Humeral (biepicondilar)', fmtSafe(m.humeral), '', '0.40', '', '-0.08'],
-      ['Femoral (biepicondilar)', fmtSafe(m.femoral), '', '0.30', '', '-1.13'],
+      ['Biacromial', fmtSafe(m.biacromial), getAdjusted(m.biacromial, 'diameter'), fmt(getETM('biacromial')), '', getZScore(m.biacromial, 'biacromial')],
+      ['Tórax Transverso', fmtSafe(m.thoraxTransverse), getAdjusted(m.thoraxTransverse, 'diameter'), fmt(getETM('thoraxTransverse')), '', getZScore(m.thoraxTransverse, 'thoraxTransverse')],
+      ['Tórax Anteroposterior', fmtSafe(m.thoraxAnteroposterior), getAdjusted(m.thoraxAnteroposterior, 'diameter'), fmt(getETM('thoraxAnteroposterior')), '', getZScore(m.thoraxAnteroposterior, 'thoraxAnteroposterior')],
+      ['Bi-iliocrestídeo', fmtSafe(m.biiliocristideo), getAdjusted(m.biiliocristideo, 'diameter'), fmt(getETM('biiliocristideo')), '', getZScore(m.biiliocristideo, 'biiliocristideo')],
+      ['Humeral (biepicondilar)', fmtSafe(m.humeral), getAdjusted(m.humeral, 'diameter'), fmt(getETM('humeral')), '', getZScore(m.humeral, 'humeral')],
+      ['Femoral (biepicondilar)', fmtSafe(m.femoral), getAdjusted(m.femoral, 'diameter'), fmt(getETM('femoral')), '', getZScore(m.femoral, 'femoral')],
       
       // PERÍMETROS
       [{ content: 'PERÍMETROS (cm)', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }],
-      ['Cabeza', fmtSafe(m.head), '', '0.16', '', '-1.55'],
-      ['Brazo Relajado', fmtSafe(m.relaxedArm), '', '0.63', diff(m.relaxedArm, prev?.relaxedArm), '0.50'],
-      ['Brazo Flexionado en Tensión', fmtSafe(m.flexedArm), '', '0.69', diff(m.flexedArm, prev?.flexedArm), '0.73'],
-      ['Antebrazo', fmtSafe(m.forearm), '', '0.48', diff(m.forearm, prev?.forearm), '-0.18'],
-      ['Tórax Mesoesternal', fmtSafe(m.thoraxCirc), '', '0.35', diff(m.thoraxCirc, prev?.thoraxCirc), '-0.32'],
-      ['Cintura (mínima)', fmtSafe(m.waist), '', '0.54', diff(m.waist, prev?.waist), '0.02'],
-      ['Caderas (máxima)', fmtSafe(m.hip), '', '0.21', diff(m.hip, prev?.hip), '-0.21'],
-      ['Muslo (superior)', fmtSafe(m.thighSuperior), '', '0.32', diff(m.thighSuperior, prev?.thighSuperior), '0.07'],
-      ['Muslo (medial)', fmtSafe(m.thighMedial), '', '0.33', diff(m.thighMedial, prev?.thighMedial), '0.29'],
-      ['Pantorrilla (máxima)', fmtSafe(m.calf), '', '0.28', diff(m.calf, prev?.calf), '-0.08'],
+      ['Cabeza', fmtSafe(m.head), getAdjusted(m.head, 'perimeter'), fmt(getETM('head')), '', getZScore(m.head, 'head')],
+      ['Brazo Relajado', fmtSafe(m.relaxedArm), getAdjusted(m.relaxedArm, 'perimeter'), fmt(getETM('relaxedArm')), diff(m.relaxedArm, prev?.relaxedArm), getZScore(m.relaxedArm, 'relaxedArm')],
+      ['Brazo Flexionado en Tensión', fmtSafe(m.flexedArm), getAdjusted(m.flexedArm, 'perimeter'), fmt(getETM('flexedArm')), diff(m.flexedArm, prev?.flexedArm), getZScore(m.flexedArm, 'flexedArm')],
+      ['Antebrazo', fmtSafe(m.forearm), getAdjusted(m.forearm, 'perimeter'), fmt(getETM('forearm')), diff(m.forearm, prev?.forearm), getZScore(m.forearm, 'forearm')],
+      ['Tórax Mesoesternal', fmtSafe(m.thoraxCirc), getAdjusted(m.thoraxCirc, 'perimeter'), fmt(getETM('thoraxCirc')), diff(m.thoraxCirc, prev?.thoraxCirc), getZScore(m.thoraxCirc, 'thoraxCirc')],
+      ['Cintura (mínima)', fmtSafe(m.waist), getAdjusted(m.waist, 'perimeter'), fmt(getETM('waist')), diff(m.waist, prev?.waist), getZScore(m.waist, 'waist')],
+      ['Caderas (máxima)', fmtSafe(m.hip), getAdjusted(m.hip, 'perimeter'), fmt(getETM('hip')), diff(m.hip, prev?.hip), getZScore(m.hip, 'hip')],
+      ['Muslo (superior)', fmtSafe(m.thighSuperior), getAdjusted(m.thighSuperior, 'perimeter'), fmt(getETM('thighSuperior')), diff(m.thighSuperior, prev?.thighSuperior), getZScore(m.thighSuperior, 'thighSuperior')],
+      ['Muslo (medial)', fmtSafe(m.thighMedial), getAdjusted(m.thighMedial, 'perimeter'), fmt(getETM('thighMedial')), diff(m.thighMedial, prev?.thighMedial), getZScore(m.thighMedial, 'thighMedial')],
+      ['Pantorrilla (máxima)', fmtSafe(m.calf), getAdjusted(m.calf, 'perimeter'), fmt(getETM('calf')), diff(m.calf, prev?.calf), getZScore(m.calf, 'calf')],
       
       // PLIEGUES CUTÁNEOS
       [{ content: 'PLIEGUES CUTÁNEOS (mm)', colSpan: 6, styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }],
-      ['Tríceps', fmtSafe(m.triceps), '', '1.55', diff(m.triceps, prev?.triceps), '-2.40'],
-      ['Subescapular', fmtSafe(m.subscapular), '', '1.59', diff(m.subscapular, prev?.subscapular), '-2.29'],
-      ['Supraespinal', fmtSafe(m.supraspinal), '', '2.19', diff(m.supraspinal, prev?.supraspinal), '-2.40'],
-      ['Abdominal', fmtSafe(m.abdominal), '', '1.69', diff(m.abdominal, prev?.abdominal), '-1.70'],
-      ['Muslo (medial)', fmtSafe(m.thighSkinfold), '', '1.54', diff(m.thighSkinfold, prev?.thighSkinfold), '-2.12'],
-      ['Pantorrilla', fmtSafe(m.calfSkinfold), '', '1.62', diff(m.calfSkinfold, prev?.calfSkinfold), '-1.82'],
+      ['Tríceps', fmtSafe(m.triceps), getAdjusted(m.triceps, 'skinfold'), fmt(getETM('triceps')), diff(m.triceps, prev?.triceps), getZScore(m.triceps, 'triceps')],
+      ['Subescapular', fmtSafe(m.subscapular), getAdjusted(m.subscapular, 'skinfold'), fmt(getETM('subscapular')), diff(m.subscapular, prev?.subscapular), getZScore(m.subscapular, 'subscapular')],
+      ['Supraespinal', fmtSafe(m.supraspinal), getAdjusted(m.supraspinal, 'skinfold'), fmt(getETM('supraspinal')), diff(m.supraspinal, prev?.supraspinal), getZScore(m.supraspinal, 'supraspinal')],
+      ['Abdominal', fmtSafe(m.abdominal), getAdjusted(m.abdominal, 'skinfold'), fmt(getETM('abdominal')), diff(m.abdominal, prev?.abdominal), getZScore(m.abdominal, 'abdominal')],
+      ['Muslo (medial)', fmtSafe(m.thighSkinfold), getAdjusted(m.thighSkinfold, 'skinfold'), fmt(getETM('thighSkinfold')), diff(m.thighSkinfold, prev?.thighSkinfold), getZScore(m.thighSkinfold, 'thighSkinfold')],
+      ['Pantorrilla', fmtSafe(m.calfSkinfold), getAdjusted(m.calfSkinfold, 'skinfold'), fmt(getETM('calfSkinfold')), diff(m.calfSkinfold, prev?.calfSkinfold), getZScore(m.calfSkinfold, 'calfSkinfold')],
     ],
     styles: {
       fontSize: 8,

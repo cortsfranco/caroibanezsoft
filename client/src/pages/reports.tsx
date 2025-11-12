@@ -17,9 +17,72 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { generateCompositionReport } from "@/lib/pdf-generator";
+import { calculateBodyComposition, type MeasurementData } from "@/lib/isak-calculations";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Reports() {
   const [selectedReport, setSelectedReport] = useState<any>(null);
+  const { toast } = useToast();
+  
+  // Mock data completo para demostración (simula mediciones ISAK completas)
+  const mockMeasurements: Record<string, MeasurementData> = {
+    "1": {
+      weight: 78.4,
+      height: 182,
+      seatedHeight: 92.8,
+      triceps: 5.0,
+      subscapular: 6.0,
+      supraspinal: 5.0,
+      abdominal: 13.0,
+      thighSkinfold: 10.0,
+      calfSkinfold: 8.0,
+      head: 57.5,
+      relaxedArm: 30.0,
+      flexedArm: 33.3,
+      forearm: 26.6,
+      thoraxCirc: 92.2,
+      waist: 77.0,
+      hip: 100.0,
+      thighSuperior: 60.0,
+      thighMedial: 54.5,
+      calf: 37.5,
+      biacromial: 41.6,
+      thoraxTransverse: 28.0,
+      thoraxAnteroposterior: 20.0,
+      biiliocristideo: 32.0,
+      humeral: 6.9,
+      femoral: 9.6,
+    },
+    "2": {
+      weight: 65.5,
+      height: 168,
+      seatedHeight: 88.0,
+      triceps: 12.0,
+      subscapular: 10.5,
+      supraspinal: 9.0,
+      abdominal: 15.0,
+      thighSkinfold: 18.0,
+      calfSkinfold: 12.0,
+      head: 55.0,
+      relaxedArm: 28.0,
+      flexedArm: 30.5,
+      forearm: 24.0,
+      thoraxCirc: 85.0,
+      waist: 72.0,
+      hip: 95.0,
+      thighSuperior: 56.0,
+      thighMedial: 50.0,
+      calf: 35.0,
+      biacromial: 38.0,
+      thoraxTransverse: 26.0,
+      thoraxAnteroposterior: 18.5,
+      biiliocristideo: 30.0,
+      humeral: 6.2,
+      femoral: 8.8,
+    },
+  };
+  
   const mockReports = [
     {
       id: "1",
@@ -54,6 +117,53 @@ export default function Reports() {
       measurementNumber: 2,
     },
   ];
+  
+  const handleDownloadPDF = async (report: any) => {
+    try {
+      // Obtener datos de medición para este reporte
+      const measurementData = mockMeasurements[report.id];
+      
+      if (!measurementData) {
+        toast({
+          title: "Datos no disponibles",
+          description: "No se encontraron mediciones para este informe.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Calcular composición corporal usando ISAK 2
+      const bodyComposition = calculateBodyComposition(measurementData, 'male');
+      
+      // Calcular edad (mock - en producción vendría del paciente)
+      const age = report.id === "1" ? 31.17 : 28.5;
+      
+      // Generar PDF
+      await generateCompositionReport({
+        patient: {
+          name: report.patient,
+          age: age,
+          measurementNumber: report.measurementNumber,
+          measurementDate: report.date,
+        },
+        measurement: measurementData as any, // Casting temporal
+        bodyComposition,
+        objective: "Aumento de masa muscular",
+      });
+      
+      toast({
+        title: "PDF Generado",
+        description: `Informe de ${report.patient} descargado exitosamente.`,
+      });
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al generar el PDF.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -136,6 +246,7 @@ export default function Reports() {
                   <Button
                     size="sm"
                     disabled={report.status === "Pendiente"}
+                    onClick={() => handleDownloadPDF(report)}
                     data-testid={`button-download-report-${report.id}`}
                   >
                     <Download className="h-4 w-4 mr-1" />
