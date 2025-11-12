@@ -436,6 +436,134 @@ export class DbStorage implements IStorage {
     const result = await db.delete(reports).where(eq(reports.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
   }
+
+  async getGroupStatistics(): Promise<import("./storage").GroupStatistics[]> {
+    // Get all groups
+    const allGroups = await db.select().from(patientGroups);
+
+    // Get aggregated stats per group using SQL
+    const statsQuery = await db.execute(sql`
+      WITH group_measurements AS (
+        SELECT 
+          pg.id as group_id,
+          pg.name as group_name,
+          m.id as measurement_id,
+          m.weight,
+          m.height,
+          m.waist,
+          m.measurement_date,
+          mc.bmi
+        FROM patient_groups pg
+        LEFT JOIN group_memberships gm ON pg.id = gm.group_id
+        LEFT JOIN measurements m ON gm.patient_id = m.patient_id
+        LEFT JOIN measurement_calculations mc ON m.id = mc.measurement_id
+      )
+      SELECT 
+        group_id,
+        group_name,
+        COUNT(DISTINCT measurement_id) as measurement_count,
+        AVG(weight::numeric)::float as avg_weight,
+        AVG(height::numeric)::float as avg_height,
+        AVG(CASE WHEN bmi IS NOT NULL THEN bmi::numeric ELSE NULL END)::float as avg_bmi,
+        AVG(waist::numeric)::float as avg_waist
+      FROM group_measurements
+      WHERE measurement_id IS NOT NULL
+      GROUP BY group_id, group_name
+    `);
+
+    // Get trends (monthly aggregation)
+    const trendsQuery = await db.execute(sql`
+      WITH group_measurements AS (
+        SELECT 
+          pg.id as group_id,
+          m.weight,
+          m.measurement_date,
+          mc.bmi
+        FROM patient_groups pg
+        LEFT JOIN group_memberships gm ON pg.id = gm.group_id
+        LEFT JOIN measurements m ON gm.patient_id = m.patient_id
+        LEFT JOIN measurement_calculations mc ON m.id = mc.measurement_id
+        WHERE m.id IS NOT NULL
+      )
+      SELECT 
+        group_id,
+        DATE_TRUNC('month', measurement_date) as month_bucket,
+        AVG(weight::numeric)::float as avg_weight,
+        AVG(CASE WHEN bmi IS NOT NULL THEN bmi::numeric ELSE NULL END)::float as avg_bmi
+      FROM group_measurements
+      GROUP BY group_id, month_bucket
+      ORDER BY group_id, month_bucket ASC
+    `);
+
+    // Map stats by group_id
+    const statsMap = new Map<string, any>();
+    for (const row of statsQuery.rows) {
+      statsMap.set(row.group_id as string, {
+        measurementCount: parseInt(row.measurement_count as string) || 0,
+        avgWeight: row.avg_weight as number | null,
+        avgHeight: row.avg_height as number | null,
+        avgBMI: row.avg_bmi as number | null,
+        avgWaist: row.avg_waist as number | null,
+      });
+    }
+
+    // Map trends by group_id
+    const trendsMap = new Map<string, { weightTrend: any[]; bmiTrend: any[] }>();
+    for (const row of trendsQuery.rows) {
+      const groupId = row.group_id as string;
+      if (!trendsMap.has(groupId)) {
+        trendsMap.set(groupId, { weightTrend: [], bmiTrend: [] });
+      }
+      const trends = trendsMap.get(groupId)!;
+      const date = new Date(row.month_bucket as string).toISOString();
+      if (row.avg_weight !== null) {
+        trends.weightTrend.push({ date, value: row.avg_weight as number });
+      }
+      if (row.avg_bmi !== null) {
+        trends.bmiTrend.push({ date, value: row.avg_bmi as number });
+      }
+    }
+
+    // Get patient counts per group
+    const patientCountsQuery = await db.execute(sql`
+      SELECT 
+        group_id,
+        COUNT(DISTINCT patient_id) as patient_count
+      FROM group_memberships
+      GROUP BY group_id
+    `);
+
+    const patientCountsMap = new Map<string, number>();
+    for (const row of patientCountsQuery.rows) {
+      patientCountsMap.set(row.group_id as string, parseInt(row.patient_count as string));
+    }
+
+    // Assemble final statistics
+    return allGroups.map((group) => {
+      const stats = statsMap.get(group.id) || {
+        measurementCount: 0,
+        avgWeight: null,
+        avgHeight: null,
+        avgBMI: null,
+        avgWaist: null,
+      };
+      const trends = trendsMap.get(group.id) || { weightTrend: [], bmiTrend: [] };
+      const patientCount = patientCountsMap.get(group.id) || 0;
+
+      return {
+        groupId: group.id,
+        groupName: group.name,
+        patientCount,
+        measurementCount: stats.measurementCount,
+        avgWeight: stats.avgWeight,
+        avgHeight: stats.avgHeight,
+        avgBMI: stats.avgBMI,
+        avgWaist: stats.avgWaist,
+        weightTrend: trends.weightTrend,
+        bmiTrend: trends.bmiTrend,
+      };
+    });
+  }
 }
 
 export const storage = new DbStorage();

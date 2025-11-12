@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import type { Patient } from "@shared/schema";
 
 export default function Measurements() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [formData, setFormData] = useState({
     patientId: "",
     measurementDate: new Date().toISOString(),
@@ -60,43 +62,15 @@ export default function Measurements() {
     mutationFn: async (data: typeof formData) => {
       return await apiRequest("POST", "/api/measurements", data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/measurements"] });
       toast({
         title: "Medición guardada",
         description: "Los cálculos ISAK 2 se generaron automáticamente",
       });
-      // Reset form
-      setFormData({
-        patientId: "",
-        measurementDate: new Date().toISOString(),
-        weight: null,
-        height: null,
-        seatedHeight: null,
-        biacromial: null,
-        thoraxTransverse: null,
-        thoraxAnteroposterior: null,
-        biiliocristideo: null,
-        humeral: null,
-        femoral: null,
-        head: null,
-        relaxedArm: null,
-        flexedArm: null,
-        forearm: null,
-        thoraxCirc: null,
-        waist: null,
-        hip: null,
-        thighSuperior: null,
-        thighMedial: null,
-        calf: null,
-        triceps: null,
-        subscapular: null,
-        supraspinal: null,
-        abdominal: null,
-        thighSkinfold: null,
-        calfSkinfold: null,
-        notes: "",
-      });
+      
+      // Redirect to patient profile with measurements tab
+      setLocation(`/pacientes/${variables.patientId}?tab=mediciones`);
     },
     onError: () => {
       toast({

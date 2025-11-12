@@ -31,6 +31,19 @@ export type PatientProfile = {
   measurementCount: number;
 };
 
+export type GroupStatistics = {
+  groupId: string;
+  groupName: string;
+  patientCount: number;
+  measurementCount: number;
+  avgWeight: number | null;
+  avgHeight: number | null;
+  avgBMI: number | null;
+  avgWaist: number | null;
+  weightTrend: { date: string; value: number }[];
+  bmiTrend: { date: string; value: number }[];
+};
+
 export interface IStorage {
   // Patients
   getPatients(): Promise<Patient[]>;
@@ -86,4 +99,7 @@ export interface IStorage {
   createReport(data: InsertReport): Promise<Report>;
   updateReport(id: string, data: Partial<InsertReport>, expectedVersion?: number): Promise<Report | null>;
   deleteReport(id: string): Promise<boolean>;
+
+  // Dashboard Statistics
+  getGroupStatistics(): Promise<GroupStatistics[]>;
 }

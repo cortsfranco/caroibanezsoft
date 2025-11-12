@@ -591,6 +591,17 @@ router.delete("/api/diet-assignments/:id", async (req, res) => {
   }
 });
 
+// ===== DASHBOARD STATISTICS =====
+router.get("/api/dashboard/statistics", async (req, res) => {
+  try {
+    const statistics = await storage.getGroupStatistics();
+    res.json(statistics);
+  } catch (error) {
+    console.error("Error fetching group statistics:", error);
+    res.status(500).json({ error: "Failed to fetch group statistics" });
+  }
+});
+
 // ===== REPORTS =====
 router.get("/api/reports", async (req, res) => {
   try {

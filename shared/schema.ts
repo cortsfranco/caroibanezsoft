@@ -31,6 +31,21 @@ export const patients = pgTable("patients", {
   gender: text("gender"), // "M", "F", "Other"
   objective: text("objective"), // "pérdida", "ganancia", "mantenimiento"
   notes: text("notes"),
+  
+  // Activity & Lifestyle
+  exercisesRegularly: boolean("exercises_regularly").default(false),
+  sportType: text("sport_type"), // Tipo de deporte/actividad
+  exerciseDays: text("exercise_days"), // Días que entrena (ej: "Lunes, Miércoles, Viernes")
+  exerciseSchedule: text("exercise_schedule"), // Horarios (ej: "18:00-19:30")
+  
+  // Dietary Preferences
+  isVegetarian: boolean("is_vegetarian").default(false),
+  isVegan: boolean("is_vegan").default(false),
+  foodAllergies: text("food_allergies"), // Alergias alimentarias
+  foodDislikes: text("food_dislikes"), // Alimentos que no le gustan
+  medicalConditions: text("medical_conditions"), // Condiciones médicas relevantes
+  medications: text("medications"), // Medicamentos actuales
+  
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

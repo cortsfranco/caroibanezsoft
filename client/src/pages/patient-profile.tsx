@@ -1,4 +1,5 @@
-import { useRoute } from "wouter";
+import { useState, useEffect } from "react";
+import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +9,32 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar, Mail, Phone, User, Edit, FileDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssignDietDialog } from "@/components/assign-diet-dialog";
+import { MeasurementsHistory } from "@/components/measurements-history";
 import type { Patient, DietAssignment } from "@shared/schema";
 
 export default function PatientProfile() {
   const [match, params] = useRoute("/pacientes/:id");
+  const [location, setLocation] = useLocation();
   const patientId = params?.id;
+  
+  // Extract tab from URL query params
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const tabParam = searchParams.get('tab');
+  const validTabs = ['datos', 'dietas', 'mediciones', 'informes'];
+  const initialTab = validTabs.includes(tabParam || '') ? tabParam! : 'datos';
+  
+  const [activeTab, setActiveTab] = useState(initialTab);
+  
+  // Sync URL when tab changes
+  useEffect(() => {
+    const currentPath = location.split('?')[0];
+    const newLocation = activeTab === 'datos' 
+      ? currentPath 
+      : `${currentPath}?tab=${activeTab}`;
+    if (location !== newLocation) {
+      setLocation(newLocation, { replace: true });
+    }
+  }, [activeTab, location, setLocation]);
 
   const { data: patient, isLoading } = useQuery<Patient>({
     queryKey: ["/api/patients", patientId],
@@ -138,12 +160,12 @@ export default function PatientProfile() {
       </Card>
 
       {/* Tabs */}
-      <Tabs defaultValue="datos" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="datos">Datos Personales</TabsTrigger>
-          <TabsTrigger value="dietas">Dietas Asignadas</TabsTrigger>
-          <TabsTrigger value="mediciones">Mediciones</TabsTrigger>
-          <TabsTrigger value="informes">Informes</TabsTrigger>
+          <TabsTrigger value="datos" data-testid="tab-datos">Datos Personales</TabsTrigger>
+          <TabsTrigger value="dietas" data-testid="tab-dietas">Dietas Asignadas</TabsTrigger>
+          <TabsTrigger value="mediciones" data-testid="tab-mediciones">Mediciones</TabsTrigger>
+          <TabsTrigger value="informes" data-testid="tab-informes">Informes</TabsTrigger>
         </TabsList>
         
         <TabsContent value="datos" className="space-y-4">
@@ -224,16 +246,7 @@ export default function PatientProfile() {
         </TabsContent>
 
         <TabsContent value="mediciones" className="space-y-4">
-          <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle>Historial de Mediciones</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-center py-8">
-                No hay mediciones registradas para este paciente
-              </p>
-            </CardContent>
-          </Card>
+          <MeasurementsHistory patientId={patientId!} />
         </TabsContent>
 
         <TabsContent value="informes" className="space-y-4">
