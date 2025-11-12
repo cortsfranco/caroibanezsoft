@@ -95,7 +95,7 @@ export function PatientCard({
         <Button 
           size="sm" 
           className="flex-1" 
-          onClick={() => setLocation(`/measurements?patientId=${id}`)}
+          onClick={() => setLocation(`/mediciones?patientId=${id}`)}
           data-testid={`button-measure-patient-${id}`}
         >
           <Ruler className="h-4 w-4 mr-1" />
