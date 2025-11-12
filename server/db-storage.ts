@@ -9,6 +9,10 @@ import {
   diets,
   dietAssignments,
   reports,
+  dietTemplates,
+  dietGenerations,
+  dietMealPlans,
+  dietExerciseBlocks,
   type Patient,
   type InsertPatient,
   type PatientGroup,
@@ -25,6 +29,14 @@ import {
   type InsertDietAssignment,
   type Report,
   type InsertReport,
+  type DietTemplate,
+  type InsertDietTemplate,
+  type DietGeneration,
+  type InsertDietGeneration,
+  type DietMealPlan,
+  type InsertDietMealPlan,
+  type DietExerciseBlock,
+  type InsertDietExerciseBlock,
 } from "@shared/schema";
 import type { IStorage, PatientProfile } from "./storage";
 import { VersionConflictError } from "./storage";
@@ -563,6 +575,130 @@ export class DbStorage implements IStorage {
         bmiTrend: trends.bmiTrend,
       };
     });
+  }
+
+  // ===================================
+  // AI DIET GENERATION SYSTEM METHODS
+  // ===================================
+
+  // Diet Templates
+  async getDietTemplates(): Promise<DietTemplate[]> {
+    return await db.select().from(dietTemplates).where(eq(dietTemplates.isActive, true)).orderBy(dietTemplates.name);
+  }
+
+  async getDietTemplate(id: string): Promise<DietTemplate | null> {
+    const result = await db.select().from(dietTemplates).where(eq(dietTemplates.id, id)).limit(1);
+    return result[0] || null;
+  }
+
+  async createDietTemplate(data: InsertDietTemplate): Promise<DietTemplate> {
+    const result = await db.insert(dietTemplates).values(data).returning();
+    return result[0];
+  }
+
+  async updateDietTemplate(id: string, data: Partial<InsertDietTemplate>, expectedVersion?: number): Promise<DietTemplate | null> {
+    if (expectedVersion !== undefined) {
+      const current = await this.getDietTemplate(id);
+      if (!current) return null;
+      if (current.version !== expectedVersion) {
+        throw new VersionConflictError();
+      }
+      
+      const result = await db.update(dietTemplates)
+        .set({ ...data, version: expectedVersion + 1, updatedAt: new Date() })
+        .where(and(eq(dietTemplates.id, id), eq(dietTemplates.version, expectedVersion)))
+        .returning();
+      return result[0] || null;
+    }
+
+    const result = await db.update(dietTemplates)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(dietTemplates.id, id))
+      .returning();
+    return result[0] || null;
+  }
+
+  async deleteDietTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(dietTemplates).where(eq(dietTemplates.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Diet Generations
+  async getDietGenerations(patientId?: string): Promise<DietGeneration[]> {
+    if (patientId) {
+      return await db.select().from(dietGenerations)
+        .where(eq(dietGenerations.patientId, patientId))
+        .orderBy(desc(dietGenerations.createdAt));
+    }
+    return await db.select().from(dietGenerations).orderBy(desc(dietGenerations.createdAt));
+  }
+
+  async getDietGeneration(id: string): Promise<DietGeneration | null> {
+    const result = await db.select().from(dietGenerations).where(eq(dietGenerations.id, id)).limit(1);
+    return result[0] || null;
+  }
+
+  async createDietGeneration(data: InsertDietGeneration): Promise<DietGeneration> {
+    const result = await db.insert(dietGenerations).values(data).returning();
+    return result[0];
+  }
+
+  async updateDietGeneration(id: string, data: Partial<InsertDietGeneration>, expectedVersion?: number): Promise<DietGeneration | null> {
+    if (expectedVersion !== undefined) {
+      const current = await this.getDietGeneration(id);
+      if (!current) return null;
+      if (current.version !== expectedVersion) {
+        throw new VersionConflictError();
+      }
+      
+      const result = await db.update(dietGenerations)
+        .set({ ...data, version: expectedVersion + 1, updatedAt: new Date() })
+        .where(and(eq(dietGenerations.id, id), eq(dietGenerations.version, expectedVersion)))
+        .returning();
+      return result[0] || null;
+    }
+
+    const result = await db.update(dietGenerations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(dietGenerations.id, id))
+      .returning();
+    return result[0] || null;
+  }
+
+  async deleteDietGeneration(id: string): Promise<boolean> {
+    const result = await db.delete(dietGenerations).where(eq(dietGenerations.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Diet Meal Plans
+  async getDietMealPlans(generationId: string): Promise<DietMealPlan[]> {
+    return await db.select().from(dietMealPlans)
+      .where(eq(dietMealPlans.generationId, generationId))
+      .orderBy(dietMealPlans.dayOfWeek, dietMealPlans.mealOrder);
+  }
+
+  async createDietMealPlan(data: InsertDietMealPlan): Promise<DietMealPlan> {
+    const result = await db.insert(dietMealPlans).values(data).returning();
+    return result[0];
+  }
+
+  // Diet Exercise Blocks
+  async getDietExerciseBlocks(generationId: string): Promise<DietExerciseBlock[]> {
+    return await db.select().from(dietExerciseBlocks)
+      .where(eq(dietExerciseBlocks.generationId, generationId))
+      .orderBy(dietExerciseBlocks.dayOfWeek, dietExerciseBlocks.startTime);
+  }
+
+  async createDietExerciseBlock(data: InsertDietExerciseBlock): Promise<DietExerciseBlock> {
+    const result = await db.insert(dietExerciseBlocks).values(data).returning();
+    return result[0];
+  }
+
+  // Helper method for diet AI service
+  async getMeasurementsByPatient(patientId: string): Promise<Measurement[]> {
+    return await db.select().from(measurements)
+      .where(eq(measurements.patientId, patientId))
+      .orderBy(desc(measurements.measurementDate));
   }
 }
 
