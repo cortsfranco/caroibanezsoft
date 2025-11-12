@@ -520,15 +520,14 @@ export type MealTagAssignment = typeof mealTagAssignments.$inferSelect;
 // WEEKLY DIET PLAN SYSTEM - Carolina's Fast Diet Assignment
 // ============================================================================
 
-// Weekly Diet Plans Table (7-day x 4-meal grids assigned to patients)
+// Weekly Diet Plans Table (Templates reusables para asignación masiva)
 export const weeklyDietPlans = pgTable("weekly_diet_plans", {
   id: uuid("id").defaultRandom().primaryKey(),
-  patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
   
   // Plan metadata
   name: text("name").notNull(), // "Plan Running Septiembre 2024"
-  startDate: timestamp("start_date"),
-  endDate: timestamp("end_date"),
+  description: text("description"),
+  isTemplate: boolean("is_template").notNull().default(true), // Templates vs instances
   goal: text("goal"), // "Aumento masa muscular", "Pérdida peso"
   
   // Nutritional targets
@@ -537,8 +536,6 @@ export const weeklyDietPlans = pgTable("weekly_diet_plans", {
   carbsGrams: decimal("carbs_grams", { precision: 5, scale: 2 }),
   fatsGrams: decimal("fats_grams", { precision: 5, scale: 2 }),
   
-  // Status
-  status: text("status").notNull().default("draft"), // "draft", "active", "completed"
   notes: text("notes"),
   
   version: integer("version").notNull().default(1),
@@ -551,12 +548,47 @@ export const insertWeeklyDietPlanSchema = createInsertSchema(weeklyDietPlans).om
   version: true,
   createdAt: true,
   updatedAt: true,
-}).extend({
-  startDate: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
-  endDate: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
 });
 export type InsertWeeklyDietPlan = z.infer<typeof insertWeeklyDietPlanSchema>;
 export type WeeklyDietPlan = typeof weeklyDietPlans.$inferSelect;
+
+// Weekly Plan Assignments (Many-to-Many: plans -> groups/patients)
+export const weeklyPlanAssignments = pgTable("weekly_plan_assignments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  planId: uuid("plan_id").notNull().references(() => weeklyDietPlans.id, { onDelete: "cascade" }),
+  
+  // Target: group OR patient (at least one must be set)
+  groupId: uuid("group_id").references(() => patientGroups.id, { onDelete: "cascade" }),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }),
+  
+  // Assignment metadata
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  status: text("status").notNull().default("active"), // "active", "paused", "completed"
+  assignmentNotes: text("assignment_notes"),
+  
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWeeklyPlanAssignmentSchema = createInsertSchema(weeklyPlanAssignments).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  startDate: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
+  endDate: z.string().nullable().optional().transform(val => val ? new Date(val) : null),
+}).refine(data => {
+  const hasGroup = Boolean(data.groupId);
+  const hasPatient = Boolean(data.patientId);
+  return (hasGroup && !hasPatient) || (!hasGroup && hasPatient);
+}, {
+  message: "Exactly one of groupId or patientId must be provided, not both",
+});
+export type InsertWeeklyPlanAssignment = z.infer<typeof insertWeeklyPlanAssignmentSchema>;
+export type WeeklyPlanAssignment = typeof weeklyPlanAssignments.$inferSelect;
 
 // Weekly Plan Meals Table (Individual slots in the 7x4 grid)
 export const weeklyPlanMeals = pgTable("weekly_plan_meals", {

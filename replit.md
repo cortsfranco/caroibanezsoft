@@ -55,8 +55,19 @@ Preferred communication style: Simple, everyday language.
 - **Diet Templates**: Reusable diet blueprints for AI generation
 - **Diet Generations**: AI-generated diet plans with approval workflow (draft/approved/rejected states)
 - **Reports**: Generated nutrition reports (currently placeholder for future implementation)
+- **Weekly Diet Plans**: Template-based weekly meal plans with `isTemplate` flag. Templates are reusable blueprints that can be assigned to multiple groups/patients without duplication
+- **Weekly Plan Assignments**: Links weekly plan templates to patient groups or individual patients with date ranges and assignment notes. Enforces exactly one of `groupId` or `patientId` via Zod validation for clean assignment semantics
+- **Weekly Plan Meals**: Individual meal slots within weekly plans, supporting multiple meals per time slot with individual editable times
+- **Meal Catalog**: Centralized meal library with optional categories, image upload/AI generation, nutritional data, and tagging system
+- **Meal Tags**: Dynamic, editable tags for categorizing meals (replaces fixed MEAL_CATEGORIES)
 
 **Schema Organization**: All database schemas defined in `shared/schema.ts` using Drizzle's table definitions with Zod schemas for validation. Schemas are shared between client and server via path aliases.
+
+**Weekly Planner Architecture**: Uses template+assignment pattern to enable bulk deployment and prevent data explosion:
+- **Templates** (`isTemplate=true`): Created once, contain 7-day meal grids with multiple meals per time slot
+- **Assignments** (`weeklyPlanAssignments`): Reference templates and assign to groups/patients with date ranges
+- **Benefits**: Create 1 template → assign to 20+ patients in seconds, update template → all assignments reflect changes
+- **REST Endpoints**: Full CRUD for plans/assignments plus helper endpoints `/api/weekly-plans/:id/assign-to-group` and `/assign-to-patient`
 
 ## AI Integration (In Development)
 

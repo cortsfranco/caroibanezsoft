@@ -34,6 +34,8 @@ import type {
   InsertWeeklyDietPlan,
   WeeklyPlanMeal,
   InsertWeeklyPlanMeal,
+  WeeklyPlanAssignment,
+  InsertWeeklyPlanAssignment,
 } from "@shared/schema";
 import type { IStorage, PatientProfile, GroupStatistics } from "./storage";
 import { VersionConflictError } from "./storage";
@@ -62,6 +64,7 @@ export class MemStorage implements IStorage {
   private mealTagAssignments: MealTagAssignment[] = [];
   private weeklyDietPlans: WeeklyDietPlan[] = [];
   private weeklyPlanMeals: WeeklyPlanMeal[] = [];
+  private weeklyPlanAssignments: WeeklyPlanAssignment[] = [];
 
   // ============================================================================
   // MEAL CATALOG SYSTEM - Carolina's Time-Saving Features
@@ -272,11 +275,23 @@ export class MemStorage implements IStorage {
   }
 
   // Weekly Diet Plans
-  async getWeeklyDietPlans(patientId?: string): Promise<WeeklyDietPlan[]> {
-    if (patientId) {
-      return this.weeklyDietPlans.filter((p) => p.patientId === patientId);
+  async getWeeklyDietPlans(filters?: { isTemplate?: boolean; search?: string }): Promise<WeeklyDietPlan[]> {
+    let results = [...this.weeklyDietPlans];
+    
+    if (filters?.isTemplate !== undefined) {
+      results = results.filter(p => p.isTemplate === filters.isTemplate);
     }
-    return [...this.weeklyDietPlans];
+    
+    if (filters?.search) {
+      const searchLower = filters.search.toLowerCase();
+      results = results.filter(p =>
+        p.name.toLowerCase().includes(searchLower) ||
+        p.description?.toLowerCase().includes(searchLower) ||
+        p.goal?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return results;
   }
 
   async getWeeklyDietPlan(id: string): Promise<WeeklyDietPlan | null> {
@@ -286,16 +301,14 @@ export class MemStorage implements IStorage {
   async createWeeklyDietPlan(data: InsertWeeklyDietPlan): Promise<WeeklyDietPlan> {
     const plan: WeeklyDietPlan = {
       id: nanoid(),
-      patientId: data.patientId,
       name: data.name,
-      startDate: data.startDate ?? null,
-      endDate: data.endDate ?? null,
+      description: data.description ?? null,
+      isTemplate: data.isTemplate ?? true,
       goal: data.goal ?? null,
       dailyCalories: data.dailyCalories ?? null,
       proteinGrams: data.proteinGrams ?? null,
       carbsGrams: data.carbsGrams ?? null,
       fatsGrams: data.fatsGrams ?? null,
-      status: data.status ?? "draft",
       notes: data.notes ?? null,
       version: 1,
       createdAt: new Date(),
@@ -405,17 +418,105 @@ export class MemStorage implements IStorage {
     return this.weeklyPlanMeals.length < initialLength;
   }
 
+  // Weekly Plan Assignments
+  async getWeeklyPlanAssignments(planId?: string, groupId?: string, patientId?: string): Promise<WeeklyPlanAssignment[]> {
+    let results = [...this.weeklyPlanAssignments];
+    
+    if (planId) {
+      results = results.filter(a => a.planId === planId);
+    }
+    if (groupId) {
+      results = results.filter(a => a.groupId === groupId);
+    }
+    if (patientId) {
+      results = results.filter(a => a.patientId === patientId);
+    }
+    
+    return results;
+  }
+
+  async getWeeklyPlanAssignment(id: string): Promise<WeeklyPlanAssignment | null> {
+    return this.weeklyPlanAssignments.find(a => a.id === id) || null;
+  }
+
+  async createWeeklyPlanAssignment(data: InsertWeeklyPlanAssignment): Promise<WeeklyPlanAssignment> {
+    const assignment: WeeklyPlanAssignment = {
+      id: nanoid(),
+      planId: data.planId,
+      groupId: data.groupId ?? null,
+      patientId: data.patientId ?? null,
+      startDate: data.startDate ?? null,
+      endDate: data.endDate ?? null,
+      status: data.status ?? "active",
+      assignmentNotes: data.assignmentNotes ?? null,
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.weeklyPlanAssignments.push(assignment);
+    return assignment;
+  }
+
+  async updateWeeklyPlanAssignment(id: string, data: Partial<InsertWeeklyPlanAssignment>, expectedVersion?: number): Promise<WeeklyPlanAssignment | null> {
+    const index = this.weeklyPlanAssignments.findIndex(a => a.id === id);
+    if (index === -1) return null;
+    
+    const assignment = this.weeklyPlanAssignments[index];
+    
+    if (expectedVersion !== undefined && assignment.version !== expectedVersion) {
+      throw new VersionConflictError();
+    }
+    
+    const updated: WeeklyPlanAssignment = {
+      ...assignment,
+      ...data,
+      id: assignment.id,
+      version: assignment.version + 1,
+      updatedAt: new Date(),
+    };
+    
+    this.weeklyPlanAssignments[index] = updated;
+    return updated;
+  }
+
+  async deleteWeeklyPlanAssignment(id: string): Promise<boolean> {
+    const initialLength = this.weeklyPlanAssignments.length;
+    this.weeklyPlanAssignments = this.weeklyPlanAssignments.filter(a => a.id !== id);
+    return this.weeklyPlanAssignments.length < initialLength;
+  }
+
+  async assignPlanToGroup(planId: string, groupId: string, startDate?: Date, endDate?: Date): Promise<WeeklyPlanAssignment> {
+    return this.createWeeklyPlanAssignment({
+      planId,
+      groupId,
+      patientId: null,
+      startDate: startDate ?? null,
+      endDate: endDate ?? null,
+      status: "active",
+      assignmentNotes: null,
+    });
+  }
+
+  async assignPlanToPatient(planId: string, patientId: string, startDate?: Date, endDate?: Date): Promise<WeeklyPlanAssignment> {
+    return this.createWeeklyPlanAssignment({
+      planId,
+      groupId: null,
+      patientId,
+      startDate: startDate ?? null,
+      endDate: endDate ?? null,
+      status: "active",
+      assignmentNotes: null,
+    });
+  }
+
   // ============================================================================
   // EXISTING METHODS - Stub implementations for other tables
   // (Will need to be fully implemented for complete MemStorage)
   // ============================================================================
 
   async getPatients(): Promise<Patient[]> {
-    return [...this.patients].sort((a, b) => {
-      const aName = `${a.lastName}, ${a.firstName}`;
-      const bName = `${b.lastName}, ${b.firstName}`;
-      return aName.localeCompare(bName);
-    });
+    return [...this.patients].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async getPatient(id: string): Promise<Patient | null> {

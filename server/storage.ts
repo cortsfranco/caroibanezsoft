@@ -33,6 +33,8 @@ import type {
   InsertWeeklyDietPlan,
   WeeklyPlanMeal,
   InsertWeeklyPlanMeal,
+  WeeklyPlanAssignment,
+  InsertWeeklyPlanAssignment,
 } from "@shared/schema";
 
 export class VersionConflictError extends Error {
@@ -171,8 +173,8 @@ export interface IStorage {
   deleteMealTagAssignment(id: string): Promise<boolean>;
   assignTagsToMeal(mealId: string, tagIds: string[]): Promise<void>;
 
-  // Weekly Diet Plans
-  getWeeklyDietPlans(patientId?: string): Promise<WeeklyDietPlan[]>;
+  // Weekly Diet Plans (Templates)
+  getWeeklyDietPlans(filters?: { isTemplate?: boolean; search?: string }): Promise<WeeklyDietPlan[]>;
   getWeeklyDietPlan(id: string): Promise<WeeklyDietPlan | null>;
   createWeeklyDietPlan(data: InsertWeeklyDietPlan): Promise<WeeklyDietPlan>;
   updateWeeklyDietPlan(id: string, data: Partial<InsertWeeklyDietPlan>, expectedVersion?: number): Promise<WeeklyDietPlan | null>;
@@ -184,4 +186,13 @@ export interface IStorage {
   createWeeklyPlanMeal(data: InsertWeeklyPlanMeal): Promise<WeeklyPlanMeal>;
   updateWeeklyPlanMeal(id: string, data: Partial<InsertWeeklyPlanMeal>, expectedVersion?: number): Promise<WeeklyPlanMeal | null>;
   deleteWeeklyPlanMeal(id: string): Promise<boolean>;
+
+  // Weekly Plan Assignments (Template instantiation to groups/patients)
+  getWeeklyPlanAssignments(planId?: string, groupId?: string, patientId?: string): Promise<WeeklyPlanAssignment[]>;
+  getWeeklyPlanAssignment(id: string): Promise<WeeklyPlanAssignment | null>;
+  createWeeklyPlanAssignment(data: InsertWeeklyPlanAssignment): Promise<WeeklyPlanAssignment>;
+  updateWeeklyPlanAssignment(id: string, data: Partial<InsertWeeklyPlanAssignment>, expectedVersion?: number): Promise<WeeklyPlanAssignment | null>;
+  deleteWeeklyPlanAssignment(id: string): Promise<boolean>;
+  assignPlanToGroup(planId: string, groupId: string, startDate?: Date, endDate?: Date): Promise<WeeklyPlanAssignment>;
+  assignPlanToPatient(planId: string, patientId: string, startDate?: Date, endDate?: Date): Promise<WeeklyPlanAssignment>;
 }

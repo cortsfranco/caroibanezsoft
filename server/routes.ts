@@ -1169,10 +1169,15 @@ router.get("/api/meal-tag-assignments", async (req, res) => {
 // ===== WEEKLY DIET PLANS =====
 router.get("/api/weekly-plans", async (req, res) => {
   try {
-    const { patientId } = req.query;
-    const plans = await storage.getWeeklyDietPlans(
-      patientId && typeof patientId === 'string' ? patientId : undefined
-    );
+    const { isTemplate, search } = req.query;
+    const filters: { isTemplate?: boolean; search?: string } = {};
+    
+    if (isTemplate === 'true') filters.isTemplate = true;
+    else if (isTemplate === 'false') filters.isTemplate = false;
+    
+    if (search && typeof search === 'string') filters.search = search;
+    
+    const plans = await storage.getWeeklyDietPlans(Object.keys(filters).length > 0 ? filters : undefined);
     res.json(plans);
   } catch (error) {
     console.error("Error fetching weekly plans:", error);
@@ -1250,6 +1255,126 @@ router.delete("/api/weekly-plans/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting weekly plan:", error);
     res.status(500).json({ error: "Failed to delete weekly plan" });
+  }
+});
+
+// ===== WEEKLY PLAN ASSIGNMENTS =====
+router.get("/api/weekly-plan-assignments", async (req, res) => {
+  try {
+    const { planId, groupId, patientId } = req.query;
+    const assignments = await storage.getWeeklyPlanAssignments(
+      planId && typeof planId === 'string' ? planId : undefined,
+      groupId && typeof groupId === 'string' ? groupId : undefined,
+      patientId && typeof patientId === 'string' ? patientId : undefined
+    );
+    res.json(assignments);
+  } catch (error) {
+    console.error("Error fetching weekly plan assignments:", error);
+    res.status(500).json({ error: "Failed to fetch weekly plan assignments" });
+  }
+});
+
+router.get("/api/weekly-plan-assignments/:id", async (req, res) => {
+  try {
+    const assignment = await storage.getWeeklyPlanAssignment(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ error: "Assignment not found" });
+    }
+    res.json(assignment);
+  } catch (error) {
+    console.error("Error fetching weekly plan assignment:", error);
+    res.status(500).json({ error: "Failed to fetch weekly plan assignment" });
+  }
+});
+
+router.post("/api/weekly-plan-assignments", async (req, res) => {
+  try {
+    const data = validate(insertWeeklyPlanAssignmentSchema, req.body);
+    const assignment = await storage.createWeeklyPlanAssignment(data);
+    res.status(201).json(assignment);
+  } catch (error) {
+    console.error("Error creating weekly plan assignment:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to create weekly plan assignment" });
+  }
+});
+
+router.patch("/api/weekly-plan-assignments/:id", async (req, res) => {
+  try {
+    const expectedVersion = req.body.version;
+    delete req.body.version;
+    
+    const data = validate(insertWeeklyPlanAssignmentSchema.partial(), req.body);
+    const assignment = await storage.updateWeeklyPlanAssignment(req.params.id, data, expectedVersion);
+    
+    if (!assignment) {
+      return res.status(404).json({ error: "Assignment not found" });
+    }
+    res.json(assignment);
+  } catch (error) {
+    console.error("Error updating weekly plan assignment:", error);
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: "Version conflict - assignment was modified by another user" });
+    }
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update weekly plan assignment" });
+  }
+});
+
+router.delete("/api/weekly-plan-assignments/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteWeeklyPlanAssignment(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Assignment not found" });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting weekly plan assignment:", error);
+    res.status(500).json({ error: "Failed to delete weekly plan assignment" });
+  }
+});
+
+router.post("/api/weekly-plans/:id/assign-to-group", async (req, res) => {
+  try {
+    const { groupId, startDate, endDate } = req.body;
+    if (!groupId) {
+      return res.status(400).json({ error: "groupId is required" });
+    }
+    
+    const assignment = await storage.assignPlanToGroup(
+      req.params.id,
+      groupId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined
+    );
+    res.status(201).json(assignment);
+  } catch (error) {
+    console.error("Error assigning plan to group:", error);
+    res.status(500).json({ error: "Failed to assign plan to group" });
+  }
+});
+
+router.post("/api/weekly-plans/:id/assign-to-patient", async (req, res) => {
+  try {
+    const { patientId, startDate, endDate } = req.body;
+    if (!patientId) {
+      return res.status(400).json({ error: "patientId is required" });
+    }
+    
+    const assignment = await storage.assignPlanToPatient(
+      req.params.id,
+      patientId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined
+    );
+    res.status(201).json(assignment);
+  } catch (error) {
+    console.error("Error assigning plan to patient:", error);
+    res.status(500).json({ error: "Failed to assign plan to patient" });
   }
 });
 
