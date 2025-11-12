@@ -112,7 +112,13 @@ Preferred communication style: Simple, everyday language.
 
 **Current Status**: Documentation indicates Neon database is currently disabled - system will need database provisioning before use.
 
-**Migration Strategy**: Drizzle Kit for schema migrations (`npm run db:push` to sync schema without migration files).
+**Migration Strategy**: Drizzle Kit for schema migrations (`npm run db:push` to sync schema without migration files). Manual SQL migrations documented in `server/migrations/` for complex schema changes.
+
+**Recent Schema Updates (2025-11-12)**:
+- Created meal catalog tables: `meals`, `meal_tags`, `meal_tag_assignments`
+- Created weekly diet planner tables: `weekly_diet_plans`, `weekly_plan_assignments`, `weekly_plan_meals`
+- All tables include optimistic locking (version field) and audit timestamps
+- Migration script available at: `server/migrations/001_create_meal_and_weekly_plan_tables.sql`
 
 ## AI Services
 

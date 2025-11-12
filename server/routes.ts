@@ -15,11 +15,13 @@ import {
   insertMealTagAssignmentSchema,
   insertWeeklyDietPlanSchema,
   insertWeeklyPlanMealSchema,
+  insertWeeklyPlanAssignmentSchema,
 } from "@shared/schema";
 import { createServer, type Server } from "http";
 import { wsManager } from "./websocket";
 import { VersionConflictError } from "./storage";
 import { imageService } from "./services/image-service";
+import { saveAvatar, deleteAvatar } from "./services/avatar-service";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";

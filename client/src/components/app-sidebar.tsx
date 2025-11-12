@@ -104,9 +104,9 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3">
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-12 w-12">
             <AvatarImage src={carolinaAvatar} alt="Carolina Ibáñez" />
-            <AvatarFallback className="bg-white/20 text-white text-xs backdrop-blur-sm">
+            <AvatarFallback className="bg-white/20 text-white text-sm backdrop-blur-sm">
               CI
             </AvatarFallback>
           </Avatar>

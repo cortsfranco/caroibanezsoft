@@ -32,6 +32,7 @@ export const patients = pgTable("patients", {
   gender: text("gender"), // "M", "F", "Other"
   objective: text("objective"), // "pérdida", "ganancia", "mantenimiento"
   notes: text("notes"),
+  avatarUrl: text("avatar_url"), // URL de la imagen de avatar del paciente
   
   // Activity & Lifestyle
   exercisesRegularly: boolean("exercises_regularly").default(false),
