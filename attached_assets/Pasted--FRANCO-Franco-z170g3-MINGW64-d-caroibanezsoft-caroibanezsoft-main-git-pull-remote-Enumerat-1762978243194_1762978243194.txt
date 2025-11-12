@@ -1,0 +1,175 @@
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git pull
+remote: Enumerating objects: 17, done.
+remote: Counting objects: 100% (17/17), done.
+remote: Compressing objects: 100% (6/6), done.
+remote: Total 15 (delta 9), reused 15 (delta 9), pack-reused 0 (from 0)
+Unpacking objects: 100% (15/15), 176.35 KiB | 199.00 KiB/s, done.
+From https://github.com/cortsfranco/caroibanezsoft
+   66c1fc8..5ed73ba  main       -> origin/main
+Updating 66c1fc8..5ed73ba
+Fast-forward
+ ARQUITECTURA_SISTEMA.md                 | 1275 +++++++++++++++++++++++++++++++
+ attached_assets/image_1762976201301.png |  Bin 0 -> 98414 bytes
+ attached_assets/image_1762976282547.png |  Bin 0 -> 87179 bytes
+ start-full.bat                          |   85 +++
+ start-full.ps1                          |   94 +++
+ start.bat                               |   94 +++
+ start.ps1                               |  123 +++
+ 7 files changed, 1671 insertions(+)
+ create mode 100644 ARQUITECTURA_SISTEMA.md
+ create mode 100644 attached_assets/image_1762976201301.png
+ create mode 100644 attached_assets/image_1762976282547.png
+ create mode 100644 start-full.bat
+ create mode 100644 start-full.ps1
+ create mode 100644 start.bat
+ create mode 100644 start.ps1
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git pull
+remote: Enumerating objects: 24, done.
+remote: Counting objects: 100% (24/24), done.
+remote: Compressing objects: 100% (10/10), done.
+remote: Total 18 (delta 8), reused 18 (delta 8), pack-reused 0 (from 0)
+Unpacking objects: 100% (18/18), 244.85 KiB | 244.00 KiB/s, done.
+From https://github.com/cortsfranco/caroibanezsoft
+   5ed73ba..ba4789e  main       -> origin/main
+Updating 5ed73ba..ba4789e
+error: Your local changes to the following files would be overwritten by merge:
+        package.json
+Please commit your changes or stash them before you merge.
+Aborting
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git pull
+Updating 5ed73ba..ba4789e
+error: Your local changes to the following files would be overwritten by merge:
+        package.json
+Please commit your changes or stash them before you merge.
+Aborting
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ gitr add . 
+bash: gitr: command not found
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ gitt add .
+bash: gitt: command not found
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git add .
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git commit -m"v1.0 cursor"
+[main 412ee51] v1.0 cursor
+ 7 files changed, 744 insertions(+), 472 deletions(-)
+ delete mode 100644 .env.example
+ create mode 100644 env.example
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git push
+To https://github.com/cortsfranco/caroibanezsoft.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to 'https://github.com/cortsfranco/caroibanezsoft.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ git push origin master
+error: src refspec master does not match any
+error: failed to push some refs to 'https://github.com/cortsfranco/caroibanezsoft.git'
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ # Paso 1: Intentar merge automático
+git pull origin main --no-rebase
+
+# Si NO hay conflictos:
+git push origin main
+
+# Si HAY conflictos:
+# 1. Abre los archivos que git menciona
+# 2. Busca las líneas con <<<<<<< y >>>>>>>
+# 3. Edítalas manualmente
+# 4. Luego:
+git add .
+git push origin main conflicts resolved"
+From https://github.com/cortsfranco/caroibanezsoft
+ * branch            main       -> FETCH_HEAD
+CONFLICT (modify/delete): .env.example deleted in HEAD and modified in ba4789e0595a68eb4fbd7b7ac6b625fbdc8d4454.  Version ba4789e0595a68eb4fbd7b7ac6b625fbdc8d4454 of .env.example left in tree.
+Auto-merging package.json
+Automatic merge failed; fix conflicts and then commit the result.
+To https://github.com/cortsfranco/caroibanezsoft.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to 'https://github.com/cortsfranco/caroibanezsoft.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart. If you want to integrate the remote changes,
+hint: use 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+[main fc46dc2] Merge conflicts resolved
+Enumerating objects: 23, done.
+Counting objects: 100% (19/19), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (11/11), done.
+Writing objects: 100% (11/11), 8.69 KiB | 1.74 MiB/s, done.
+Total 11 (delta 7), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (7/7), completed with 5 local objects.
+To https://github.com/cortsfranco/caroibanezsoft.git
+   ba4789e..fc46dc2  main -> main
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ npm install
+
+added 2 packages, and audited 620 packages in 4s
+
+83 packages are looking for funding
+  run `npm fund` for details
+
+9 vulnerabilities (3 low, 5 moderate, 1 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ npm install
+
+up to date, audited 620 packages in 2s
+
+83 packages are looking for funding
+  run `npm fund` for details
+
+9 vulnerabilities (3 low, 5 moderate, 1 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+0c1dec4f5725de18a6c383ac9ca08f57e310c80f82317b6d88c945cc1d837959
+
+FRANCO@Franco-z170g3 MINGW64 /d/caroibanezsoft/caroibanezsoft (main)
+$ npm run dev
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+"NODE_ENV" no se reconoce como un comando interno o externo,
+programa o archivo por lotes ejecutable.
