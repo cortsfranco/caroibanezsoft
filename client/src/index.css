@@ -15,9 +15,9 @@
   --card: 0 0% 98%;
   --card-foreground: 0 0% 9%;
   --card-border: 0 0% 94%;
-  --sidebar: 215 100% 15%;
+  --sidebar: 220 100% 42%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-border: 215 100% 20%;
+  --sidebar-border: 220 100% 50%;
   --sidebar-primary: 203 89% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 215 100% 25%;
@@ -99,9 +99,9 @@
   --card: 0 0% 9%;
   --card-foreground: 0 0% 95%;
   --card-border: 0 0% 12%;
-  --sidebar: 215 100% 10%;
+  --sidebar: 220 100% 38%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-border: 215 100% 15%;
+  --sidebar-border: 220 100% 45%;
   --sidebar-primary: 203 89% 53%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 215 100% 18%;
@@ -175,11 +175,11 @@
   }
   
   [data-sidebar="sidebar"] {
-    background-color: hsla(215, 100%, 15%, 0.95) !important;
+    background: linear-gradient(180deg, hsla(220, 100%, 42%, 0.96) 0%, hsla(220, 100%, 35%, 0.94) 100%) !important;
   }
   
   .dark [data-sidebar="sidebar"] {
-    background-color: hsla(215, 100%, 10%, 0.95) !important;
+    background: linear-gradient(180deg, hsla(220, 100%, 38%, 0.96) 0%, hsla(220, 100%, 30%, 0.94) 100%) !important;
   }
 }
 
