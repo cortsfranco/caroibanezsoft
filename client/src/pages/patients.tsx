@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PatientCard } from "@/components/patient-card";
+import { PatientsTable } from "@/components/patients-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, LayoutGrid, Table2 } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,74 +12,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Patient } from "@shared/schema";
 
 export default function Patients() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("all");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
-  const mockPatients = [
-    {
-      id: "1",
-      name: "Franco Corts",
-      age: 31,
-      lastMeasurement: "15/08/2023",
-      nextAppointment: "20/12/2024",
-      objective: "ganancia" as const,
-      group: "Gimnasia",
-    },
-    {
-      id: "2",
-      name: "María González",
-      age: 28,
-      lastMeasurement: "10/12/2024",
-      nextAppointment: "17/12/2024",
-      objective: "pérdida" as const,
-      group: "Consultorio",
-    },
-    {
-      id: "3",
-      name: "Juan Pérez",
-      age: 35,
-      lastMeasurement: "05/12/2024",
-      nextAppointment: "19/12/2024",
-      objective: "mantenimiento" as const,
-      group: "Consultorio",
-    },
-    {
-      id: "4",
-      name: "Ana Martínez",
-      age: 24,
-      lastMeasurement: "12/12/2024",
-      nextAppointment: "22/12/2024",
-      objective: "pérdida" as const,
-      group: "Consultorio",
-    },
-    {
-      id: "5",
-      name: "Carlos Rodríguez",
-      age: 29,
-      lastMeasurement: "08/12/2024",
-      nextAppointment: "18/12/2024",
-      objective: "ganancia" as const,
-      group: "Gimnasia",
-    },
-    {
-      id: "6",
-      name: "Laura Fernández",
-      age: 32,
-      lastMeasurement: "11/12/2024",
-      objective: "pérdida" as const,
-      group: "Fútbol",
-    },
-  ];
+  // Fetch patients from API
+  const { data: patients = [], isLoading } = useQuery<Patient[]>({
+    queryKey: ["/api/patients"],
+  });
 
-  const filteredPatients = mockPatients.filter((patient) => {
+  const filteredPatients = patients.filter((patient) => {
     const matchesSearch = patient.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchesGroup =
-      selectedGroup === "all" || patient.group === selectedGroup;
-    return matchesSearch && matchesGroup;
+    return matchesSearch;
   });
 
   return (
@@ -95,42 +47,75 @@ export default function Patients() {
         </Button>
       </div>
 
-      <div className="flex gap-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar paciente..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-            data-testid="input-search-patient"
-          />
-        </div>
-        <Select value={selectedGroup} onValueChange={setSelectedGroup}>
-          <SelectTrigger className="w-[200px]" data-testid="select-group-filter">
-            <SelectValue placeholder="Filtrar por grupo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los grupos</SelectItem>
-            <SelectItem value="Consultorio">Consultorio</SelectItem>
-            <SelectItem value="Gimnasia">Gimnasia</SelectItem>
-            <SelectItem value="Fútbol">Fútbol</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex gap-4 flex-wrap items-center">
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "cards" | "table")}>
+          <TabsList>
+            <TabsTrigger value="cards" data-testid="tab-cards-view">
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Cards
+            </TabsTrigger>
+            <TabsTrigger value="table" data-testid="tab-table-view">
+              <Table2 className="h-4 w-4 mr-2" />
+              Tabla
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {viewMode === "cards" && (
+          <>
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar paciente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-patient"
+              />
+            </div>
+            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+              <SelectTrigger className="w-[200px]" data-testid="select-group-filter">
+                <SelectValue placeholder="Filtrar por grupo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los grupos</SelectItem>
+                <SelectItem value="Consultorio">Consultorio</SelectItem>
+                <SelectItem value="Gimnasia">Gimnasia</SelectItem>
+                <SelectItem value="Fútbol">Fútbol</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPatients.map((patient) => (
-          <PatientCard key={patient.id} {...patient} />
-        ))}
-      </div>
-
-      {filteredPatients.length === 0 && (
+      {isLoading ? (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            No se encontraron pacientes con los filtros aplicados
-          </p>
+          <p className="text-muted-foreground">Cargando pacientes...</p>
         </div>
+      ) : viewMode === "table" ? (
+        <PatientsTable patients={filteredPatients} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPatients.map((patient) => (
+              <PatientCard
+                key={patient.id}
+                id={patient.id}
+                name={patient.name}
+                age={patient.birthDate ? new Date().getFullYear() - new Date(patient.birthDate).getFullYear() : 0}
+                objective={patient.objective as "pérdida" | "ganancia" | "mantenimiento" | undefined}
+              />
+            ))}
+          </div>
+
+          {filteredPatients.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">
+                No se encontraron pacientes con los filtros aplicados
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
