@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Save, X, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import type { Patient } from "@shared/schema";
@@ -66,6 +67,8 @@ export function PatientsTable({ patients }: PatientsTableProps) {
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   const updatePatientMutation = useMutation({
     mutationFn: async ({ id, data, version }: { id: string; data: Partial<EditedPatient>; version: number }) => {
@@ -158,6 +161,56 @@ export function PatientsTable({ patients }: PatientsTableProps) {
     }
   };
 
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === sortedAndFilteredPatients.length && sortedAndFilteredPatients.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedAndFilteredPatients.map(p => p.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    const deletePromises = Array.from(selectedIds).map(id => 
+      apiRequest("DELETE", `/api/patients/${id}`)
+    );
+    
+    try {
+      await Promise.all(deletePromises);
+      queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+      setSelectedIds(new Set());
+      setBulkDeleteDialogOpen(false);
+      toast({
+        title: "Pacientes eliminados",
+        description: `Se eliminaron ${selectedIds.size} pacientes exitosamente`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron eliminar algunos pacientes",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isAllSelected = sortedAndFilteredPatients.length > 0 && selectedIds.size === sortedAndFilteredPatients.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < sortedAndFilteredPatients.length;
+
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       // Toggle direction: asc -> desc -> null -> asc
@@ -231,12 +284,36 @@ export function PatientsTable({ patients }: PatientsTableProps) {
               data-testid="input-global-search"
             />
           </div>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size} seleccionado{selectedIds.size > 1 ? 's' : ''}
+              </span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkDelete}
+                data-testid="button-bulk-delete"
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                Eliminar seleccionados
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={isAllSelected}
+                    indeterminate={isSomeSelected}
+                    onCheckedChange={handleToggleSelectAll}
+                    data-testid="checkbox-select-all"
+                  />
+                </TableHead>
                 <TableHead>
                   <Button
                     variant="ghost"
@@ -329,12 +406,20 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                 sortedAndFilteredPatients.map((patient, index) => {
                   const isEditing = editingId === patient.id;
                   const isEvenRow = index % 2 === 0;
+                  const isSelected = selectedIds.has(patient.id);
                   return (
                     <TableRow 
                       key={patient.id} 
                       data-testid={`row-patient-${patient.id}`}
-                      className={`${isEvenRow ? 'bg-sky-50/50 dark:bg-sky-950/10' : ''} ${isEditing ? 'ring-2 ring-primary/40' : ''}`}
+                      className={`${isEvenRow ? 'bg-sky-50/50 dark:bg-sky-950/10' : ''} ${isEditing ? 'ring-2 ring-primary/40' : ''} ${isSelected ? 'bg-primary/5' : ''}`}
                     >
+                      <TableCell>
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => handleToggleSelect(patient.id)}
+                          data-testid={`checkbox-patient-${patient.id}`}
+                        />
+                      </TableCell>
                       <TableCell>
                         {isEditing ? (
                           <Input
@@ -487,7 +572,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center">
+                  <TableCell colSpan={9} className="h-24 text-center">
                     No se encontraron pacientes.
                   </TableCell>
                 </TableRow>
@@ -520,6 +605,28 @@ export function PatientsTable({ patients }: PatientsTableProps) {
               data-testid="button-confirm-delete"
             >
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent data-testid="dialog-bulk-delete">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar {selectedIds.size} paciente{selectedIds.size > 1 ? 's' : ''}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar {selectedIds.size} paciente{selectedIds.size > 1 ? 's' : ''}?
+              Esta acción no se puede deshacer y se eliminarán todas las mediciones y datos asociados a estos pacientes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-bulk-delete">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-bulk-delete"
+            >
+              Eliminar todos
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

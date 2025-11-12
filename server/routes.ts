@@ -352,6 +352,24 @@ router.post("/api/measurements", async (req, res) => {
     const data = validate(insertMeasurementSchema, req.body);
     const measurement = await storage.createMeasurement(data);
     
+    // Obtener el paciente para acceder a edad y género
+    const patient = await storage.getPatient(measurement.patientId);
+    let patientAge = null;
+    let patientGender = null;
+    
+    if (patient) {
+      patientGender = patient.gender;
+      if (patient.birthDate) {
+        const birthDate = new Date(patient.birthDate);
+        const today = new Date();
+        patientAge = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          patientAge--;
+        }
+      }
+    }
+    
     // Calcular BMI y otros indicadores automáticamente
     const calculations = calculateAll({
       weight: measurement.weight,
@@ -361,8 +379,10 @@ router.post("/api/measurements", async (req, res) => {
       supraspinal: measurement.supraspinal,
       abdominal: measurement.abdominal,
       thighSkinfold: measurement.thighSkinfold,
-      calfSkinfold: measurement.calfSkinfold
-    });
+      calfSkinfold: measurement.calfSkinfold,
+      waistCircumference: measurement.waist,
+      hipCircumference: measurement.hip
+    }, patientAge, patientGender);
     
     // Guardar los cálculos si hay algún resultado
     if (Object.keys(calculations).length > 0) {
@@ -406,6 +426,24 @@ router.patch("/api/measurements/:id", async (req, res) => {
       return res.status(404).json({ error: "Measurement not found" });
     }
     
+    // Obtener el paciente para acceder a edad y género
+    const patient = await storage.getPatient(measurement.patientId);
+    let patientAge = null;
+    let patientGender = null;
+    
+    if (patient) {
+      patientGender = patient.gender;
+      if (patient.birthDate) {
+        const birthDate = new Date(patient.birthDate);
+        const today = new Date();
+        patientAge = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          patientAge--;
+        }
+      }
+    }
+    
     // Re-calcular BMI y otros indicadores cuando se actualiza
     const calculations = calculateAll({
       weight: measurement.weight,
@@ -415,8 +453,10 @@ router.patch("/api/measurements/:id", async (req, res) => {
       supraspinal: measurement.supraspinal,
       abdominal: measurement.abdominal,
       thighSkinfold: measurement.thighSkinfold,
-      calfSkinfold: measurement.calfSkinfold
-    });
+      calfSkinfold: measurement.calfSkinfold,
+      waistCircumference: measurement.waist,
+      hipCircumference: measurement.hip
+    }, patientAge, patientGender);
     
     // Actualizar o crear cálculos
     if (Object.keys(calculations).length > 0) {

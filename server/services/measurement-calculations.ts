@@ -112,6 +112,7 @@ export function calculateSomatotype(data: {
 
 /**
  * Calcula el porcentaje de grasa corporal usando fórmula de Durnin & Womersley
+ * Esta fórmula usa constantes específicas por edad y género
  * @param sum6Skinfolds Suma de 6 pliegues en mm
  * @param age Edad en años
  * @param gender Género ('M' o 'F')
@@ -126,23 +127,74 @@ export function calculateBodyFatPercentage(
   }
 
   const sum = parseFloat(sum6Skinfolds);
-  if (isNaN(sum)) {
+  if (isNaN(sum) || sum <= 0) {
     return null;
   }
 
-  // Fórmula de Durnin & Womersley (simplificada)
-  let densidad: number;
+  // Constantes de Durnin & Womersley por edad y género
+  let c: number; // Constante C
+  let m: number; // Constante M
   
   if (gender === 'M') {
-    densidad = 1.1765 - 0.0744 * Math.log10(sum);
+    // Hombres - rangos de edad específicos
+    if (age < 17) {
+      c = 1.1533;
+      m = 0.0643;
+    } else if (age <= 19) {
+      c = 1.1620;
+      m = 0.0630;
+    } else if (age <= 29) {
+      c = 1.1631;
+      m = 0.0632;
+    } else if (age <= 39) {
+      c = 1.1422;
+      m = 0.0544;
+    } else if (age <= 49) {
+      c = 1.1620;
+      m = 0.0700;
+    } else {
+      // 50+ años
+      c = 1.1715;
+      m = 0.0779;
+    }
   } else if (gender === 'F') {
-    densidad = 1.1567 - 0.0717 * Math.log10(sum);
+    // Mujeres - rangos de edad específicos
+    if (age < 17) {
+      c = 1.1369;
+      m = 0.0598;
+    } else if (age <= 19) {
+      c = 1.1549;
+      m = 0.0678;
+    } else if (age <= 29) {
+      c = 1.1599;
+      m = 0.0717;
+    } else if (age <= 39) {
+      c = 1.1423;
+      m = 0.0632;
+    } else if (age <= 49) {
+      c = 1.1333;
+      m = 0.0612;
+    } else {
+      // 50+ años
+      c = 1.1339;
+      m = 0.0645;
+    }
   } else {
-    return null;
+    // Para género 'Other', usar promedio de rangos adultos jóvenes
+    c = 1.1615;
+    m = 0.0675;
   }
 
+  // Calcular densidad corporal: D = C - M * log10(suma de pliegues)
+  const densidad = c - m * Math.log10(sum);
+  
   // Fórmula de Siri: % grasa = ((4.95 / densidad) - 4.5) * 100
   const bodyFat = ((4.95 / densidad) - 4.5) * 100;
+  
+  // Validar que el resultado esté en un rango razonable (3% - 50%)
+  if (bodyFat < 3 || bodyFat > 50) {
+    return null;
+  }
   
   return bodyFat.toFixed(2);
 }

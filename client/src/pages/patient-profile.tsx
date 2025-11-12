@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar, Mail, Phone, User, Edit, FileDown, Activity, Utensils, Heart } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssignDietDialog } from "@/components/assign-diet-dialog";
+import { PatientEditDialog } from "@/components/patient-edit-dialog";
 import { MeasurementsHistory } from "@/components/measurements-history";
 import type { Patient, DietAssignment } from "@shared/schema";
 
@@ -24,6 +25,7 @@ export default function PatientProfile() {
   const initialTab = validTabs.includes(tabParam || '') ? tabParam! : 'datos';
   
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   // Sync URL when tab changes
   useEffect(() => {
@@ -98,9 +100,13 @@ export default function PatientProfile() {
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24 border-4 border-primary/20">
-                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-2xl">
-                  {initials}
-                </AvatarFallback>
+                {patient.avatarUrl ? (
+                  <AvatarImage src={patient.avatarUrl} alt={patient.name} />
+                ) : (
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-2xl">
+                    {initials}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
@@ -146,11 +152,16 @@ export default function PatientProfile() {
             </div>
             <div className="flex gap-2">
               <AssignDietDialog patientId={patient.id} patientName={patient.name} />
-              <Button variant="outline" size="sm">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsEditDialogOpen(true)}
+                data-testid="button-edit-patient"
+              >
                 <Edit className="h-4 w-4 mr-2" />
                 Editar
               </Button>
-              <Button size="sm">
+              <Button size="sm" data-testid="button-export-patient">
                 <FileDown className="h-4 w-4 mr-2" />
                 Exportar
               </Button>
@@ -342,6 +353,13 @@ export default function PatientProfile() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Patient Dialog */}
+      <PatientEditDialog
+        patient={patient}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+      />
     </div>
   );
 }

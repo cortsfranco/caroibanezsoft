@@ -1,8 +1,6 @@
 # Overview
 
-Sistema de Nutrición Carolina Ibáñez is a comprehensive nutrition management platform designed for nutritionists to track patient data, manage anthropometric measurements, assign diets, and generate reports. The application uses a modern full-stack architecture with React frontend and Express backend, connected to a PostgreSQL database via Neon serverless.
-
-The system implements the ISAK 2 anthropometric measurement standard (5 components - D. Kerr 1988) with **automatic BMI calculation**, provides real-time data synchronization via WebSockets, Excel import/export capabilities, AI-powered diet generation using Azure OpenAI integration, and **automated PDF report generation** for professional nutrition assessments.
+Sistema de Nutrición Carolina Ibáñez is a comprehensive nutrition management platform for nutritionists. It facilitates patient data tracking, anthropometric measurement management, diet assignment, and report generation. The application features a modern full-stack architecture with a React frontend and an Express backend, leveraging a PostgreSQL database via Neon serverless. Key capabilities include ISAK 2 anthropometric measurement support with automatic BMI calculation, real-time data synchronization via WebSockets, Excel import/export, AI-powered diet generation, and automated PDF report generation for professional assessments.
 
 # User Preferences
 
@@ -12,203 +10,60 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 
-**Framework & Routing**: React 18 with Wouter for client-side routing, providing a lightweight SPA experience.
-
-**State Management**: TanStack Query (React Query) for server state management with aggressive caching strategies (`staleTime: Infinity`). No global state management library - relies on React Query's built-in cache and URL-based state for navigation.
-
-**UI Component System**: Radix UI primitives with custom shadcn/ui components following the "New York" style variant. Uses Tailwind CSS with a custom design system defined in `design_guidelines.md` inspired by Linear and Vercel aesthetics.
-
-**Design System**: 
-- Typography: Inter font family via Google Fonts CDN
-- Color System: HSL-based with CSS variables for light/dark theme support
-- Spacing: Tailwind units (2, 4, 6, 8, 12, 16) for consistent rhythm
-- Elevation: Custom `hover-elevate` and `active-elevate` utilities for interactive feedback
-
-**Real-time Updates**: WebSocket client (`lib/websocket.ts`) automatically invalidates React Query cache when server broadcasts entity changes, ensuring UI stays synchronized across tabs/users.
-
-**Form Handling**: React Hook Form with Zod validation for type-safe form schemas. Implements optimistic locking pattern with version fields to prevent concurrent update conflicts.
+**Framework & Routing**: React 18 with Wouter for a lightweight Single Page Application (SPA) experience.
+**State Management**: TanStack Query (React Query) handles server state with aggressive caching, avoiding a global state management library.
+**UI Component System**: Radix UI primitives are used with custom shadcn/ui components in the "New York" style, styled with Tailwind CSS following a custom design system inspired by Linear and Vercel.
+**Design System**: Features the Inter font, an HSL-based color system with CSS variables for light/dark themes, and consistent spacing units.
+**Real-time Updates**: A WebSocket client invalidates React Query cache on server broadcasts, ensuring UI synchronization.
+**Form Handling**: React Hook Form with Zod validation is used for type-safe forms, implementing optimistic locking with version fields.
 
 ## Backend Architecture
 
-**Framework**: Express.js with TypeScript, serving both API endpoints and static frontend files in production.
-
-**API Design**: RESTful endpoints under `/api/*` namespace with consistent error handling and JSON responses. All routes defined in `server/routes.ts`.
-
-**Database Layer**: Drizzle ORM with Neon serverless PostgreSQL driver. The `DbStorage` class (`server/db-storage.ts`) implements the `IStorage` interface, providing a clean abstraction over database operations.
-
-**Optimistic Locking**: All core entities (patients, groups, measurements, diets) include a `version` integer field. Update operations check version and increment it, throwing `VersionConflictError` if concurrent modifications detected.
-
-**WebSocket Layer**: Custom WebSocket manager (`server/websocket.ts`) broadcasts entity changes (create/update/delete events) to all connected clients for real-time synchronization.
-
-**Development Tools**: Vite dev server with HMR in development mode, automatic error overlay, and Replit-specific plugins for cartographer and dev banner when running in Replit environment.
+**Framework**: Express.js with TypeScript, serving API endpoints and static frontend files.
+**API Design**: RESTful endpoints under `/api/*` with consistent JSON responses and error handling.
+**Database Layer**: Drizzle ORM integrates with Neon serverless PostgreSQL, abstracted by the `DbStorage` class.
+**Optimistic Locking**: Core entities include a `version` field to prevent concurrent update conflicts.
+**WebSocket Layer**: A custom WebSocket manager broadcasts entity changes for real-time synchronization.
 
 ## Data Model
 
-**Core Entities**:
-- **Patients**: Comprehensive profile including demographics, health objectives, dietary preferences (vegetarian/vegan), allergies, medical conditions, exercise habits (sport type, training days/schedule)
-- **Patient Groups**: Organization system for categorizing patients (e.g., "Gimnasia", "Consultorio")
-- **Group Memberships**: Many-to-many relationship between patients and groups
-- **Measurements**: ISAK 2 anthropometric data (weight, height, skinfolds, circumferences, breadths) with automatic BMI calculation
-- **Measurement Calculations**: Derived metrics (body composition, somatotypes) stored separately for historical tracking
-- **Diets**: Macronutrient profiles with meal plans
-- **Diet Assignments**: Links diets to patients with date ranges and custom notes
-- **Diet Templates**: Reusable diet blueprints for AI generation
-- **Diet Generations**: AI-generated diet plans with approval workflow (draft/approved/rejected states)
-- **Reports**: Generated nutrition reports (currently placeholder for future implementation)
-- **Weekly Diet Plans**: Template-based weekly meal plans with `isTemplate` flag. Templates are reusable blueprints that can be assigned to multiple groups/patients without duplication
-- **Weekly Plan Assignments**: Links weekly plan templates to patient groups or individual patients with date ranges and assignment notes. Enforces exactly one of `groupId` or `patientId` via Zod validation for clean assignment semantics
-- **Weekly Plan Meals**: Individual meal slots within weekly plans, supporting multiple meals per time slot with individual editable times
-- **Meal Catalog**: Centralized meal library with optional categories, image upload/AI generation, nutritional data, and tagging system
-- **Meal Tags**: Dynamic, editable tags for categorizing meals (replaces fixed MEAL_CATEGORIES)
+**Core Entities**: Patients (demographics, objectives, preferences, medical conditions, exercise), Patient Groups, Group Memberships, Measurements (ISAK 2 with BMI), Measurement Calculations, Diets, Diet Assignments, Diet Templates, Diet Generations, Reports, Weekly Diet Plans (template-based), Weekly Plan Assignments, Weekly Plan Meals, Meal Catalog (with categories, images, nutritional data), and Meal Tags.
+**Schema Organization**: All database schemas are defined in `shared/schema.ts` using Drizzle with Zod for shared client/server validation.
+**Weekly Planner Architecture**: Employs a template+assignment pattern for bulk deployment and efficient management of meal plans.
 
-**Schema Organization**: All database schemas defined in `shared/schema.ts` using Drizzle's table definitions with Zod schemas for validation. Schemas are shared between client and server via path aliases.
+## AI Integration
 
-**Weekly Planner Architecture**: Uses template+assignment pattern to enable bulk deployment and prevent data explosion:
-- **Templates** (`isTemplate=true`): Created once, contain 7-day meal grids with multiple meals per time slot
-- **Assignments** (`weeklyPlanAssignments`): Reference templates and assign to groups/patients with date ranges
-- **Benefits**: Create 1 template → assign to 20+ patients in seconds, update template → all assignments reflect changes
-- **REST Endpoints**: Full CRUD for plans/assignments plus helper endpoints `/api/weekly-plans/:id/assign-to-group` and `/assign-to-patient`
-- **Frontend Implementation** (`client/src/pages/weekly-diet-planner.tsx`):
-  - Three view modes: list (templates overview), create/edit (drag-and-drop grid), assignment (dialog)
-  - Optimistic locking: Fetches individual plan via GET before editing to ensure correct `version` field
-  - Drag-and-drop: Users can drag meals from catalog to weekly grid, with time editing per meal
-  - Assignment workflow: Select template → choose group/patient → set date range → create assignment
-
-## AI Integration (In Development)
-
-**LangChain + LangGraph**: Implements a state machine workflow for diet generation using Azure OpenAI (`@langchain/openai`). The graph-based approach allows for:
-1. Patient context gathering
-2. Measurement analysis
-3. Template selection
-4. Structured diet plan generation
-5. Validation and approval workflow
-
-**Structured Output**: Uses Zod schemas converted to JSON Schema for enforcing structured LLM outputs (meals, ingredients, macros, timing).
-
-**Service Architecture**: Two implementations:
-- `diet-ai-service.ts`: Full LangGraph workflow with state management
-- `diet-ai-service-simple.ts`: Simplified direct LLM calls for faster iteration
-
-**Note**: Azure OpenAI configuration requires environment variables (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`).
+**LangChain + LangGraph**: Implements a state machine for diet generation using Azure OpenAI, allowing for patient context gathering, analysis, template selection, structured diet plan generation, and a validation workflow.
+**Structured Output**: Zod schemas are converted to JSON Schema to enforce structured LLM outputs.
+**Service Architecture**: Includes `diet-ai-service.ts` for the full LangGraph workflow and `diet-ai-service-simple.ts` for simplified direct LLM calls.
 
 ## Build & Deployment
 
-**Development**: `npm run dev` starts Vite dev server with Express API proxy
-**Production Build**: 
-1. `vite build` compiles React app to `dist/public`
-2. `esbuild` bundles Express server to `dist/index.js`
-**Start**: `npm start` runs bundled Express server serving static files and API
-
-**Environment Variables**:
-- `DATABASE_URL`: Required for PostgreSQL connection (Neon serverless)
-- `AZURE_OPENAI_*`: Optional for AI diet generation features
-- `NODE_ENV`: Controls production vs development behavior
+**Development**: `npm run dev` starts Vite dev server with HMR and Express API proxy.
+**Production Build**: `vite build` for the frontend and `esbuild` for the Express server.
+**Start**: `npm start` runs the bundled Express server.
+**Environment Variables**: `DATABASE_URL` (Neon PostgreSQL) and `AZURE_OPENAI_*` (optional for AI features) are critical.
 
 # External Dependencies
 
 ## Database
 
-**Neon Serverless PostgreSQL**: Primary data store using WebSocket-based connection pooling via `@neondatabase/serverless`. Connection configured in `server/db.ts` with Drizzle ORM integration.
-
-**Current Status**: Documentation indicates Neon database is currently disabled - system will need database provisioning before use.
-
-**Migration Strategy**: Drizzle Kit for schema migrations (`npm run db:push` to sync schema without migration files). Manual SQL migrations documented in `server/migrations/` for complex schema changes.
-
-**Recent Schema Updates (2025-11-12)**:
-- Created meal catalog tables: `meals`, `meal_tags`, `meal_tag_assignments`
-- Created weekly diet planner tables: `weekly_diet_plans`, `weekly_plan_assignments`, `weekly_plan_meals`
-- All tables include optimistic locking (version field) and audit timestamps
-- Migration script available at: `server/migrations/001_create_meal_and_weekly_plan_tables.sql`
+**Neon Serverless PostgreSQL**: The primary data store, using `@neondatabase/serverless` for connection pooling.
+**Migration Strategy**: Drizzle Kit is used for schema synchronization (`npm run db:push`), with manual SQL migrations for complex changes.
 
 ## AI Services
 
-**Azure OpenAI**: Optional integration for diet generation features using GPT models via `@langchain/openai`. Configured for Azure-specific endpoints and deployments.
-
-**LangChain Ecosystem**:
-- `@langchain/langgraph`: State graph orchestration for multi-step AI workflows
-- `@langchain/openai`: Azure OpenAI adapter with structured output support
+**Azure OpenAI**: Optional integration for AI-powered diet generation, utilizing GPT models via `@langchain/openai`.
+**LangChain Ecosystem**: `@langchain/langgraph` for state graph orchestration and `@langchain/openai` for Azure OpenAI adaptation.
 
 ## Third-Party UI Libraries
 
-**Radix UI**: Headless component primitives for accessibility and composability (accordions, dialogs, dropdowns, tooltips, etc.)
-
-**Tremor React**: Data visualization components (charts, metrics) - version 3.18.7 used for dashboard statistics.
-
-**Recharts**: Chart rendering library for measurement history graphs and dashboard analytics.
-
-**XLSX (SheetJS)**: Excel import/export functionality in `components/excel-import-export.tsx`.
+**Radix UI**: Headless components for accessibility and composability.
+**Tremor React**: Data visualization components for dashboards.
+**Recharts**: Chart rendering library for graphs and analytics.
+**XLSX (SheetJS)**: For Excel import/export functionality.
 
 ## Development Tools
 
-**Vite Plugins**:
-- `@vitejs/plugin-react`: React Fast Refresh
-- `@replit/vite-plugin-runtime-error-modal`: Development error overlay
-- `@replit/vite-plugin-cartographer`: Code navigation (Replit-specific)
-- `@replit/vite-plugin-dev-banner`: Dev environment indicator
-
-**Validation**: Zod for runtime type validation with `drizzle-zod` integration for automatic schema generation from database tables.
-
-## Session Management
-
-**connect-pg-simple**: PostgreSQL-backed session store for Express sessions (dependency present but not actively configured in visible code - likely for future authentication implementation).
-
-# Recent Updates (November 12, 2025)
-
-## Automatic BMI Calculation
-**Service**: `server/services/measurement-calculations.ts`
-- Automatically calculates BMI when measurements are created or updated
-- Calculates sum of 6 skinfolds (ISAK 2 standard)
-- Results persisted in `measurementCalculations` table
-- Integrated in POST and PATCH `/api/measurements` endpoints
-
-**Functions**:
-- `calculateBMI(weight, height)` - Returns BMI value and classification (Bajo peso, Normal, Sobrepeso, Obesidad I/II/III)
-- `calculateSum6Skinfolds()` - Sums triceps, subscapular, supraspinal, abdominal, thigh, calf skinfolds
-- `calculateAll()` - Orchestrates all anthropometric calculations
-
-## PDF Report Generation
-**Service**: `server/services/pdf-report-service.ts`
-- Generates professional PDF reports using jsPDF + autoTable
-- Includes patient data, basic measurements (weight, height, BMI), skinfolds, perimeters, and notes
-- Saves PDFs to `/reports` directory with unique filenames
-- Returns relative path `/reports/filename.pdf` for database storage
-
-**Endpoint**: POST `/api/reports/generate`
-- Request body: `{ patientId, measurementId }`
-- Fetches patient and measurement data
-- Calls `generateMeasurementReport()` to create PDF
-- Creates report record with `pdfUrl` and `status: 'generated'`
-- Broadcasts via WebSocket for real-time updates
-- PDFs accessible via HTTP at `/reports/filename.pdf`
-
-**Static File Serving**: Added `app.use('/reports', express.static('reports'))` in `server/index.ts`
-
-## Sample Data Seeding
-**Script**: `server/seed-data.ts`
-- Creates comprehensive sample data for testing and demonstration
-- Run with: `tsx server/seed-data.ts`
-
-**Data Created**:
-- 12 meal tags (categories: dietary, timing, objective)
-- 26 meals with complete nutritional information (proteins, carbs, fats, calories, portions)
-- 26 tag assignments linking meals to categories
-- 3 patient groups (Gimnasia Artística, Consultorio General, Pérdida de Peso)
-- 3 sample patients with exercise habits and dietary preferences
-- 3 weekly diet plan templates (2500 kcal, 1600 kcal, 2000 kcal)
-- 17 meal entries distributed across plans (breakfast, lunch, dinner, snacks)
-
-**Helper Function**: `toDecimalString()` - Converts numbers to strings for PostgreSQL decimal fields (Drizzle requirement)
-
-## Storage Implementation
-**DbStorage Enhancements**: `server/db-storage.ts`
-- Implemented all missing `IStorage` interface methods for weekly plan assignments
-- Methods: `getWeeklyPlanAssignments`, `getWeeklyPlanAssignment`, `createWeeklyPlanAssignment`, `updateWeeklyPlanAssignment`, `deleteWeeklyPlanAssignment`
-- Helper methods: `assignPlanToGroup`, `assignPlanToPatient`
-- All methods follow optimistic locking pattern with version control
-- Proper error handling with `VersionConflictError` for concurrent updates
-
-## UI Improvements
-**Theme Colors**: Updated card background colors for better visibility
-- Light mode: 200° hue, 40% saturation (noticeable light blue/green tint)
-- Dark mode: 200° hue, 25% saturation (subtle tint that respects dark theme)
-- Changes in `client/src/index.css`
+**Vite Plugins**: Includes `@vitejs/plugin-react` for HMR, and Replit-specific plugins for error overlays, cartography, and dev banners.
+**Validation**: Zod is used for runtime type validation, integrated with `drizzle-zod`.

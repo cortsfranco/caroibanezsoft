@@ -25,39 +25,43 @@ export class ImageService {
 
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${this.apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            "x-goog-api-key": this.apiKey,
           },
           body: JSON.stringify({
             contents: [{
               parts: [{ text: prompt }]
-            }],
-            generationConfig: {
-              responseModalities: ["IMAGE"],
-              imageConfig: {
-                aspectRatio: "1:1"
-              }
-            }
+            }]
           }),
         }
       );
 
       if (!response.ok) {
         const errorText = await response.text();
+        console.error("Gemini API error response:", errorText);
         throw new Error(`Gemini API error: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
+      console.log("Gemini API response structure:", JSON.stringify(data, null, 2));
       
-      if (!data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data) {
+      // Gemini 2.5 Flash Image returns parts that can contain both text and images
+      // Find the first part with inline image data
+      const parts = data.candidates?.[0]?.content?.parts || [];
+      const imagePart = parts.find((part: any) => part.inlineData?.mimeType?.startsWith('image/'));
+      
+      if (!imagePart?.inlineData?.data) {
+        console.error("No image data in response. Parts:", JSON.stringify(parts, null, 2));
         throw new Error("No image data returned from Gemini");
       }
 
-      const base64Image = data.candidates[0].content.parts[0].inlineData.data;
-      return `data:image/png;base64,${base64Image}`;
+      const base64Image = imagePart.inlineData.data;
+      const mimeType = imagePart.inlineData.mimeType || 'image/png';
+      return `data:${mimeType};base64,${base64Image}`;
     } catch (error) {
       console.error("Error generating image with Gemini:", error);
       throw new Error(`Failed to generate image: ${error instanceof Error ? error.message : 'Unknown error'}`);

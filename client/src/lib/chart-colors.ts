@@ -65,7 +65,7 @@ export function getAllVividColors(): string[] {
 /**
  * Get gradient colors for area charts
  */
-export function getGradientColors(metric: MetricKey): string[] {
+export function getGradientColors(metric: MetricKey): readonly string[] {
   return CHART_COLORS[metric].gradient;
 }
 
