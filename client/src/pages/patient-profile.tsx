@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Mail, Phone, User, Edit, FileDown, Activity, Utensils, Heart, MessageSquareShare, MessageCircle, Plus } from "lucide-react";
+import { Calendar, Mail, Phone, User, Edit, FileDown, Activity, Utensils, Heart, MessageSquareShare, MessageCircle, Plus, Target, Cake, MapPin } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
 import { AssignDietDialog } from "@/components/assign-diet-dialog";
 import { PatientEditDialog } from "@/components/patient-edit-dialog";
 import { MeasurementsHistory } from "@/components/measurements-history";
@@ -205,6 +206,11 @@ export default function PatientProfile() {
     ? new Date().getFullYear() - new Date(patient.birthDate).getFullYear()
     : null;
 
+  const capitalizeObjective = (objective: string | null): string => {
+    if (!objective) return "-";
+    return objective.charAt(0).toUpperCase() + objective.slice(1);
+  };
+
   const sectionCardClass = (index: number) =>
     cn(
       "shadow-md border border-slate-200/70 dark:border-white/10 transition-colors duration-200",
@@ -234,7 +240,7 @@ export default function PatientProfile() {
                   <h1 className="text-3xl font-bold text-primary">{patient.name}</h1>
                   {patient.objective && (
                     <Badge className="text-sm px-3 py-1 bg-gradient-to-r from-primary/80 to-primary text-white">
-                      {patient.objective}
+                      {capitalizeObjective(patient.objective)}
                     </Badge>
                   )}
                 </div>
@@ -332,36 +338,74 @@ export default function PatientProfile() {
         <TabsContent value="datos" className="space-y-4">
           <Card className={sectionCardClass(0)}>
             <CardHeader>
-              <CardTitle>Información Personal</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Información Personal
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Nombre Completo</p>
-                <p className="text-lg font-semibold">{patient.name}</p>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <User className="h-5 w-5 text-primary mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Nombre Completo</p>
+                    <p className="text-lg font-semibold">{patient.name}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <User className="h-5 w-5 text-primary mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Género</p>
+                    <Badge variant="outline" className="text-base font-semibold">
+                      {patient.gender === "M" ? "Masculino" : patient.gender === "F" ? "Femenino" : "Otro"}
+                    </Badge>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Género</p>
-                <p className="text-lg font-semibold">
-                  {patient.gender === "M" ? "Masculino" : patient.gender === "F" ? "Femenino" : "Otro"}
-                </p>
+
+              <Separator />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <Mail className="h-5 w-5 text-primary mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Email</p>
+                    <p className="text-lg font-semibold break-all">{patient.email || "-"}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Phone className="h-5 w-5 text-primary mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Teléfono</p>
+                    <p className="text-lg font-semibold">{patient.phone || "-"}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Email</p>
-                <p className="text-lg font-semibold">{patient.email || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Teléfono</p>
-                <p className="text-lg font-semibold">{patient.phone || "-"}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Fecha de Nacimiento</p>
-                <p className="text-lg font-semibold">
-                  {patient.birthDate ? new Date(patient.birthDate).toLocaleDateString() : "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Objetivo</p>
-                <p className="text-lg font-semibold">{patient.objective || "-"}</p>
+
+              <Separator />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <Cake className="h-5 w-5 text-primary mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Fecha de Nacimiento</p>
+                    <p className="text-lg font-semibold">
+                      {patient.birthDate ? new Date(patient.birthDate).toLocaleDateString() : "-"}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Target className="h-5 w-5 text-primary mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Objetivo</p>
+                    <Badge variant="default" className="text-base font-semibold">
+                      {capitalizeObjective(patient.objective)}
+                    </Badge>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -369,29 +413,50 @@ export default function PatientProfile() {
           {/* Activity Section */}
           <Card className={sectionCardClass(1)}>
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
-                <CardTitle>Actividad Física</CardTitle>
-              </div>
+                Actividad Física
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-6">
-              <div className="col-span-2">
-                <p className="text-sm font-medium text-muted-foreground">Realiza Ejercicio</p>
-                <p className="text-lg font-semibold">{patient.exercisesRegularly ? "Sí" : "No"}</p>
+            <CardContent className="space-y-6">
+              <div className="flex items-start gap-3">
+                <Activity className="h-5 w-5 text-primary mt-1" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Realiza Ejercicio</p>
+                  <Badge variant={patient.exercisesRegularly ? "default" : "outline"} className="text-base font-semibold">
+                    {patient.exercisesRegularly ? "Sí" : "No"}
+                  </Badge>
+                </div>
               </div>
+
               {patient.exercisesRegularly && (
                 <>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Tipo de Deporte/Actividad</p>
-                    <p className="text-lg font-semibold">{patient.sportType || "-"}</p>
+                  <Separator />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-start gap-3">
+                      <Activity className="h-5 w-5 text-primary mt-1" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Tipo de Deporte/Actividad</p>
+                        <p className="text-lg font-semibold">{patient.sportType || "-"}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <Calendar className="h-5 w-5 text-primary mt-1" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Días que Entrena</p>
+                        <p className="text-lg font-semibold">{patient.exerciseDays || "-"}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Días que Entrena</p>
-                    <p className="text-lg font-semibold">{patient.exerciseDays || "-"}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium text-muted-foreground">Horarios</p>
-                    <p className="text-lg font-semibold">{patient.exerciseSchedule || "-"}</p>
+
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-primary mt-1" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Horarios</p>
+                      <p className="text-lg font-semibold">{patient.exerciseSchedule || "-"}</p>
+                    </div>
                   </div>
                 </>
               )}
@@ -401,27 +466,50 @@ export default function PatientProfile() {
           {/* Dietary Preferences Section */}
           <Card className={sectionCardClass(2)}>
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
                 <Utensils className="h-5 w-5 text-primary" />
-                <CardTitle>Preferencias Dietarias</CardTitle>
-              </div>
+                Preferencias Dietarias
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Vegetariano</p>
-                <p className="text-lg font-semibold">{patient.isVegetarian ? "Sí" : "No"}</p>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <Utensils className="h-5 w-5 text-primary mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Vegetariano</p>
+                    <Badge variant={patient.isVegetarian ? "default" : "outline"} className="text-base font-semibold">
+                      {patient.isVegetarian ? "Sí" : "No"}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3">
+                  <Utensils className="h-5 w-5 text-primary mt-1" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Vegano</p>
+                    <Badge variant={patient.isVegan ? "default" : "outline"} className="text-base font-semibold">
+                      {patient.isVegan ? "Sí" : "No"}
+                    </Badge>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Vegano</p>
-                <p className="text-lg font-semibold">{patient.isVegan ? "Sí" : "No"}</p>
+
+              <Separator />
+
+              <div className="flex items-start gap-3">
+                <Heart className="h-5 w-5 text-primary mt-1" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Alergias Alimentarias</p>
+                  <p className="text-lg font-semibold">{patient.foodAllergies || "-"}</p>
+                </div>
               </div>
-              <div className="col-span-2">
-                <p className="text-sm font-medium text-muted-foreground">Alergias Alimentarias</p>
-                <p className="text-lg">{patient.foodAllergies || "-"}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-sm font-medium text-muted-foreground">Alimentos que No Consume</p>
-                <p className="text-lg">{patient.foodDislikes || "-"}</p>
+
+              <div className="flex items-start gap-3">
+                <Utensils className="h-5 w-5 text-primary mt-1" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Alimentos que No Consume</p>
+                  <p className="text-lg font-semibold">{patient.foodDislikes || "-"}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -429,19 +517,28 @@ export default function PatientProfile() {
           {/* Medical Information Section */}
           <Card className={sectionCardClass(3)}>
             <CardHeader>
-              <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
                 <Heart className="h-5 w-5 text-primary" />
-                <CardTitle>Información Médica</CardTitle>
-              </div>
+                Información Médica
+              </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-6">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Condiciones Médicas</p>
-                <p className="text-lg">{patient.medicalConditions || "-"}</p>
+            <CardContent className="space-y-6">
+              <div className="flex items-start gap-3">
+                <Heart className="h-5 w-5 text-primary mt-1" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Condiciones Médicas</p>
+                  <p className="text-lg font-semibold">{patient.medicalConditions || "-"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Medicamentos Actuales</p>
-                <p className="text-lg">{patient.medications || "-"}</p>
+
+              <Separator />
+
+              <div className="flex items-start gap-3">
+                <Heart className="h-5 w-5 text-primary mt-1" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Medicamentos Actuales</p>
+                  <p className="text-lg font-semibold">{patient.medications || "-"}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
