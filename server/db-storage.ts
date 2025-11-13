@@ -1,4 +1,4 @@
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { db } from "./db";
 import {
   patients,
@@ -264,6 +264,58 @@ export class DbStorage implements IStorage {
         .orderBy(desc(measurements.measurementDate));
     }
     return await db.select().from(measurements).orderBy(desc(measurements.measurementDate));
+  }
+
+  async getMeasurementsWithPatient(patientId?: string): Promise<Array<Measurement & { patient: { name: string | null } }>> {
+    const query = db
+      .select({
+        id: measurements.id,
+        patientId: measurements.patientId,
+        consultationId: measurements.consultationId,
+        measurementDate: measurements.measurementDate,
+        weight: measurements.weight,
+        height: measurements.height,
+        seatedHeight: measurements.seatedHeight,
+        biacromial: measurements.biacromial,
+        thoraxTransverse: measurements.thoraxTransverse,
+        thoraxAnteroposterior: measurements.thoraxAnteroposterior,
+        biiliocristideo: measurements.biiliocristideo,
+        humeral: measurements.humeral,
+        femoral: measurements.femoral,
+        head: measurements.head,
+        relaxedArm: measurements.relaxedArm,
+        flexedArm: measurements.flexedArm,
+        forearm: measurements.forearm,
+        thoraxCirc: measurements.thoraxCirc,
+        waist: measurements.waist,
+        hip: measurements.hip,
+        thighSuperior: measurements.thighSuperior,
+        thighMedial: measurements.thighMedial,
+        calf: measurements.calf,
+        triceps: measurements.triceps,
+        biceps: measurements.biceps,
+        subscapular: measurements.subscapular,
+        suprailiac: measurements.suprailiac,
+        supraspinal: measurements.supraspinal,
+        abdominal: measurements.abdominal,
+        thighSkinfold: measurements.thighSkinfold,
+        calfSkinfold: measurements.calfSkinfold,
+        notes: measurements.notes,
+        version: measurements.version,
+        createdAt: measurements.createdAt,
+        updatedAt: measurements.updatedAt,
+        patient: {
+          name: patients.name,
+        },
+      })
+      .from(measurements)
+      .leftJoin(patients, eq(measurements.patientId, patients.id))
+      .orderBy(desc(measurements.measurementDate));
+
+    if (patientId) {
+      return await query.where(eq(measurements.patientId, patientId));
+    }
+    return await query;
   }
 
   async getMeasurement(id: string): Promise<Measurement | null> {

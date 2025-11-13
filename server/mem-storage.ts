@@ -752,6 +752,10 @@ export class MemStorage implements IStorage {
     throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
   }
 
+  async getMeasurementsWithPatient(patientId?: string): Promise<Array<Measurement & { patient: { name: string | null } }>> {
+    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+  }
+
   async getMeasurement(id: string): Promise<Measurement | null> {
     throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
   }

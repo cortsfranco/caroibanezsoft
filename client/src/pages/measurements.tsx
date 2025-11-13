@@ -40,7 +40,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Calculator, Plus, Check, ChevronsUpDown, User } from "lucide-react";
+import { Save, Calculator, Plus, Check, ChevronsUpDown, User, Pencil, Trash2, FileText, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Patient } from "@shared/schema";
 
@@ -67,7 +67,12 @@ export default function Measurements() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedMeasurement, setSelectedMeasurement] = useState<MeasurementWithPatient | null>(null);
   const [openCombobox, setOpenCombobox] = useState(false);
+  const [sortBy, setSortBy] = useState<'date' | 'patient' | 'weight' | 'bmi'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [formData, setFormData] = useState({
     patientId: "",
     measurementDate: new Date().toISOString(),

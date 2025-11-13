@@ -164,6 +164,11 @@ export const insertMeasurementSchema = createInsertSchema(measurements).omit({
 });
 export type InsertMeasurement = z.infer<typeof insertMeasurementSchema>;
 export type Measurement = typeof measurements.$inferSelect;
+export type MeasurementWithPatient = Measurement & {
+  patient: {
+    name: string | null;
+  };
+};
 
 // Measurement Calculations Table (ISAK 2 - 5 Component Fractionation D. Kerr 1988)
 export const measurementCalculations = pgTable("measurement_calculations", {

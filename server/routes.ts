@@ -355,7 +355,7 @@ router.delete("/api/memberships/:id", async (req, res) => {
 router.get("/api/measurements", async (req, res) => {
   try {
     const { patientId } = req.query;
-    const measurements = await storage.getMeasurements(patientId as string | undefined);
+    const measurements = await storage.getMeasurementsWithPatient(patientId as string | undefined);
     res.json(measurements);
   } catch (error) {
     console.error("Error fetching measurements:", error);
