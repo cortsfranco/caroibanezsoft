@@ -105,9 +105,16 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
       // Actualizar datos del paciente
       const updatedPatient = await apiRequest("PATCH", `/api/patients/${patient.id}`, payload);
       
-      // Obtener membresía actual justo antes de actualizar
-      const currentMembershipsResponse = await fetch(`/api/memberships?patientId=${patient.id}`);
-      const currentMemberships: GroupMembership[] = await currentMembershipsResponse.json();
+      // Obtener membresía actual usando queryClient para consistencia
+      const currentMemberships = await queryClient.fetchQuery<GroupMembership[]>({
+        queryKey: [`/api/memberships?patientId=${patient.id}`],
+      });
+      
+      // Validar que solo haya una membresía por paciente
+      if (currentMemberships.length > 1) {
+        throw new Error(`Paciente tiene ${currentMemberships.length} membresías, debería tener máximo 1`);
+      }
+      
       const currentMembership = currentMemberships[0];
       const oldGroupId = currentMembership?.groupId;
       
