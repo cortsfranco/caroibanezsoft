@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Mail, Phone, User, Edit, FileDown, Activity, Utensils, Heart, MessageSquareShare, MessageCircle } from "lucide-react";
+import { Calendar, Mail, Phone, User, Edit, FileDown, Activity, Utensils, Heart, MessageSquareShare, MessageCircle, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AssignDietDialog } from "@/components/assign-diet-dialog";
 import { PatientEditDialog } from "@/components/patient-edit-dialog";
@@ -487,6 +487,18 @@ export default function PatientProfile() {
         </TabsContent>
 
         <TabsContent value="mediciones" className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold">Historial de Mediciones</h2>
+              <p className="text-sm text-muted-foreground">
+                Evolución antropométrica y cálculos ISAK 2
+              </p>
+            </div>
+            <Button onClick={() => setLocation("/mediciones")} data-testid="button-new-measurement-from-profile">
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Medición
+            </Button>
+          </div>
           <MeasurementsHistory patientId={patientId!} />
         </TabsContent>
 
