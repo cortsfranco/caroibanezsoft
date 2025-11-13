@@ -53,8 +53,19 @@ import type {
   InsertWeeklyPlanMeal,
   WeeklyPlanAssignment,
   InsertWeeklyPlanAssignment,
+  Consultation,
+  InsertConsultation,
+  NutritionistSettings,
+  NutritionistSettingsUpdate,
 } from "@shared/schema";
-import type { IStorage, PatientProfile, GroupStatistics } from "./storage";
+import type {
+  ConsultationSummary,
+  GroupStatistics,
+  IStorage,
+  NutritionistSettings,
+  NutritionistSettingsUpdate,
+  PatientProfile,
+} from "./storage";
 import { VersionConflictError } from "./storage";
 
 /**
@@ -82,6 +93,20 @@ export class MemStorage implements IStorage {
   private weeklyDietPlans: WeeklyDietPlan[] = [];
   private weeklyPlanMeals: WeeklyPlanMeal[] = [];
   private weeklyPlanAssignments: WeeklyPlanAssignment[] = [];
+  private consultationsData: Consultation[] = [];
+  private nutritionistSettings: NutritionistSettings = {
+    id: nanoid(),
+    profileName: "Carolina Ibáñez",
+    proteinMultiplierLoss: 1.8,
+    proteinMultiplierMaintain: 1.8,
+    proteinMultiplierGain: 2,
+    fatPerKg: 0.9,
+    whatsappTemplateClassic: "Hola {{nombre}}! ¿Cómo venís con el plan?",
+    whatsappTemplateWithDocs:
+      "Hola {{nombre}}! Te adjunto tu plan y el informe actualizados. Cualquier duda me escribís ❤️",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   // ============================================================================
   // MEAL CATALOG SYSTEM - Carolina's Time-Saving Features
@@ -466,6 +491,7 @@ export class MemStorage implements IStorage {
       endDate: data.endDate ?? null,
       status: data.status ?? "active",
       assignmentNotes: data.assignmentNotes ?? null,
+      supplements: data.supplements ?? null,
       version: 1,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -556,6 +582,7 @@ export class MemStorage implements IStorage {
       latestMeasurement,
       groups,
       measurementCount: measurements.length,
+      consultations: await this.getConsultationSummaries(id),
     };
   }
 
@@ -854,7 +881,9 @@ export class MemStorage implements IStorage {
   }
 
   async deleteReport(id: string): Promise<boolean> {
-    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+    const initialLength = this.reports.length;
+    this.reports = this.reports.filter((report) => report.id !== id);
+    return this.reports.length < initialLength;
   }
 
   async getGroupStatistics(): Promise<GroupStatistics[]> {
@@ -923,11 +952,9 @@ export class MemStorage implements IStorage {
   }
 
   async deleteDietTemplate(id: string): Promise<boolean> {
-    const index = this.dietTemplates.findIndex((t) => t.id === id);
-    if (index === -1) return false;
-    
-    this.dietTemplates.splice(index, 1);
-    return true;
+    const initialLength = this.dietTemplates.length;
+    this.dietTemplates = this.dietTemplates.filter((template) => template.id !== id);
+    return this.dietTemplates.length < initialLength;
   }
 
   async getDietGenerations(patientId?: string): Promise<DietGeneration[]> {
@@ -968,5 +995,78 @@ export class MemStorage implements IStorage {
 
   async getMeasurementsByPatient(patientId: string): Promise<Measurement[]> {
     throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+  }
+
+  // Consultations
+  async getConsultationsByPatient(patientId: string): Promise<Consultation[]> {
+    return this.consultationsData
+      .filter((consultation) => consultation.patientId === patientId)
+      .sort((a, b) => new Date(b.consultationDate).getTime() - new Date(a.consultationDate).getTime());
+  }
+
+  async getConsultation(id: string): Promise<Consultation | null> {
+    return this.consultationsData.find((consultation) => consultation.id === id) || null;
+  }
+
+  async createConsultation(data: InsertConsultation): Promise<Consultation> {
+    const consultation: Consultation = {
+      id: nanoid(),
+      patientId: data.patientId,
+      consultationDate: data.consultationDate ?? new Date(),
+      anamnesis: data.anamnesis ?? null,
+      activity: data.activity ?? null,
+      dietaryPreferences: data.dietaryPreferences ?? null,
+      supplements: data.supplements ?? null,
+      notes: data.notes ?? null,
+      attachments: data.attachments ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.consultationsData.push(consultation);
+    return consultation;
+  }
+
+  async updateConsultation(id: string, data: Partial<InsertConsultation>): Promise<Consultation | null> {
+    const index = this.consultationsData.findIndex((consultation) => consultation.id === id);
+    if (index === -1) return null;
+    const current = this.consultationsData[index];
+    const updated: Consultation = {
+      ...current,
+      ...data,
+      consultationDate: data.consultationDate ?? current.consultationDate,
+      supplements: data.supplements ?? current.supplements,
+      updatedAt: new Date(),
+    };
+    this.consultationsData[index] = updated;
+    return updated;
+  }
+
+  async deleteConsultation(id: string): Promise<boolean> {
+    const initialLength = this.consultationsData.length;
+    this.consultationsData = this.consultationsData.filter((consultation) => consultation.id !== id);
+    return this.consultationsData.length < initialLength;
+  }
+
+  async getConsultationSummaries(patientId: string): Promise<ConsultationSummary[]> {
+    const consultations = await this.getConsultationsByPatient(patientId);
+    return consultations.map((consultation) => ({
+      consultation,
+      measurements: this.measurements.filter((m) => m.consultationId === consultation.id),
+      dietAssignments: this.dietAssignments.filter((d) => d.consultationId === consultation.id),
+      reports: this.reports.filter((r) => r.consultationId === consultation.id),
+    }));
+  }
+
+  async getNutritionistSettings(): Promise<NutritionistSettings> {
+    return this.nutritionistSettings;
+  }
+
+  async updateNutritionistSettings(data: NutritionistSettingsUpdate): Promise<NutritionistSettings> {
+    this.nutritionistSettings = {
+      ...this.nutritionistSettings,
+      ...data,
+      updatedAt: new Date(),
+    };
+    return this.nutritionistSettings;
   }
 }

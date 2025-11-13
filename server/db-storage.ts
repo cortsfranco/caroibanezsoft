@@ -55,11 +55,38 @@ import {
   type InsertWeeklyPlanMeal,
   type WeeklyPlanAssignment,
   type InsertWeeklyPlanAssignment,
+  consultations,
+  type Consultation,
+  type InsertConsultation,
+  nutritionistSettings,
+  type NutritionistSettingsRow,
+  type InsertNutritionistSettings,
 } from "@shared/schema";
-import type { IStorage, PatientProfile } from "./storage";
+import type {
+  ConsultationSummary,
+  IStorage,
+  NutritionistSettings,
+  NutritionistSettingsUpdate,
+  PatientProfile,
+} from "./storage";
 import { VersionConflictError } from "./storage";
 
 export class DbStorage implements IStorage {
+  private async normalizeSettings(row: NutritionistSettingsRow): Promise<NutritionistSettings> {
+    return {
+      id: row.id,
+      profileName: row.profileName,
+      proteinMultiplierLoss: Number(row.proteinMultiplierLoss ?? 1.8),
+      proteinMultiplierMaintain: Number(row.proteinMultiplierMaintain ?? 1.8),
+      proteinMultiplierGain: Number(row.proteinMultiplierGain ?? 2),
+      fatPerKg: Number(row.fatPerKg ?? 0.9),
+      whatsappTemplateClassic: row.whatsappTemplateClassic,
+      whatsappTemplateWithDocs: row.whatsappTemplateWithDocs,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
   // Patients
   async getPatients(): Promise<Patient[]> {
     return await db.select().from(patients).orderBy(patients.name);
@@ -96,11 +123,21 @@ export class DbStorage implements IStorage {
     const allMeasurements = await this.getMeasurements(id);
     const measurementCount = allMeasurements.length;
 
+    let latestMeasurementCalculations: MeasurementCalculation | null = null;
+    if (latestMeasurement) {
+      const calculations = await this.getMeasurementCalculations(latestMeasurement.id);
+      latestMeasurementCalculations = calculations[0] || null;
+    }
+
+    const consultations = await this.getConsultationSummaries(id);
+
     return {
       patient,
       groups: patientGroups,
       latestMeasurement,
+      latestMeasurementCalculations,
       measurementCount,
+      consultations,
     };
   }
 
@@ -281,7 +318,8 @@ export class DbStorage implements IStorage {
     return await db
       .select()
       .from(measurementCalculations)
-      .where(eq(measurementCalculations.measurementId, measurementId));
+      .where(eq(measurementCalculations.measurementId, measurementId))
+      .orderBy(desc(measurementCalculations.updatedAt));
   }
 
   async createMeasurementCalculation(data: InsertMeasurementCalculation): Promise<MeasurementCalculation> {
@@ -601,7 +639,7 @@ export class DbStorage implements IStorage {
 
   // Diet Templates
   async getDietTemplates(): Promise<DietTemplate[]> {
-    return await db.select().from(dietTemplates).where(eq(dietTemplates.isActive, true)).orderBy(dietTemplates.name);
+    return await db.select().from(dietTemplates).orderBy(dietTemplates.name);
   }
 
   async getDietTemplate(id: string): Promise<DietTemplate | null> {
@@ -1031,6 +1069,129 @@ export class DbStorage implements IStorage {
       endDate: endDate || null,
     };
     return await this.createWeeklyPlanAssignment(data);
+  }
+
+  // Consultations
+  async getConsultationsByPatient(patientId: string): Promise<Consultation[]> {
+    return await db
+      .select()
+      .from(consultations)
+      .where(eq(consultations.patientId, patientId))
+      .orderBy(desc(consultations.consultationDate));
+  }
+
+  async getConsultation(id: string): Promise<Consultation | null> {
+    const result = await db
+      .select()
+      .from(consultations)
+      .where(eq(consultations.id, id))
+      .limit(1);
+    return result[0] || null;
+  }
+
+  async createConsultation(data: InsertConsultation): Promise<Consultation> {
+    const result = await db.insert(consultations).values(data).returning();
+    return result[0];
+  }
+
+  async updateConsultation(id: string, data: Partial<InsertConsultation>): Promise<Consultation | null> {
+    const result = await db
+      .update(consultations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(consultations.id, id))
+      .returning();
+    return result[0] || null;
+  }
+
+  async deleteConsultation(id: string): Promise<boolean> {
+    const result = await db.delete(consultations).where(eq(consultations.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getConsultationSummaries(patientId: string): Promise<ConsultationSummary[]> {
+    const consultationList = await this.getConsultationsByPatient(patientId);
+    if (consultationList.length === 0) {
+      return [];
+    }
+
+    const summaries: ConsultationSummary[] = [];
+
+    for (const consultation of consultationList) {
+      const [consultationMeasurements, consultationDiets, consultationReports] = await Promise.all([
+        db
+          .select()
+          .from(measurements)
+          .where(eq(measurements.consultationId, consultation.id))
+          .orderBy(desc(measurements.measurementDate)),
+        db
+          .select()
+          .from(dietAssignments)
+          .where(eq(dietAssignments.consultationId, consultation.id))
+          .orderBy(desc(dietAssignments.startDate)),
+        db
+          .select()
+          .from(reports)
+          .where(eq(reports.consultationId, consultation.id))
+          .orderBy(desc(reports.createdAt)),
+      ]);
+
+      summaries.push({
+        consultation,
+        measurements: consultationMeasurements,
+        dietAssignments: consultationDiets,
+        reports: consultationReports,
+      });
+    }
+
+    return summaries;
+  }
+
+  async getNutritionistSettings(): Promise<NutritionistSettings> {
+    const result = await db.select().from(nutritionistSettings).limit(1);
+    if (result[0]) {
+      return this.normalizeSettings(result[0]);
+    }
+
+    const defaults: InsertNutritionistSettings = {
+      profileName: "Carolina Ibáñez",
+      proteinMultiplierLoss: "1.80",
+      proteinMultiplierMaintain: "1.80",
+      proteinMultiplierGain: "2.00",
+      fatPerKg: "0.90",
+      whatsappTemplateClassic:
+        "Hola {{nombre}}! ¿Cómo venís con el plan? Cualquier cosa escribime ❤️",
+      whatsappTemplateWithDocs:
+        "Hola {{nombre}}! Te adjunto tu plan y el informe actualizados. Contame cuando los veas 🙌",
+    };
+
+    const inserted = await db.insert(nutritionistSettings).values(defaults).returning();
+    return this.normalizeSettings(inserted[0]);
+  }
+
+  async updateNutritionistSettings(data: NutritionistSettingsUpdate): Promise<NutritionistSettings> {
+    const current = await this.getNutritionistSettings();
+    const updatePayload: Partial<InsertNutritionistSettings> = {};
+
+    if (data.profileName !== undefined) updatePayload.profileName = data.profileName;
+    if (data.proteinMultiplierLoss !== undefined)
+      updatePayload.proteinMultiplierLoss = data.proteinMultiplierLoss.toFixed(2);
+    if (data.proteinMultiplierMaintain !== undefined)
+      updatePayload.proteinMultiplierMaintain = data.proteinMultiplierMaintain.toFixed(2);
+    if (data.proteinMultiplierGain !== undefined)
+      updatePayload.proteinMultiplierGain = data.proteinMultiplierGain.toFixed(2);
+    if (data.fatPerKg !== undefined) updatePayload.fatPerKg = data.fatPerKg.toFixed(2);
+    if (data.whatsappTemplateClassic !== undefined)
+      updatePayload.whatsappTemplateClassic = data.whatsappTemplateClassic;
+    if (data.whatsappTemplateWithDocs !== undefined)
+      updatePayload.whatsappTemplateWithDocs = data.whatsappTemplateWithDocs;
+
+    const result = await db
+      .update(nutritionistSettings)
+      .set({ ...updatePayload, updatedAt: new Date() })
+      .where(eq(nutritionistSettings.id, current.id))
+      .returning();
+
+    return this.normalizeSettings(result[0]);
   }
 }
 

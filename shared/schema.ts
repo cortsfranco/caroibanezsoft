@@ -83,10 +83,34 @@ export const insertGroupMembershipSchema = createInsertSchema(groupMemberships).
 export type InsertGroupMembership = z.infer<typeof insertGroupMembershipSchema>;
 export type GroupMembership = typeof groupMemberships.$inferSelect;
 
+// Consultations Table (complete session snapshot)
+export const consultations = pgTable("consultations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  consultationDate: timestamp("consultation_date").notNull().defaultNow(),
+  anamnesis: jsonb("anamnesis"),
+  activity: jsonb("activity"),
+  dietaryPreferences: jsonb("dietary_preferences"),
+  supplements: jsonb("supplements"),
+  notes: text("notes"),
+  attachments: jsonb("attachments"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertConsultationSchema = createInsertSchema(consultations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertConsultation = z.infer<typeof insertConsultationSchema>;
+export type Consultation = typeof consultations.$inferSelect;
+
 // Measurements Table (Anthropometric data - ISAK 2)
 export const measurements = pgTable("measurements", {
   id: uuid("id").defaultRandom().primaryKey(),
   patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
   measurementDate: timestamp("measurement_date").notNull(),
   
   // Basic measurements
@@ -167,17 +191,28 @@ export const measurementCalculations = pgTable("measurement_calculations", {
   bodyFatPercentage: decimal("body_fat_percentage", { precision: 5, scale: 2 }), // % - Based on Durnin & Womersley (4 skinfolds)
   leanMass: decimal("lean_mass", { precision: 6, scale: 2 }), // kg
   waistHipRatio: decimal("waist_hip_ratio", { precision: 5, scale: 3 }), // ratio
-  
+ 
   // Somatotype (Heath-Carter)
   endomorphy: decimal("endomorphy", { precision: 4, scale: 2 }),
   mesomorphy: decimal("mesomorphy", { precision: 4, scale: 2 }),
   ectomorphy: decimal("ectomorphy", { precision: 4, scale: 2 }),
-  
+ 
+  // Nutritional targets derived from measurements
+  basalMetabolicRate: decimal("basal_metabolic_rate", { precision: 7, scale: 2 }),
+  activityMultiplier: decimal("activity_multiplier", { precision: 4, scale: 2 }),
+  maintenanceCalories: integer("maintenance_calories"),
+  targetCalories: integer("target_calories"),
+  calorieObjective: text("calorie_objective"),
+  proteinPerDay: decimal("protein_per_day", { precision: 6, scale: 2 }), // g
+  carbsPerDay: decimal("carbs_per_day", { precision: 6, scale: 2 }), // g
+  fatsPerDay: decimal("fats_per_day", { precision: 6, scale: 2 }), // g
+  perMealPlan: jsonb("per_meal_plan"), // { breakfast: { calories, protein, ... }, ... }
+
   // Z-scores for comparison
   weightZScore: decimal("weight_z_score", { precision: 5, scale: 2 }),
   heightZScore: decimal("height_z_score", { precision: 5, scale: 2 }),
   bmiZScore: decimal("bmi_z_score", { precision: 5, scale: 2 }),
-  
+ 
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -222,6 +257,7 @@ export const reports = pgTable("reports", {
   id: uuid("id").defaultRandom().primaryKey(),
   patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
   measurementId: uuid("measurement_id").notNull().references(() => measurements.id, { onDelete: "cascade" }),
+  consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
   pdfUrl: text("pdf_url"), // URL to stored PDF file
   status: text("status").notNull().default("pending"), // "pending", "generated", "sent"
   sentVia: text("sent_via").array(), // ["email", "whatsapp"]
@@ -242,14 +278,38 @@ export const insertReportSchema = createInsertSchema(reports).omit({
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;
 
+// Nutritionist Settings
+export const nutritionistSettings = pgTable("nutritionist_settings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  profileName: text("profile_name"),
+  proteinMultiplierLoss: decimal("protein_multiplier_loss", { precision: 4, scale: 2 }).notNull().default("1.80"),
+  proteinMultiplierMaintain: decimal("protein_multiplier_maintain", { precision: 4, scale: 2 }).notNull().default("1.80"),
+  proteinMultiplierGain: decimal("protein_multiplier_gain", { precision: 4, scale: 2 }).notNull().default("2.00"),
+  fatPerKg: decimal("fat_per_kg", { precision: 4, scale: 2 }).notNull().default("0.90"),
+  whatsappTemplateClassic: text("whatsapp_template_classic"),
+  whatsappTemplateWithDocs: text("whatsapp_template_with_docs"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertNutritionistSettingsSchema = createInsertSchema(nutritionistSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertNutritionistSettings = z.infer<typeof insertNutritionistSettingsSchema>;
+export type NutritionistSettingsRow = typeof nutritionistSettings.$inferSelect;
+
 // Diet Assignments Table (Many-to-Many relationship between patients and diets)
 export const dietAssignments = pgTable("diet_assignments", {
   id: uuid("id").defaultRandom().primaryKey(),
   patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
   dietId: uuid("diet_id").notNull().references(() => diets.id, { onDelete: "cascade" }),
+  consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date"),
   notes: text("notes"),
+  supplements: jsonb("supplements"),
   isActive: boolean("is_active").notNull().default(true),
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -545,6 +605,7 @@ export const weeklyDietPlans = pgTable("weekly_diet_plans", {
   fatsGrams: decimal("fats_grams", { precision: 5, scale: 2 }),
   
   notes: text("notes"),
+  supplements: jsonb("supplements"),
   
   version: integer("version").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),

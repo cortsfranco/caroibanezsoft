@@ -8,9 +8,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
 import Dashboard from "@/pages/dashboard";
-import Patients from "@/pages/patients";
+import PatientsPage from "@/pages/patients";
 import PatientProfile from "@/pages/patient-profile";
-import Groups from "@/pages/groups";
+import GroupsPage from "@/pages/groups";
 import Measurements from "@/pages/measurements";
 import Diets from "@/pages/diets";
 import DietLibrary from "@/pages/diet-library";
@@ -18,20 +18,22 @@ import MealCatalog from "@/pages/meal-catalog";
 import WeeklyDietPlanner from "@/pages/weekly-diet-planner";
 import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
+import SettingsPage from "@/pages/settings";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/pacientes" component={Patients} />
+      <Route path="/pacientes" component={PatientsPage} />
       <Route path="/pacientes/:id" component={PatientProfile} />
-      <Route path="/grupos" component={Groups} />
+      <Route path="/grupos" component={GroupsPage} />
       <Route path="/mediciones" component={Measurements} />
       <Route path="/dietas" component={Diets} />
       <Route path="/biblioteca-dietas" component={DietLibrary} />
       <Route path="/catalogo-comidas" component={MealCatalog} />
       <Route path="/crear-plan-semanal" component={WeeklyDietPlanner} />
       <Route path="/informes" component={Reports} />
+      <Route path="/configuracion" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );

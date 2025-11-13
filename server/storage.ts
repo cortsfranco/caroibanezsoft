@@ -35,6 +35,9 @@ import type {
   InsertWeeklyPlanMeal,
   WeeklyPlanAssignment,
   InsertWeeklyPlanAssignment,
+  Consultation,
+  InsertConsultation,
+  NutritionistSettingsRow,
 } from "@shared/schema";
 
 export class VersionConflictError extends Error {
@@ -48,7 +51,9 @@ export type PatientProfile = {
   patient: Patient;
   groups: PatientGroup[];
   latestMeasurement: Measurement | null;
+  latestMeasurementCalculations: MeasurementCalculation | null;
   measurementCount: number;
+  consultations: ConsultationSummary[];
 };
 
 export type GroupStatistics = {
@@ -63,6 +68,36 @@ export type GroupStatistics = {
   weightTrend: { date: string; value: number }[];
   bmiTrend: { date: string; value: number }[];
 };
+
+export type ConsultationSummary = {
+  consultation: Consultation;
+  measurements: Measurement[];
+  dietAssignments: DietAssignment[];
+  reports: Report[];
+};
+
+export type NutritionistSettings = {
+  id: string;
+  profileName: string | null;
+  proteinMultiplierLoss: number;
+  proteinMultiplierMaintain: number;
+  proteinMultiplierGain: number;
+  fatPerKg: number;
+  whatsappTemplateClassic: string | null;
+  whatsappTemplateWithDocs: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type NutritionistSettingsUpdate = Partial<{
+  profileName: string | null;
+  proteinMultiplierLoss: number;
+  proteinMultiplierMaintain: number;
+  proteinMultiplierGain: number;
+  fatPerKg: number;
+  whatsappTemplateClassic: string | null;
+  whatsappTemplateWithDocs: string | null;
+}>;
 
 export interface IStorage {
   // Patients
@@ -123,6 +158,14 @@ export interface IStorage {
   // Dashboard Statistics
   getGroupStatistics(): Promise<GroupStatistics[]>;
 
+  // Consultations
+  getConsultationsByPatient(patientId: string): Promise<Consultation[]>;
+  getConsultation(id: string): Promise<Consultation | null>;
+  createConsultation(data: InsertConsultation): Promise<Consultation>;
+  updateConsultation(id: string, data: Partial<InsertConsultation>): Promise<Consultation | null>;
+  deleteConsultation(id: string): Promise<boolean>;
+  getConsultationSummaries(patientId: string): Promise<ConsultationSummary[]>;
+
   // AI Diet Generation System
   // Diet Templates
   getDietTemplates(): Promise<DietTemplate[]>;
@@ -148,6 +191,8 @@ export interface IStorage {
 
   // Helper method for diet AI service
   getMeasurementsByPatient(patientId: string): Promise<Measurement[]>;
+  getNutritionistSettings(): Promise<NutritionistSettings>;
+  updateNutritionistSettings(data: NutritionistSettingsUpdate): Promise<NutritionistSettings>;
 
   // ============================================================================
   // MEAL CATALOG SYSTEM - Carolina's Pre-loaded Meals

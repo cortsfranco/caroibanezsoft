@@ -3,9 +3,134 @@
  * D. Kerr 1988 - 5 Component Fractionation Model
  */
 
-export interface BMIResult {
-  bmi: string; // decimal as string
-  classification: string;
+const MEAL_DISTRIBUTION: Record<string, number> = {
+  breakfast: 0.25,
+  snack1: 0.1,
+  lunch: 0.3,
+  snack2: 0.15,
+  dinner: 0.2,
+};
+
+const HIGH_DEMAND_SPORT_KEYWORDS = ["alto rendimiento", "profesional", "intenso", "competencia", "selección"];
+
+interface ActivityProfile {
+  exercisesRegularly?: boolean | null;
+  exerciseDays?: string | null;
+  exerciseSchedule?: string | null;
+  sportType?: string | null;
+}
+
+export interface NutritionPreferences {
+  proteinMultiplierLoss: number;
+  proteinMultiplierMaintain: number;
+  proteinMultiplierGain: number;
+  fatPerKg: number;
+}
+
+export interface MealMacroTarget {
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fats: number | null;
+}
+
+export interface MeasurementCalculationResult {
+  bmi?: string;
+  sumOf4Skinfolds?: string; // Durnin & Womersley (4 pliegues)
+  sumOf6Skinfolds?: string; // ISAK 2 (6 pliegues)
+  bodyFatPercentage?: string; // % grasa corporal
+  leanMass?: string;
+  waistHipRatio?: string;
+  endomorphy?: string;
+  mesomorphy?: string;
+  ectomorphy?: string;
+  basalMetabolicRate?: string;
+  activityMultiplier?: string;
+  maintenanceCalories?: number;
+  targetCalories?: number;
+  calorieObjective?: string;
+  proteinPerDay?: string;
+  carbsPerDay?: string;
+  fatsPerDay?: string;
+  perMealPlan?: Record<string, MealMacroTarget>;
+}
+
+function normalizeObjective(objective?: string | null): "loss" | "gain" | "maintain" {
+  if (!objective) {
+    return "maintain";
+  }
+  const normalized = objective.toLowerCase();
+  if (normalized.includes("baj") || normalized.includes("defin") || normalized.includes("pérd") || normalized.includes("perd")) {
+    return "loss";
+  }
+  if (normalized.includes("aument") || normalized.includes("hipertrof") || normalized.includes("gananc")) {
+    return "gain";
+  }
+  return "maintain";
+}
+
+function inferTrainingDays(exerciseDays?: string | null): number {
+  if (!exerciseDays) {
+    return 0;
+  }
+  const cleaned = exerciseDays.replace(/\s+/g, "");
+  if (!cleaned) {
+    return 0;
+  }
+  return cleaned.split(/[,;\/]+/).filter(Boolean).length;
+}
+
+function inferActivityMultiplier(profile: ActivityProfile): number {
+  const days = inferTrainingDays(profile.exerciseDays);
+  let multiplier = 1.2; // Sedentary baseline
+
+  if (profile.exercisesRegularly || days > 0) {
+    if (days <= 2) {
+      multiplier = 1.375;
+    } else if (days <= 4) {
+      multiplier = 1.55;
+    } else if (days <= 5) {
+      multiplier = 1.725;
+    } else {
+      multiplier = 1.9;
+    }
+  }
+
+  const schedule = profile.exerciseSchedule?.toLowerCase() ?? "";
+  if (schedule.includes("doble") || schedule.includes("2")) {
+    multiplier += 0.05;
+  }
+
+  const sport = profile.sportType?.toLowerCase() ?? "";
+  if (HIGH_DEMAND_SPORT_KEYWORDS.some(keyword => sport.includes(keyword))) {
+    multiplier += 0.05;
+  }
+
+  // Clamp multiplier to reasonable range
+  return Math.min(2.2, Math.max(1.1, parseFloat(multiplier.toFixed(2))));
+}
+
+function calculateBMR(
+  weight: number | null,
+  height: number | null,
+  age: number | null,
+  gender: string | null,
+  leanMass: number | null,
+): number | null {
+  if (leanMass && leanMass > 0) {
+    // Katch-McArdle formula
+    return 370 + 21.6 * leanMass;
+  }
+  if (weight && height && age !== null && age >= 0) {
+    // Mifflin-St Jeor
+    const s = gender === "F" ? -161 : gender === "M" ? 5 : -78; // Neutral value for Other/undefined
+    return (10 * weight) + (6.25 * height) - (5 * age) + s;
+  }
+  return null;
+}
+
+function roundTo(value: number, digits = 2): string {
+  return value.toFixed(digits);
 }
 
 /**
@@ -29,7 +154,7 @@ export function calculateBMI(weight: string | null, height: string | null): BMIR
   // BMI = peso (kg) / (altura (m))^2
   const heightMeters = heightNum / 100;
   const bmi = weightNum / (heightMeters * heightMeters);
-  
+
   let classification: string;
   if (bmi < 18.5) {
     classification = 'Bajo peso';
@@ -169,7 +294,7 @@ export function calculateBodyFatPercentage(
   // Constantes de Durnin & Womersley por edad y género
   let c: number; // Constante C
   let m: number; // Constante M
-  
+
   if (gender === 'M') {
     // Hombres - rangos de edad específicos
     if (age < 17) {
@@ -222,15 +347,15 @@ export function calculateBodyFatPercentage(
 
   // Calcular densidad corporal: D = C - M * log10(suma de pliegues)
   const densidad = c - m * Math.log10(sum);
-  
+
   // Fórmula de Siri: % grasa = ((4.95 / densidad) - 4.5) * 100
   const bodyFat = ((4.95 / densidad) - 4.5) * 100;
-  
+
   // Validar que el resultado esté en un rango razonable (3% - 50%)
   if (bodyFat < 3 || bodyFat > 50) {
     return null;
   }
-  
+
   return bodyFat.toFixed(2);
 }
 
@@ -285,23 +410,15 @@ export function calculateWaistHipRatio(
 /**
  * Interfaz para el resultado completo de cálculos de medición
  */
-export interface MeasurementCalculationResult {
-  bmi?: string;
-  sumOf4Skinfolds?: string; // Durnin & Womersley (4 pliegues)
-  sumOf6Skinfolds?: string; // ISAK 2 (6 pliegues)
-  bodyFatPercentage?: string; // Basado en sum4
-  leanMass?: string;
-  waistHipRatio?: string;
-  endomorphy?: string;
-  mesomorphy?: string;
-  ectomorphy?: string;
+export interface BMIResult {
+  bmi: string; // decimal as string
+  classification: string;
 }
 
 /**
  * Calcula todos los indicadores antropométricos para una medición
  * @param measurementData Datos de la medición
- * @param patientAge Edad del paciente (para % grasa)
- * @param patientGender Género del paciente ('M', 'F', o 'Other')
+ * @param options Opciones para cálculos adicionales (edad, género, objetivo, perfil de actividad)
  * @returns Objeto con todos los cálculos
  */
 export function calculateAll(
@@ -319,8 +436,13 @@ export function calculateAll(
     waistCircumference?: string | null;
     hipCircumference?: string | null;
   },
-  patientAge?: number | null,
-  patientGender?: string | null
+  options?: {
+    age?: number | null;
+    gender?: string | null;
+    objective?: string | null;
+    activityProfile?: ActivityProfile;
+    preferences?: NutritionPreferences;
+  }
 ): MeasurementCalculationResult {
   const result: MeasurementCalculationResult = {};
 
@@ -355,8 +477,11 @@ export function calculateAll(
   }
 
   // 4. Calcular porcentaje de grasa corporal (usando sum4 - Durnin & Womersley)
-  if (sum4 && patientAge && patientGender) {
-    const bodyFat = calculateBodyFatPercentage(sum4, patientAge, patientGender);
+  const age = options?.age ?? null;
+  const gender = options?.gender ?? null;
+
+  if (sum4 && age !== null && gender) {
+    const bodyFat = calculateBodyFatPercentage(sum4, age, gender);
     if (bodyFat) {
       result.bodyFatPercentage = bodyFat;
 
@@ -383,10 +508,87 @@ export function calculateAll(
     height: measurementData.height,
     sum6Skinfolds: sum6
   });
-  
+
   if (somatotype.endomorphy) result.endomorphy = somatotype.endomorphy;
   if (somatotype.mesomorphy) result.mesomorphy = somatotype.mesomorphy;
   if (somatotype.ectomorphy) result.ectomorphy = somatotype.ectomorphy;
+
+  // 8. Calcular objetivos nutricionales automáticos
+  const weightNum = measurementData.weight ? parseFloat(measurementData.weight) : null;
+  const heightNum = measurementData.height ? parseFloat(measurementData.height) : null;
+  const leanMassNum = result.leanMass ? parseFloat(result.leanMass) : null;
+
+  const basalMetabolicRate = calculateBMR(weightNum, heightNum, age, gender, leanMassNum);
+  const activityMultiplier = inferActivityMultiplier(options?.activityProfile ?? {});
+
+  if (basalMetabolicRate) {
+    result.basalMetabolicRate = roundTo(basalMetabolicRate);
+    result.activityMultiplier = roundTo(activityMultiplier, 2);
+
+    const maintenanceCalories = basalMetabolicRate * activityMultiplier;
+    const objective = normalizeObjective(options?.objective ?? null);
+    let targetFactor = 1;
+    let objectiveLabel = "Mantenimiento";
+
+    if (objective === "loss") {
+      targetFactor = 0.85;
+      objectiveLabel = "Déficit moderado (-15%)";
+    } else if (objective === "gain") {
+      targetFactor = 1.1;
+      objectiveLabel = "Superávit moderado (+10%)";
+    }
+
+    const targetCalories = Math.max(900, Math.round(maintenanceCalories * targetFactor));
+    result.maintenanceCalories = Math.round(maintenanceCalories);
+    result.targetCalories = targetCalories;
+    result.calorieObjective = objectiveLabel;
+
+    // Cálculo de macros
+    const prefs: NutritionPreferences = options?.preferences ?? {
+      proteinMultiplierLoss: 1.8,
+      proteinMultiplierMaintain: 1.8,
+      proteinMultiplierGain: 2,
+      fatPerKg: 0.9,
+    };
+
+    const effectiveWeight = leanMassNum && leanMassNum > 0 ? leanMassNum : weightNum;
+
+    let proteinMultiplier = prefs.proteinMultiplierMaintain;
+    if (objective === "loss") {
+      proteinMultiplier = prefs.proteinMultiplierLoss;
+    } else if (objective === "gain") {
+      proteinMultiplier = prefs.proteinMultiplierGain;
+    }
+
+    const proteinPerDay = effectiveWeight ? effectiveWeight * proteinMultiplier : null;
+    const fatsPerDay = weightNum ? Math.max(0.8, weightNum * prefs.fatPerKg) : null;
+    const caloriesFromProtein = proteinPerDay ? proteinPerDay * 4 : 0;
+    const caloriesFromFat = fatsPerDay ? fatsPerDay * 9 : 0;
+    const remainingCalories = Math.max(0, targetCalories - (caloriesFromProtein + caloriesFromFat));
+    const carbsPerDay = remainingCalories > 0 ? remainingCalories / 4 : 0;
+
+    if (proteinPerDay) {
+      result.proteinPerDay = roundTo(proteinPerDay);
+    }
+    if (carbsPerDay) {
+      result.carbsPerDay = roundTo(carbsPerDay);
+    }
+    if (fatsPerDay) {
+      result.fatsPerDay = roundTo(fatsPerDay);
+    }
+
+    const perMealPlan: Record<string, MealMacroTarget> = {};
+    Object.entries(MEAL_DISTRIBUTION).forEach(([slot, ratio]) => {
+      perMealPlan[slot] = {
+        calories: Math.round(targetCalories * ratio),
+        protein: proteinPerDay ? parseFloat((proteinPerDay * ratio).toFixed(1)) : null,
+        carbs: carbsPerDay ? parseFloat((carbsPerDay * ratio).toFixed(1)) : null,
+        fats: fatsPerDay ? parseFloat((fatsPerDay * ratio).toFixed(1)) : null,
+      };
+    });
+
+    result.perMealPlan = perMealPlan;
+  }
 
   return result;
 }

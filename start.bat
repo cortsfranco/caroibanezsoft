@@ -38,13 +38,12 @@ echo.
 REM Verificar si existe .env
 if not exist .env (
     echo ⚠️  Archivo .env no encontrado
-    echo Copiando desde .env.example...
-    copy .env.example .env
+    echo Copiando desde env.example...
+    copy env.example .env
     echo.
-    echo 📝 IMPORTANTE: Edita el archivo .env con tus credenciales
+    echo ✓ Archivo .env creado desde env.example
+    echo 📝 NOTA: El archivo .env ya tiene los valores de Neon configurados
     echo.
-    echo Presiona Enter cuando hayas configurado .env...
-    pause >nul
 )
 
 REM Verificar si node_modules existe
@@ -91,4 +90,4 @@ echo.
 echo Presiona Ctrl+C para detener el servidor
 echo.
 
-call npm run de
+call npm run dev

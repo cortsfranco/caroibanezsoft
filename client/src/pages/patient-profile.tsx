@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +12,43 @@ import { AssignDietDialog } from "@/components/assign-diet-dialog";
 import { PatientEditDialog } from "@/components/patient-edit-dialog";
 import { MeasurementsHistory } from "@/components/measurements-history";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import type { Patient, DietAssignment } from "@shared/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Patient, DietAssignment, Measurement, Report } from "@shared/schema";
+import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+
+type ConsultationSummary = {
+  consultation: {
+    id: string;
+    patientId: string;
+    consultationDate: string;
+    anamnesis: Record<string, unknown> | null;
+    activity: Record<string, unknown> | null;
+    dietaryPreferences: Record<string, unknown> | null;
+    supplements: Record<string, unknown> | null;
+    notes: string | null;
+    attachments: unknown;
+  };
+  measurements: Measurement[];
+  dietAssignments: DietAssignment[];
+  reports: Report[];
+};
+
+type PatientWithObjective = Patient & { objective: string | null };
+
+interface DietAssignmentWithRelations extends DietAssignment {
+  diet?: { name: string } | null;
+}
 
 export default function PatientProfile() {
   const [match, params] = useRoute("/pacientes/:id");
@@ -22,11 +58,18 @@ export default function PatientProfile() {
   // Extract tab from URL query params
   const searchParams = new URLSearchParams(location.split('?')[1] || '');
   const tabParam = searchParams.get('tab');
-  const validTabs = ['datos', 'dietas', 'mediciones', 'informes'];
+  const validTabs = ['datos', 'dietas', 'mediciones', 'informes', 'consultas'];
   const initialTab = validTabs.includes(tabParam || '') ? tabParam! : 'datos';
   
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isConsultationDialogOpen, setIsConsultationDialogOpen] = useState(false);
+  const [consultationDate, setConsultationDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [consultationNotes, setConsultationNotes] = useState("");
+  const [consultationActivity, setConsultationActivity] = useState("");
+  const [consultationDietary, setConsultationDietary] = useState("");
+  const [consultationSupplements, setConsultationSupplements] = useState("");
+  const { toast } = useToast();
   
   // Sync URL when tab changes
   useEffect(() => {
@@ -39,10 +82,16 @@ export default function PatientProfile() {
     }
   }, [activeTab, location, setLocation]);
 
-  const { data: patient, isLoading } = useQuery<Patient>({
-    queryKey: ["/api/patients", patientId],
+  const { data: patientProfile, isLoading: isLoadingProfile } = useQuery<{
+    patient: Patient;
+    consultations: ConsultationSummary[];
+    latestMeasurementCalculations?: { targetCalories?: number } | null;
+  }>({
+    queryKey: ["/api/patients", patientId, "profile"],
     enabled: !!patientId,
   });
+
+  const patient = patientProfile?.patient;
 
   const { data: dietAssignments = [] } = useQuery<DietAssignment[]>({
     queryKey: ["/api/diet-assignments", { patientId }],
@@ -52,6 +101,41 @@ export default function PatientProfile() {
       return response.json();
     },
     enabled: !!patientId,
+  });
+
+  const profileConsultations = patientProfile?.consultations ?? [];
+
+  const createConsultationMutation = useMutation({
+    mutationFn: async () => {
+      if (!patientId) return;
+      await apiRequest("POST", "/api/consultations", {
+        patientId,
+        consultationDate,
+        notes: consultationNotes || null,
+        activity: consultationActivity ? { description: consultationActivity } : null,
+        dietaryPreferences: consultationDietary ? { notes: consultationDietary } : null,
+        supplements: consultationSupplements ? { plan: consultationSupplements } : null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/patients", patientId, "profile"] });
+      setIsConsultationDialogOpen(false);
+      setConsultationNotes("");
+      setConsultationActivity("");
+      setConsultationDietary("");
+      setConsultationSupplements("");
+      toast({
+        title: "Consulta registrada",
+        description: "La consulta quedó disponible en el historial.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo registrar la consulta",
+        variant: "destructive",
+      });
+    },
   });
 
   const formattedPhone = useMemo(() => {
@@ -78,7 +162,7 @@ export default function PatientProfile() {
     );
   }
 
-  if (isLoading) {
+  if (isLoadingProfile) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-32 w-full" />
@@ -108,6 +192,22 @@ export default function PatientProfile() {
   const age = patient.birthDate
     ? new Date().getFullYear() - new Date(patient.birthDate).getFullYear()
     : null;
+
+  const sectionCardClass = (index: number) =>
+    cn(
+      "shadow-md border border-slate-200/70 dark:border-white/10 transition-colors duration-200",
+      index % 2 === 0
+        ? "bg-white dark:bg-slate-900/60"
+        : "bg-[hsla(203,89%,53%,0.08)] dark:bg-[hsla(203,89%,53%,0.18)]"
+    );
+
+  const sortedConsultations = useMemo(() => {
+    return [...profileConsultations].sort(
+      (a, b) =>
+        new Date(b.consultation.consultationDate).getTime() -
+        new Date(a.consultation.consultationDate).getTime(),
+    );
+  }, [profileConsultations]);
 
   return (
     <div className="space-y-6">
@@ -217,15 +317,16 @@ export default function PatientProfile() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-primary/10">
+        <TabsList className="grid w-full grid-cols-5 bg-primary/10">
           <TabsTrigger value="datos" data-testid="tab-datos">Datos Personales</TabsTrigger>
           <TabsTrigger value="dietas" data-testid="tab-dietas">Dietas Asignadas</TabsTrigger>
           <TabsTrigger value="mediciones" data-testid="tab-mediciones">Mediciones</TabsTrigger>
           <TabsTrigger value="informes" data-testid="tab-informes">Informes</TabsTrigger>
+          <TabsTrigger value="consultas" data-testid="tab-consultas">Consultas</TabsTrigger>
         </TabsList>
         
         <TabsContent value="datos" className="space-y-4">
-          <Card className="shadow-md">
+          <Card className={sectionCardClass(0)}>
             <CardHeader>
               <CardTitle>Información Personal</CardTitle>
             </CardHeader>
@@ -262,7 +363,7 @@ export default function PatientProfile() {
           </Card>
 
           {/* Activity Section */}
-          <Card className="shadow-md">
+          <Card className={sectionCardClass(1)}>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Activity className="h-5 w-5 text-primary" />
@@ -294,7 +395,7 @@ export default function PatientProfile() {
           </Card>
 
           {/* Dietary Preferences Section */}
-          <Card className="shadow-md">
+          <Card className={sectionCardClass(2)}>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Utensils className="h-5 w-5 text-primary" />
@@ -322,7 +423,7 @@ export default function PatientProfile() {
           </Card>
 
           {/* Medical Information Section */}
-          <Card className="shadow-md">
+          <Card className={sectionCardClass(3)}>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Heart className="h-5 w-5 text-primary" />
@@ -397,13 +498,186 @@ export default function PatientProfile() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="consultas" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Historial de Consultas</h2>
+              <p className="text-sm text-muted-foreground">
+                Cada consulta agrupa anamnesis, mediciones, planes e informes.
+              </p>
+            </div>
+            <Button onClick={() => setIsConsultationDialogOpen(true)}>
+              Registrar nueva consulta
+            </Button>
+          </div>
+
+          {sortedConsultations.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Aún no cargaste consultas para este paciente.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {sortedConsultations.map((entry) => {
+                const { consultation, measurements, dietAssignments: diets, reports } = entry;
+                const date = new Date(consultation.consultationDate).toLocaleDateString();
+
+                return (
+                  <Card key={consultation.id} className="shadow-md">
+                    <CardHeader className="flex flex-row items-start justify-between gap-4">
+                      <div>
+                        <CardTitle>Consulta del {date}</CardTitle>
+                        <CardDescription>
+                          {consultation.notes ? consultation.notes.slice(0, 160) : "Sin notas registradas"}
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-2 text-sm text-muted-foreground">
+                        <span>{measurements.length} mediciones</span>
+                        <span>• {diets.length} dietas</span>
+                        <span>• {reports.length} informes</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="grid gap-4 text-sm">
+                      {consultation.anamnesis && (
+                        <div>
+                          <p className="text-muted-foreground">Anamnesis</p>
+                          <pre className="rounded bg-muted/40 p-3 mt-1 whitespace-pre-wrap font-mono text-xs">
+                            {JSON.stringify(consultation.anamnesis, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                      {consultation.activity && (
+                        <div>
+                          <p className="text-muted-foreground">Actividad</p>
+                          <pre className="rounded bg-muted/40 p-3 mt-1 whitespace-pre-wrap font-mono text-xs">
+                            {JSON.stringify(consultation.activity, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                      {consultation.dietaryPreferences && (
+                        <div>
+                          <p className="text-muted-foreground">Preferencias dietarias</p>
+                          <pre className="rounded bg-muted/40 p-3 mt-1 whitespace-pre-wrap font-mono text-xs">
+                            {JSON.stringify(consultation.dietaryPreferences, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                      {consultation.supplements && (
+                        <div>
+                          <p className="text-muted-foreground">Suplementación</p>
+                          <pre className="rounded bg-muted/40 p-3 mt-1 whitespace-pre-wrap font-mono text-xs">
+                            {JSON.stringify(consultation.supplements, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                      {diets.length > 0 && (
+                        <div>
+                          <p className="text-muted-foreground">Dietas asociadas</p>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {diets.map((diet) => (
+                              <Badge key={diet.id} variant={diet.isActive ? "default" : "secondary"}>
+                                Plan #{diet.dietId.slice(0, 8)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {reports.length > 0 && (
+                        <div>
+                          <p className="text-muted-foreground">Informes generados</p>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {reports.map((report) => (
+                              <Badge key={report.id} variant="outline">
+                                Informe #{report.id.slice(0, 8)}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
-      {/* Edit Patient Dialog */}
+      <Dialog open={isConsultationDialogOpen} onOpenChange={setIsConsultationDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar consulta</DialogTitle>
+            <DialogDescription>
+              Guardamos toda la información relevante de esta sesión para reutilizarla en dietas e informes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium" htmlFor="consultation-date">Fecha</label>
+              <Input
+                id="consultation-date"
+                type="date"
+                value={consultationDate}
+                onChange={(e) => setConsultationDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium" htmlFor="consultation-notes">Notas generales</label>
+              <Textarea
+                id="consultation-notes"
+                placeholder="Apuntes rápidos, machetes, sensaciones del paciente…"
+                value={consultationNotes}
+                onChange={(e) => setConsultationNotes(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium" htmlFor="consultation-activity">Actividad/Entrenamiento</label>
+              <Textarea
+                id="consultation-activity"
+                placeholder="Ej: Funcional en club, doble turno lunes/miércoles"
+                value={consultationActivity}
+                onChange={(e) => setConsultationActivity(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium" htmlFor="consultation-dietary">Preferencias dietarias</label>
+              <Textarea
+                id="consultation-dietary"
+                placeholder="Restricciones, preferencias, variantes para hotel, etc."
+                value={consultationDietary}
+                onChange={(e) => setConsultationDietary(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium" htmlFor="consultation-supplements">Suplementación</label>
+              <Textarea
+                id="consultation-supplements"
+                placeholder="Ej: Creatina 5 g post entrenamiento, Magnesio 400 mg nocturno"
+                value={consultationSupplements}
+                onChange={(e) => setConsultationSupplements(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConsultationDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => createConsultationMutation.mutate()}
+              disabled={createConsultationMutation.isPending}
+            >
+              {createConsultationMutation.isPending ? "Guardando…" : "Guardar consulta"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <PatientEditDialog
-        patient={patient}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
+        patient={patient as PatientWithObjective}
       />
     </div>
   );

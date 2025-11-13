@@ -1,4 +1,4 @@
-import { Home, Users, FolderKanban, Ruler, UtensilsCrossed, FileText, Activity, BookOpen, CookingPot, Calendar } from "lucide-react";
+import { Home, Users, FolderKanban, Ruler, UtensilsCrossed, FileText, Activity, BookOpen, CookingPot, Calendar, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -60,6 +60,11 @@ const menuItems = [
     title: "Informes",
     url: "/informes",
     icon: FileText,
+  },
+  {
+    title: "Configuración",
+    url: "/configuracion",
+    icon: Settings,
   },
 ];
 

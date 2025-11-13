@@ -14,8 +14,18 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, FileText, TrendingUp, Calendar } from "lucide-react";
+import { Plus, FileText, TrendingUp, Calendar, Trash2 } from "lucide-react";
 import type { DietTemplate } from "@shared/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const templateFormSchema = z.object({
   name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
@@ -34,6 +44,7 @@ export default function DietLibrary() {
   const [selectedTemplate, setSelectedTemplate] = useState<DietTemplate | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<DietTemplate | null>(null);
 
   const { data: templates, isLoading } = useQuery<DietTemplate[]>({
     queryKey: ["/api/diet-templates"],
@@ -84,6 +95,27 @@ export default function DietLibrary() {
       toast({
         title: "Error",
         description: "No se pudo actualizar la plantilla",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTemplateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/diet-templates/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/diet-templates"] });
+      setTemplateToDelete(null);
+      toast({
+        title: "Plantilla eliminada",
+        description: "La plantilla de dieta se eliminó correctamente.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la plantilla",
         variant: "destructive",
       });
     },
@@ -401,6 +433,15 @@ export default function DietLibrary() {
                   >
                     Editar
                   </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="aspect-square"
+                    onClick={() => setTemplateToDelete(template)}
+                    data-testid={`button-delete-${template.id}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </CardFooter>
               </Card>
             ))}
@@ -489,6 +530,26 @@ export default function DietLibrary() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!templateToDelete} onOpenChange={(open) => !open && setTemplateToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar plantilla</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Seguro que querés eliminar "{templateToDelete?.name}"? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => templateToDelete && deleteTemplateMutation.mutate(templateToDelete.id)}
+            >
+              {deleteTemplateMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

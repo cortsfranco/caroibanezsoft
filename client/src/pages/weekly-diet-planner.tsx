@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Meal, WeeklyDietPlan, WeeklyPlanMeal, PatientGroup, Patient } from "@shared/schema";
+import type { Meal, WeeklyDietPlan, WeeklyPlanMeal, PatientGroup, Patient, MeasurementCalculation, DietTemplate } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, GripVertical, X, Clock, Plus, Save, ArrowLeft, Edit, Copy, Users, User, Calendar, FileText } from "lucide-react";
+import { Search, GripVertical, X, Clock, Plus, Save, ArrowLeft, Edit, Copy, Users, User, Calendar, FileText, Settings2, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -27,6 +27,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const MEAL_TIMES = [
@@ -37,11 +38,21 @@ const MEAL_TIMES = [
   { id: "dinner", label: "Cena", defaultTime: "20:00" },
 ];
 
+const animationDelay = (value: number): CSSProperties => {
+  return {
+    "--caro-anim-delay": `${value.toFixed(2)}s`,
+  } as CSSProperties;
+};
+
 interface PlannedMeal {
   meal: Meal;
   time: string;
   id: string;
+  note?: string;
+  linkedToExercise?: boolean;
 }
+
+type WeeklyPlanSlot = typeof MEAL_TIMES[number]["id"];
 
 type WeeklyPlanGrid = {
   [day: string]: {
@@ -51,6 +62,48 @@ type WeeklyPlanGrid = {
 
 type ViewMode = "list" | "create" | "edit";
 
+type SlotEditorState = {
+  day: string;
+  slot: WeeklyPlanSlot;
+  defaultTime: string;
+  mode: "add" | "edit";
+  mealInstanceId?: string;
+};
+
+type SlotEditorFormState = {
+  mealId: string;
+  quantity: string;
+  unit: typeof UNITS[number];
+  note: string;
+  linkedToExercise: boolean;
+};
+
+const UNITS = ["porción", "u", "g", "ml", "taza", "cda"] as const;
+
+type MealGuideline = {
+  calories: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fats: number | null;
+};
+
+interface PatientProfileResponse {
+  patient: Patient;
+  groups: PatientGroup[];
+  latestMeasurement: unknown;
+  latestMeasurementCalculations: (MeasurementCalculation & {
+    perMealPlan?: Record<string, MealGuideline> | null;
+  }) | null;
+  measurementCount: number;
+  consultations?: {
+    consultation: {
+      supplements: {
+        plan: string;
+      };
+    };
+  }[];
+}
+
 export default function WeeklyDietPlanner() {
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -59,6 +112,33 @@ export default function WeeklyDietPlanner() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlanGrid>(() => createEmptyPlan());
   const [draggedMeal, setDraggedMeal] = useState<Meal | null>(null);
+  const [slotEditor, setSlotEditor] = useState<SlotEditorState | null>(null);
+  const [planContextPatientId, setPlanContextPatientId] = useState<string>("");
+  const [availableTemplates, setAvailableTemplates] = useState<DietTemplate[]>([]);
+  const [appliedTemplateId, setAppliedTemplateId] = useState<string>("");
+  const [mealGuidelines, setMealGuidelines] = useState<Record<WeeklyPlanSlot, MealGuideline>>({} as Record<WeeklyPlanSlot, MealGuideline>);
+  const [nutritionSummary, setNutritionSummary] = useState<{
+    maintenanceCalories?: number | null;
+    targetCalories?: number | null;
+    calorieObjective?: string | null;
+    basalMetabolicRate?: string | null;
+    activityMultiplier?: string | null;
+  } | null>(null);
+  const [planSupplements, setPlanSupplements] = useState<string>("");
+  const [slotEditorForm, setSlotEditorForm] = useState<SlotEditorFormState>({
+    mealId: "",
+    quantity: "",
+    unit: UNITS[0],
+    note: "",
+    linkedToExercise: false,
+  });
+  const [slotEditorSearch, setSlotEditorSearch] = useState("");
+  const [slotEditorTime, setSlotEditorTime] = useState("08:00");
+  const previousPlanContextIdRef = useRef<string | null>(null);
+  const appliedTemplate = useMemo(
+    () => availableTemplates.find((template) => template.id === appliedTemplateId) ?? null,
+    [availableTemplates, appliedTemplateId],
+  );
   
   // Plan metadata form
   const [planName, setPlanName] = useState("");
@@ -101,6 +181,51 @@ export default function WeeklyDietPlanner() {
     queryKey: ["/api/patients"],
   });
 
+  const { data: planPatientProfile } = useQuery<PatientProfileResponse>({
+    queryKey: ["/api/patients", planContextPatientId, "profile"],
+    enabled: Boolean(planContextPatientId),
+    queryFn: async () => {
+      const response = await fetch(`/api/patients/${planContextPatientId}/profile`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch patient profile");
+      }
+      return response.json();
+    },
+  });
+
+  const { data: templatesData = [] } = useQuery<DietTemplate[]>({
+    queryKey: ["/api/diet-templates"],
+    queryFn: async () => {
+      const response = await fetch(`/api/diet-templates`);
+      if (!response.ok) throw new Error("Failed to fetch diet templates");
+      return response.json();
+    },
+  });
+
+  useEffect(() => {
+    setAvailableTemplates(templatesData);
+  }, [templatesData]);
+
+  useEffect(() => {
+    if (!planPatientProfile) return;
+    const latestConsultation = planPatientProfile.consultations?.[0]?.consultation;
+    if (latestConsultation?.supplements && !planSupplements) {
+      const supplementsText = typeof latestConsultation.supplements.plan === "string"
+        ? latestConsultation.supplements.plan
+        : JSON.stringify(latestConsultation.supplements);
+      setPlanSupplements(supplementsText ?? "");
+    }
+  }, [planPatientProfile, planSupplements]);
+
+  const { data: allMeals = [] } = useQuery<Meal[]>({
+    queryKey: ["/api/meals", { scope: "all" }],
+    queryFn: async () => {
+      const response = await fetch("/api/meals");
+      if (!response.ok) throw new Error("Failed to fetch meals");
+      return response.json();
+    },
+  });
+
   // Fetch meals catalog
   const { data: meals = [], isLoading: mealsLoading } = useQuery<Meal[]>({
     queryKey: ["/api/meals", { category: selectedCategory, search: searchQuery }],
@@ -126,6 +251,163 @@ export default function WeeklyDietPlanner() {
     },
     enabled: !!editingPlanId && viewMode === "edit",
   });
+
+  useEffect(() => {
+    if (viewMode !== "edit" || !editingPlanId) return;
+    if (!editingPlanMeals || editingPlanMeals.length === 0) {
+      setWeeklyPlan(createEmptyPlan());
+      return;
+    }
+
+    const basePlan = createEmptyPlan();
+
+    editingPlanMeals.forEach((meal) => {
+      const dayIndex = meal.dayOfWeek - 1;
+      const dayLabel = DAYS_OF_WEEK[dayIndex];
+      const slot = meal.mealSlot as WeeklyPlanSlot;
+      const mealInfo = allMeals.find((m) => m.id === meal.mealId) ?? buildCustomMealFromWeeklyMeal(meal);
+
+      if (!dayLabel || !slot) return;
+
+      const plannedMeal: PlannedMeal = {
+        id: meal.id,
+        meal: mealInfo,
+        time: meal.suggestedTime || MEAL_TIMES.find((t) => t.id === slot)?.defaultTime || "08:00",
+        note: meal.notes || undefined,
+        linkedToExercise: meal.linkedToExercise ?? false,
+      };
+
+      basePlan[dayLabel][slot].push(plannedMeal);
+    });
+
+    DAYS_OF_WEEK.forEach((day) => {
+      MEAL_TIMES.forEach((mealTime) => {
+        basePlan[day][mealTime.id].sort((a, b) => {
+          const aOrder = editingPlanMeals.find((m) => m.id === a.id)?.slotOrder || 0;
+          const bOrder = editingPlanMeals.find((m) => m.id === b.id)?.slotOrder || 0;
+          return aOrder - bOrder;
+        });
+      });
+    });
+
+    setWeeklyPlan(basePlan);
+  }, [editingPlanMeals, viewMode, editingPlanId, allMeals]);
+
+  useEffect(() => {
+    if (!planContextPatientId) {
+      setMealGuidelines({} as Record<WeeklyPlanSlot, MealGuideline>);
+      setNutritionSummary(null);
+      previousPlanContextIdRef.current = null;
+      return;
+    }
+
+    if (!planPatientProfile) {
+      return;
+    }
+
+    const calculations = planPatientProfile.latestMeasurementCalculations;
+
+    if (!calculations) {
+      setMealGuidelines({} as Record<WeeklyPlanSlot, MealGuideline>);
+      setNutritionSummary(null);
+      previousPlanContextIdRef.current = planContextPatientId;
+      return;
+    }
+
+    const isNewSelection = previousPlanContextIdRef.current !== planContextPatientId;
+    previousPlanContextIdRef.current = planContextPatientId;
+
+    const parseNumeric = (value: string | number | null | undefined): number | null => {
+      if (value === null || value === undefined) return null;
+      const num = typeof value === "number" ? value : parseFloat(value);
+      return Number.isFinite(num) ? num : null;
+    };
+
+    const roundedString = (value: string | number | null | undefined): string => {
+      const parsed = parseNumeric(value);
+      return parsed !== null ? Math.round(parsed).toString() : "";
+    };
+
+    const toNumber = (value: unknown): number | null => {
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return parseFloat(value.toFixed(1));
+      }
+      if (typeof value === "string") {
+        const num = parseFloat(value);
+        if (Number.isFinite(num)) {
+          return parseFloat(num.toFixed(1));
+        }
+      }
+      return null;
+    };
+
+    const applyIfNeeded = (setter: (value: string | ((prevState: string) => string)) => void, value: string) => {
+      setter((prev) => (isNewSelection || !prev ? value : prev));
+    };
+
+    if (isNewSelection) {
+      const objective = planPatientProfile.patient.objective || "";
+      if (objective) {
+        setPlanGoal(objective);
+      }
+      toast({
+        title: "Datos precargados",
+        description: `Aplicamos las últimas mediciones de ${planPatientProfile.patient.name}.`,
+      });
+    }
+
+    const targetCalories = parseNumeric(calculations.targetCalories);
+    if (targetCalories !== null) {
+      applyIfNeeded(setPlanCalories, Math.round(targetCalories).toString());
+    }
+
+    const proteinPerDay = roundedString(calculations.proteinPerDay);
+    if (proteinPerDay) {
+      applyIfNeeded(setPlanProtein, proteinPerDay);
+    }
+
+    const carbsPerDay = roundedString(calculations.carbsPerDay);
+    if (carbsPerDay) {
+      applyIfNeeded(setPlanCarbs, carbsPerDay);
+    }
+
+    const fatsPerDay = roundedString(calculations.fatsPerDay);
+    if (fatsPerDay) {
+      applyIfNeeded(setPlanFats, fatsPerDay);
+    }
+
+    let perMealPlanRaw = calculations.perMealPlan as unknown;
+    if (typeof perMealPlanRaw === "string") {
+      try {
+        perMealPlanRaw = JSON.parse(perMealPlanRaw);
+      } catch {
+        perMealPlanRaw = null;
+      }
+    }
+
+    const computedGuidelines = MEAL_TIMES.reduce((acc, mealTime) => {
+      const entry = (perMealPlanRaw as Record<string, MealGuideline> | null)?.[mealTime.id];
+      acc[mealTime.id as WeeklyPlanSlot] = entry
+        ? {
+            calories: toNumber(entry.calories),
+            protein: toNumber(entry.protein),
+            carbs: toNumber(entry.carbs),
+            fats: toNumber(entry.fats),
+          }
+        : { calories: null, protein: null, carbs: null, fats: null };
+      return acc;
+    }, {} as Record<WeeklyPlanSlot, MealGuideline>);
+
+    setMealGuidelines(computedGuidelines);
+
+    setNutritionSummary({
+      maintenanceCalories: parseNumeric(calculations.maintenanceCalories),
+      targetCalories,
+      calorieObjective: calculations.calorieObjective ?? null,
+      basalMetabolicRate: calculations.basalMetabolicRate ?? null,
+      activityMultiplier: calculations.activityMultiplier ?? null,
+    });
+  }, [planContextPatientId, planPatientProfile, toast]);
 
   // Create plan mutation
   const createPlanMutation = useMutation({
@@ -283,6 +565,59 @@ export default function WeeklyDietPlanner() {
     return plan;
   }
 
+  function buildCustomMealFromWeeklyMeal(meal: WeeklyPlanMeal): Meal {
+    return {
+      id: meal.mealId || `custom-${meal.id}`,
+      name: meal.customName || "Comida personalizada",
+      description: meal.customDescription ?? null,
+      category: meal.mealSlot,
+      ingredients: [],
+      portionSize: null,
+      calories: meal.customCalories ? Number(meal.customCalories) : null,
+      protein: meal.customProtein != null ? String(meal.customProtein) : null,
+      carbs: meal.customCarbs != null ? String(meal.customCarbs) : null,
+      fats: meal.customFats != null ? String(meal.customFats) : null,
+      fiber: null,
+      prepTime: null,
+      cookTime: null,
+      instructions: null,
+      isVegetarian: false,
+      isVegan: false,
+      isGlutenFree: false,
+      isDairyFree: false,
+      imageUrl: null,
+      notes: null,
+      version: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Meal;
+  }
+
+  function applyTemplateToPlan(template: DietTemplate | null) {
+    if (!template) {
+      setAppliedTemplateId("");
+      toast({
+        title: "Plantilla desasignada",
+        description: "Podés seguir editando el plan desde cero.",
+      });
+      return;
+    }
+
+    setAppliedTemplateId(template.id);
+    setPlanName(template.name || "");
+    setPlanDescription(template.description || "");
+    setPlanGoal(template.objective || "");
+    setPlanNotes(template.content || "");
+    setPlanSupplements("");
+    if (template.targetCalories) {
+      setPlanCalories(String(template.targetCalories));
+    }
+    toast({
+      title: "Plantilla aplicada",
+      description: `Usaremos "${template.name}" como base del plan.`,
+    });
+  }
+
   function resetForm() {
     setPlanName("");
     setPlanDescription("");
@@ -295,6 +630,12 @@ export default function WeeklyDietPlanner() {
     setPlanVersion(1);
     setWeeklyPlan(createEmptyPlan());
     setEditingPlanId(null);
+    setPlanContextPatientId("");
+    setMealGuidelines({} as Record<WeeklyPlanSlot, MealGuideline>);
+    setNutritionSummary(null);
+    setPlanSupplements("");
+    previousPlanContextIdRef.current = null;
+    setAppliedTemplateId("");
   }
 
   function resetAssignmentForm() {
@@ -305,6 +646,37 @@ export default function WeeklyDietPlanner() {
     setAssignmentStartDate("");
     setAssignmentEndDate("");
     setAssignmentNotes("");
+  }
+
+  function resetSlotEditor() {
+    setSlotEditor(null);
+    setSlotEditorForm({ mealId: "", quantity: "", unit: UNITS[0], note: "", linkedToExercise: false });
+    setSlotEditorSearch("");
+    setSlotEditorTime("08:00");
+  }
+
+  function parseMealNote(note?: string) {
+    if (!note) return { quantity: "", unit: UNITS[0], note: "" };
+    try {
+      const parsed = JSON.parse(note);
+      return {
+        quantity: parsed.quantity || "",
+        unit: parsed.unit || UNITS[0],
+        note: parsed.note || "",
+      };
+    } catch {
+      return { quantity: "", unit: UNITS[0], note: note };
+    }
+  }
+
+  function formatGuidelineNote(guideline?: MealGuideline) {
+    if (!guideline) return "";
+    const segments: string[] = [];
+    if (guideline.calories !== null) segments.push(`${guideline.calories} kcal`);
+    if (guideline.protein !== null) segments.push(`P ${guideline.protein} g`);
+    if (guideline.carbs !== null) segments.push(`C ${guideline.carbs} g`);
+    if (guideline.fats !== null) segments.push(`G ${guideline.fats} g`);
+    return segments.length ? `Objetivo: ${segments.join(" · ")}` : "";
   }
 
   function handleDragStart(meal: Meal) {
@@ -321,6 +693,8 @@ export default function WeeklyDietPlanner() {
         id: `${day}-${mealTimeId}-${Date.now()}`,
         meal: draggedMeal,
         time: defaultTime,
+        note: JSON.stringify({ quantity: "", unit: UNITS[0], note: "" }),
+        linkedToExercise: false,
       };
       
       setWeeklyPlan(prev => ({
@@ -344,18 +718,6 @@ export default function WeeklyDietPlanner() {
     }));
   }
 
-  function handleTimeChange(day: string, mealTimeId: string, mealInstanceId: string, time: string) {
-    setWeeklyPlan(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [mealTimeId]: prev[day][mealTimeId].map(m =>
-          m.id === mealInstanceId ? { ...m, time } : m
-        ),
-      },
-    }));
-  }
-
   function handleSavePlan() {
     if (!planName.trim()) {
       toast({
@@ -372,12 +734,24 @@ export default function WeeklyDietPlanner() {
       MEAL_TIMES.forEach((mealTime) => {
         const mealsInSlot = weeklyPlan[day][mealTime.id];
         mealsInSlot.forEach((plannedMeal, slotOrder) => {
+          const mealId = plannedMeal.meal.id;
+          const isCustom = mealId.startsWith("custom-");
+          const extras = parseMealNote(plannedMeal.note);
+
           mealsArray.push({
-            mealId: plannedMeal.meal.id,
+            mealId: isCustom ? null : mealId,
+            customName: isCustom ? plannedMeal.meal.name : null,
+            customDescription: isCustom ? plannedMeal.meal.description || null : null,
+            customCalories: isCustom ? plannedMeal.meal.calories || null : null,
+            customProtein: isCustom ? (plannedMeal.meal.protein ?? null) : null,
+            customCarbs: isCustom ? (plannedMeal.meal.carbs ?? null) : null,
+            customFats: isCustom ? (plannedMeal.meal.fats ?? null) : null,
             dayOfWeek: dayIndex + 1,
             mealSlot: mealTime.id,
             slotOrder: slotOrder + 1,
             suggestedTime: plannedMeal.time,
+            linkedToExercise: plannedMeal.linkedToExercise ?? false,
+            notes: JSON.stringify(extras),
           });
         });
       });
@@ -393,6 +767,7 @@ export default function WeeklyDietPlanner() {
       carbsGrams: planCarbs || null,
       fatsGrams: planFats || null,
       notes: planNotes || null,
+      supplements: planSupplements ? { plan: planSupplements } : null,
     };
 
     if (viewMode === "edit" && editingPlanId) {
@@ -420,7 +795,17 @@ export default function WeeklyDietPlanner() {
       setPlanCarbs(fullPlan.carbsGrams?.toString() || "");
       setPlanFats(fullPlan.fatsGrams?.toString() || "");
       setPlanNotes(fullPlan.notes || "");
+      if (fullPlan.supplements) {
+        setPlanSupplements(
+          typeof fullPlan.supplements.plan === "string"
+            ? fullPlan.supplements.plan
+            : JSON.stringify(fullPlan.supplements),
+        );
+      } else {
+        setPlanSupplements("");
+      }
       setPlanVersion(fullPlan.version);
+      setAppliedTemplateId("");
       setViewMode("edit");
     } catch (error) {
       toast({
@@ -474,11 +859,241 @@ export default function WeeklyDietPlanner() {
     }
   }
 
+  function handleOpenAddMeal(day: string, slot: WeeklyPlanSlot, defaultTime: string) {
+    const guideline = mealGuidelines[slot];
+    const recommendedNote = formatGuidelineNote(guideline);
+    setSlotEditor({ day, slot, defaultTime, mode: "add" });
+    setSlotEditorForm({ mealId: "", quantity: "", unit: UNITS[0], note: recommendedNote, linkedToExercise: false });
+    setSlotEditorSearch("");
+    setSlotEditorTime(defaultTime);
+  }
+
+  function handleOpenEditMeal(day: string, slot: WeeklyPlanSlot, plannedMeal: PlannedMeal) {
+    const extra = parseMealNote(plannedMeal.note);
+    const resolvedUnit = UNITS.find((unit) => unit === extra.unit) ?? UNITS[0];
+    setSlotEditor({ day, slot, defaultTime: plannedMeal.time, mode: "edit", mealInstanceId: plannedMeal.id });
+    setSlotEditorForm({
+      mealId: plannedMeal.meal.id,
+      quantity: extra.quantity,
+      unit: resolvedUnit,
+      note: extra.note,
+      linkedToExercise: !!plannedMeal.linkedToExercise,
+    });
+    setSlotEditorSearch(plannedMeal.meal.name);
+    setSlotEditorTime(plannedMeal.time);
+  }
+
+  function handleSaveSlotEditor() {
+    if (!slotEditor) return;
+    const meal = allMeals.find((m) => m.id === slotEditorForm.mealId);
+    if (!meal) {
+      toast({
+        title: "Seleccioná un alimento",
+        description: "Elige un alimento de la lista para agregarlo al plan",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const notePayload = {
+      quantity: slotEditorForm.quantity,
+      unit: slotEditorForm.unit,
+      note: slotEditorForm.note,
+    };
+
+    const plannedMeal: PlannedMeal = {
+      id: slotEditor.mode === "edit" && slotEditor.mealInstanceId ? slotEditor.mealInstanceId : `${slotEditor.day}-${slotEditor.slot}-${Date.now()}`,
+      meal,
+      time: slotEditorTime,
+      note: JSON.stringify(notePayload),
+      linkedToExercise: slotEditorForm.linkedToExercise,
+    };
+
+    setWeeklyPlan((prev) => {
+      const slotMeals = [...prev[slotEditor.day][slotEditor.slot]];
+
+      if (slotEditor.mode === "edit" && slotEditor.mealInstanceId) {
+        const index = slotMeals.findIndex((m) => m.id === slotEditor.mealInstanceId);
+        if (index !== -1) {
+          slotMeals[index] = plannedMeal;
+        }
+      } else {
+        slotMeals.push(plannedMeal);
+      }
+
+      return {
+        ...prev,
+        [slotEditor.day]: {
+          ...prev[slotEditor.day],
+          [slotEditor.slot]: slotMeals,
+        },
+      };
+    });
+
+    resetSlotEditor();
+  }
+
+  function handleReorderMeal(day: string, slot: WeeklyPlanSlot, mealInstanceId: string, direction: "up" | "down") {
+    setWeeklyPlan((prev) => {
+      const slotMeals = [...prev[day][slot]];
+      const index = slotMeals.findIndex((m) => m.id === mealInstanceId);
+      if (index === -1) return prev;
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= slotMeals.length) return prev;
+      const [item] = slotMeals.splice(index, 1);
+      slotMeals.splice(newIndex, 0, item);
+
+      return {
+        ...prev,
+        [day]: {
+          ...prev[day],
+          [slot]: slotMeals,
+        },
+      };
+    });
+  }
+
+  function handleSlotTimeChange(day: string, slot: WeeklyPlanSlot, time: string) {
+    setWeeklyPlan((prev) => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [slot]: prev[day][slot].map((meal) => ({ ...meal, time })),
+      },
+    }));
+  }
+
+  function renderSlot(day: string, slot: WeeklyPlanSlot, defaultTime: string) {
+    const slotTime = weeklyPlan[day][slot].length > 0 ? weeklyPlan[day][slot][0].time : defaultTime;
+    const guideline = mealGuidelines[slot];
+    return (
+      <div
+        onDragOver={handleDragOver}
+        onDrop={() => handleDrop(day, slot, slotTime)}
+        className="border-2 border-dashed border-primary/20 rounded-lg min-h-[120px] bg-primary/5 hover-elevate group"
+        data-testid={`dropzone-${day}-${slot}`}
+      >
+        <div className="p-2 space-y-2">
+          <div className="flex items-center justify-between pb-2 border-b border-primary/20">
+            <div className="flex items-center gap-2 text-xs font-semibold text-primary-700">
+              <Clock className="w-3.5 h-3.5" />
+              <input
+                type="time"
+                value={slotTime}
+                onChange={(e) => handleSlotTimeChange(day, slot, e.target.value)}
+                className="text-xs font-semibold bg-transparent border-none focus:outline-none focus:ring-0"
+                data-testid={`input-time-${day}-${slot}`}
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-primary hover:bg-primary/10"
+              onClick={() => handleOpenAddMeal(day, slot, slotTime)}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+
+          {guideline && (guideline.calories !== null || guideline.protein !== null || guideline.carbs !== null || guideline.fats !== null) && (
+            <div className="rounded-md bg-white/70 text-slate-800 border border-primary/10 px-3 py-2 text-[11px] shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Objetivo</span>
+                {nutritionSummary?.calorieObjective && (
+                  <span className="text-[10px] font-semibold text-primary-700">{nutritionSummary.calorieObjective}</span>
+                )}
+              </div>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-medium">
+                {guideline.calories !== null && <span>{guideline.calories} kcal</span>}
+                {guideline.protein !== null && <span>P {guideline.protein} g</span>}
+                {guideline.carbs !== null && <span>C {guideline.carbs} g</span>}
+                {guideline.fats !== null && <span>G {guideline.fats} g</span>}
+              </div>
+            </div>
+          )}
+
+          {weeklyPlan[day][slot].length === 0 ? (
+            <div className="min-h-[70px] flex flex-col items-center justify-center text-[11px] text-primary-500">
+              <span>Arrastra alimentos aquí</span>
+              <span className="font-semibold">o usa el botón +</span>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {weeklyPlan[day][slot].map((plannedMeal, index) => {
+                const extra = parseMealNote(plannedMeal.note);
+                return (
+                  <div
+                    key={plannedMeal.id}
+                    className="relative rounded-md bg-white/70 text-slate-800 border border-primary/10 p-2 shadow-sm group/item"
+                  >
+                    <div className="pr-12 space-y-1">
+                      <p className="font-semibold text-sm">{plannedMeal.meal.name}</p>
+                      {(extra.quantity || extra.note) && (
+                        <div className="text-[11px] text-slate-500 space-y-0.5">
+                          {extra.quantity && (
+                            <p>{extra.quantity} {extra.unit}</p>
+                          )}
+                          {extra.note && <p>{extra.note}</p>}
+                        </div>
+                      )}
+                      {plannedMeal.linkedToExercise && (
+                        <Badge variant="outline" className="text-[10px] uppercase tracking-wider bg-cyan-100/60 text-cyan-800 border-cyan-200">
+                          Entrenamiento
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-primary hover:bg-primary/10"
+                        onClick={() => handleOpenEditMeal(day, slot, plannedMeal)}
+                      >
+                        <Settings2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-primary hover:bg-primary/10"
+                        onClick={() => handleReorderMeal(day, slot, plannedMeal.id, "up")}
+                        disabled={index === 0}
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-primary hover:bg-primary/10"
+                        onClick={() => handleReorderMeal(day, slot, plannedMeal.id, "down")}
+                        disabled={index === weeklyPlan[day][slot].length - 1}
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                        onClick={() => handleRemoveMeal(day, slot, plannedMeal.id)}
+                        data-testid={`button-remove-${plannedMeal.id}`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Render list view
   if (viewMode === "list") {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between caro-animate" style={animationDelay(0.04)}>
           <div>
             <h1 className="text-3xl font-semibold tracking-tight" data-testid="text-page-title">Planes Semanales</h1>
             <p className="text-muted-foreground mt-1">
@@ -492,11 +1107,11 @@ export default function WeeklyDietPlanner() {
         </div>
 
         {templatesLoading ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 caro-animate" style={animationDelay(0.08)}>
             <p className="text-muted-foreground">Cargando planes...</p>
           </div>
         ) : templates.length === 0 ? (
-          <Card>
+          <Card className="caro-animate-rise" style={animationDelay(0.12)}>
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">No hay planes creados aún</p>
               <Button onClick={() => setViewMode("create")} className="mt-4" variant="outline">
@@ -506,12 +1121,19 @@ export default function WeeklyDietPlanner() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {templates.map((plan) => (
-              <Card key={plan.id} className="hover-elevate" data-testid={`card-plan-${plan.id}`}>
+            {templates.map((plan, index) => (
+              <Card
+                key={plan.id}
+                className="hover-elevate caro-animate-rise"
+                data-testid={`card-plan-${plan.id}`}
+                style={animationDelay(0.12 + index * 0.08)}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-start justify-between gap-2">
                     <span className="line-clamp-2">{plan.name}</span>
-                    <Badge variant="secondary" className="shrink-0">Template</Badge>
+                    <Badge variant="secondary" className="caro-soft-tag border border-white/20 uppercase tracking-[0.18em] px-3 py-1 text-[10px]">
+                      Template
+                    </Badge>
                   </CardTitle>
                   {plan.description && (
                     <CardDescription className="line-clamp-2">{plan.description}</CardDescription>
@@ -681,7 +1303,7 @@ export default function WeeklyDietPlanner() {
   // Render create/edit view
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between caro-animate" style={animationDelay(0.04)}>
         <div className="flex items-center gap-3">
           <Button 
             variant="ghost" 
@@ -714,12 +1336,161 @@ export default function WeeklyDietPlanner() {
       </div>
 
       {/* Plan Metadata Form */}
-      <Card>
+      <Card className="caro-animate-rise" style={animationDelay(0.08)}>
         <CardHeader>
           <CardTitle>Información del Plan</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2 grid gap-4 md:grid-cols-[minmax(0,280px)_1fr]">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="plan-patient-source">Precargar con paciente</Label>
+                  <Select value={planContextPatientId} onValueChange={setPlanContextPatientId}>
+                    <SelectTrigger id="plan-patient-source" data-testid="select-plan-patient-source">
+                      <SelectValue placeholder="Seleccionar paciente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin selección</SelectItem>
+                      {patients.map((patient) => (
+                        <SelectItem key={patient.id} value={patient.id}>
+                          {patient.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="plan-template-source">Plantilla base</Label>
+                  <Select
+                    value={appliedTemplateId}
+                    onValueChange={(value) => {
+                      if (!value) {
+                        applyTemplateToPlan(null);
+                        return;
+                      }
+                      const template = availableTemplates.find((t) => t.id === value);
+                      if (template) {
+                        applyTemplateToPlan(template);
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="plan-template-source" data-testid="select-plan-template">
+                      <SelectValue placeholder="Sin plantilla" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Sin plantilla</SelectItem>
+                      {availableTemplates.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {appliedTemplate && (
+                    <div className="rounded-md border border-white/20 bg-white/15 p-3 text-sm text-white/90 shadow-inner">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold leading-tight">{appliedTemplate.name}</p>
+                          {appliedTemplate.description && (
+                            <p className="text-white/70 text-xs mt-1 line-clamp-3">{appliedTemplate.description}</p>
+                          )}
+                          {appliedTemplate.objective && (
+                            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/60">
+                              Objetivo: {appliedTemplate.objective}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-white/70 hover:bg-white/10"
+                          onClick={() => applyTemplateToPlan(null)}
+                        >
+                          Limpiar
+                        </Button>
+                      </div>
+                      <div className="mt-3 max-h-28 overflow-y-auto rounded bg-white/10 p-2 text-[11px] leading-relaxed">
+                        {appliedTemplate.content ? appliedTemplate.content.split("\n").slice(0, 12).join("\n") : "Sin contenido"}
+                        {appliedTemplate.content && appliedTemplate.content.split("\n").length > 12 && (
+                          <p className="mt-2 italic text-white/70">…</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {planContextPatientId ? (
+                nutritionSummary ? (
+                  <div className="rounded-lg border border-white/20 bg-white/15 p-3 text-white/90 shadow-inner">
+                    <div className="flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                      <span>Resumen</span>
+                      {nutritionSummary.calorieObjective && <span className="text-[10px] text-white">{nutritionSummary.calorieObjective}</span>}
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-3 text-[12px] font-medium">
+                      <div>
+                        <span className="block text-white/70 text-[10px] uppercase">Calorías meta</span>
+                        <span className="text-white text-lg font-semibold">
+                          {nutritionSummary.targetCalories ? `${nutritionSummary.targetCalories} kcal` : "—"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-white/70 text-[10px] uppercase">Calorías mantenimiento</span>
+                        <span>{nutritionSummary.maintenanceCalories ? `${nutritionSummary.maintenanceCalories} kcal` : "—"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-white/70 text-[10px] uppercase">BMR</span>
+                        <span>
+                          {(() => {
+                            if (!nutritionSummary?.basalMetabolicRate) return "—";
+                            const basal = parseFloat(nutritionSummary.basalMetabolicRate);
+                            return Number.isFinite(basal) ? `${Math.round(basal)} kcal` : "—";
+                          })()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block text-white/70 text-[10px] uppercase">Actividad</span>
+                        <span>
+                          {nutritionSummary.activityMultiplier && Number.isFinite(parseFloat(nutritionSummary.activityMultiplier))
+                            ? `x${parseFloat(nutritionSummary.activityMultiplier).toFixed(2)}`
+                            : "—"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-white/90">
+                      <div>
+                        <span className="block text-white/70 text-[10px] uppercase">Proteínas</span>
+                        <span>{planProtein ? `${planProtein} g/día` : "—"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-white/70 text-[10px] uppercase">Carbohidratos</span>
+                        <span>{planCarbs ? `${planCarbs} g/día` : "—"}</span>
+                      </div>
+                      <div>
+                        <span className="block text-white/70 text-[10px] uppercase">Grasas</span>
+                        <span>{planFats ? `${planFats} g/día` : "—"}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-white/15 bg-white/10 p-3 text-[12px] text-white/80">
+                    No encontramos mediciones recientes para este paciente. Registrá una evaluación ISAK 2 para generar objetivos automatizados.
+                  </div>
+                )
+              ) : (
+                <div className="rounded-lg border border-dashed border-white/15 bg-white/5 p-3 text-[12px] text-white/70">
+                  Seleccioná un paciente para precargar calorías y macros automáticamente desde su última medición.
+                </div>
+              )}
+              {planSupplements && (
+                <div className="rounded-lg border border-white/15 bg-white/10 p-3 text-[12px] text-white/80">
+                  <p className="uppercase tracking-[0.2em] text-[10px] text-white/60">Suplementación sugerida</p>
+                  <p className="mt-2 whitespace-pre-wrap font-medium text-white/90">{planSupplements}</p>
+                </div>
+              )}
+            </div>
             <div className="col-span-2 space-y-2">
               <Label htmlFor="plan-name">Nombre del Plan *</Label>
               <Input
@@ -804,31 +1575,61 @@ export default function WeeklyDietPlanner() {
                 data-testid="input-plan-notes"
               />
             </div>
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="plan-supplements">Suplementación</Label>
+              <Textarea
+                id="plan-supplements"
+                placeholder="Ej: Creatina 5 g post entrenamiento, Magnesio 400 mg nocturno"
+                value={planSupplements}
+                onChange={(e) => setPlanSupplements(e.target.value)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* Catalog Sidebar */}
-        <div className="col-span-3">
-          <Card className="sticky top-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Catálogo de Comidas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="search-meals">Buscar</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="search-meals"
-                    placeholder="Buscar comida..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                    data-testid="input-search-catalog"
-                  />
+      <div className="grid lg:grid-cols-[2fr_1fr] gap-6">
+        <Card className="caro-animate-rise" style={animationDelay(0.13)}>
+          <CardHeader>
+            <CardTitle>Plan Semanal</CardTitle>
+            <CardDescription>
+              Ajusta las comidas según horarios, entrenamientos y preferencias alimentarias
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-[120px_repeat(5,minmax(0,1fr))] gap-1 rounded-lg overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm">
+              {MEAL_TIMES.map((mealTime) => (
+                <div key={mealTime.id} className="contents">
+                  <div className="flex items-center justify-between bg-white/10 px-4 py-3 text-xs uppercase tracking-[0.2em] text-white/75">
+                    <span>{mealTime.label}</span>
+                    <Clock className="h-4 w-4" />
+                  </div>
+                  {DAYS_OF_WEEK.map((day) => (
+                    <div key={`${day}-${mealTime.id}`} className="border-l border-white/5 bg-white/5/50 p-3">
+                      {renderSlot(day, mealTime.id as WeeklyPlanSlot, mealTime.defaultTime)}
+                    </div>
+                  ))}
                 </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="sticky top-6 caro-animate-rise" style={animationDelay(0.18)}>
+          <CardHeader>
+            <CardTitle className="text-lg">Catálogo de Comidas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar comidas por nombre o ingredientes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-search-catalog"
+                />
               </div>
 
               <div className="space-y-2">
@@ -885,108 +1686,127 @@ export default function WeeklyDietPlanner() {
                   )}
                 </div>
               </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Weekly Grid */}
-        <div className="col-span-9">
-          <Card>
-            <CardHeader>
-              <CardTitle>Plan Semanal</CardTitle>
-              <CardDescription>
-                Arrastra las comidas del catálogo a los casilleros correspondientes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <div className="min-w-[800px]">
-                  {/* Header row */}
-                  <div className="grid grid-cols-8 gap-2 mb-2">
-                    <div className="font-semibold text-sm"></div>
-                    {DAYS_OF_WEEK.map(day => (
-                      <div key={day} className="font-semibold text-sm text-center">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
+      <Dialog open={!!slotEditor} onOpenChange={(open) => !open && resetSlotEditor()}>
+        <DialogContent className="max-w-lg" data-testid="dialog-slot-editor">
+          <DialogHeader>
+            <DialogTitle>{slotEditor?.mode === "edit" ? "Editar elemento" : "Agregar alimento"}</DialogTitle>
+            <DialogDescription>
+              Selecciona una comida de tu catálogo, ajusta cantidades y agrega notas personalizadas.
+            </DialogDescription>
+          </DialogHeader>
 
-                  {/* Meal rows */}
-                  {MEAL_TIMES.map((mealTime) => (
-                    <div key={mealTime.id} className="grid grid-cols-8 gap-2 mb-2">
-                      <div className="font-medium text-sm py-2 flex items-center">
-                        {mealTime.label}
-                      </div>
-                      {DAYS_OF_WEEK.map((day) => {
-                        const mealsForSlot = weeklyPlan[day][mealTime.id];
-                        const hasMultipleMeals = mealsForSlot.length > 1;
-                        const mealTime_display = mealsForSlot.length > 0 ? mealsForSlot[0].time : mealTime.defaultTime;
-
-                        return (
-                          <div
-                            key={`${day}-${mealTime.id}`}
-                            onDragOver={handleDragOver}
-                            onDrop={() => handleDrop(day, mealTime.id, mealTime.defaultTime)}
-                            className="border-2 border-dashed rounded-md min-h-[100px] hover-elevate"
-                            data-testid={`dropzone-${day}-${mealTime.id}`}
-                          >
-                            {mealsForSlot.length > 0 && (
-                              <div className="p-2 space-y-2">
-                                {/* Horario - Solo una vez */}
-                                <div className="flex items-center gap-1 pb-1 border-b">
-                                  <Clock className="w-3 h-3 text-muted-foreground" />
-                                  <input
-                                    type="time"
-                                    value={mealTime_display}
-                                    onChange={(e) => {
-                                      // Update time for ALL meals in this slot
-                                      mealsForSlot.forEach((meal) => {
-                                        handleTimeChange(day, mealTime.id, meal.id, e.target.value);
-                                      });
-                                    }}
-                                    className="text-xs font-semibold bg-transparent border-none w-16 focus:outline-none"
-                                    data-testid={`input-time-${day}-${mealTime.id}`}
-                                  />
-                                </div>
-
-                                {/* Alimentos con símbolo + */}
-                                <div className="space-y-1">
-                                  {mealsForSlot.map((plannedMeal, index) => (
-                                    <div key={plannedMeal.id}>
-                                      {index > 0 && (
-                                        <div className="flex items-center justify-center py-1">
-                                          <Plus className="w-3 h-3 text-muted-foreground" />
-                                        </div>
-                                      )}
-                                      <div className="bg-primary/10 border border-primary/20 rounded p-2 text-xs relative group">
-                                        <button
-                                          onClick={() => handleRemoveMeal(day, mealTime.id, plannedMeal.id)}
-                                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                          data-testid={`button-remove-${plannedMeal.id}`}
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </button>
-                                        <p className="font-medium truncate pr-4">{plannedMeal.meal.name}</p>
-                                        {plannedMeal.meal.calories && (
-                                          <p className="text-muted-foreground mt-0.5">{plannedMeal.meal.calories} kcal</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="meal-search">Buscar alimento</Label>
+                <Input
+                  id="meal-search"
+                  placeholder="Escribe para filtrar..."
+                  value={slotEditorSearch}
+                  onChange={(e) => setSlotEditorSearch(e.target.value)}
+                />
+                <ScrollArea className="h-48 border rounded-md">
+                  <div className="divide-y">
+                    {allMeals
+                      .filter((meal) =>
+                        meal.name.toLowerCase().includes(slotEditorSearch.toLowerCase()),
+                      )
+                      .map((meal) => (
+                        <button
+                          type="button"
+                          key={meal.id}
+                          onClick={() => setSlotEditorForm((prev) => ({ ...prev, mealId: meal.id }))}
+                          className={`w-full px-3 py-2 text-left flex items-start gap-2 transition-colors ${
+                            slotEditorForm.mealId === meal.id ? "bg-primary/10 border-l-4 border-primary" : "hover:bg-muted"
+                          }`}
+                        >
+                          <Checkbox checked={slotEditorForm.mealId === meal.id} className="mt-1 pointer-events-none" />
+                          <div>
+                            <p className="text-sm font-semibold">{meal.name}</p>
+                            {meal.calories && <p className="text-xs text-muted-foreground">{meal.calories} kcal</p>}
                           </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                        </button>
+                      ))}
+                    {allMeals.length === 0 && (
+                      <p className="text-sm text-muted-foreground px-3 py-6 text-center">
+                        Cargá comidas en el catálogo para poder seleccionarlas aquí.
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="slot-time">Horario</Label>
+                  <Input
+                    id="slot-time"
+                    type="time"
+                    value={slotEditorTime}
+                    onChange={(e) => setSlotEditorTime(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="quantity">Cantidad</Label>
+                  <Input
+                    id="quantity"
+                    placeholder="Ej: 200"
+                    value={slotEditorForm.quantity}
+                    onChange={(e) => setSlotEditorForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                  />
+                  <Label className="sr-only" htmlFor="unit">Unidad</Label>
+                  <Select
+                    value={slotEditorForm.unit}
+                    onValueChange={(value) => setSlotEditorForm((prev) => ({ ...prev, unit: value as typeof UNITS[number] }))}
+                  >
+                    <SelectTrigger id="unit">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map((unit) => (
+                        <SelectItem key={unit} value={unit}>{unit}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="notes">Notas adicionales</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Instrucciones, variantes, etc."
+                    value={slotEditorForm.note}
+                    onChange={(e) => setSlotEditorForm((prev) => ({ ...prev, note: e.target.value }))}
+                    rows={4}
+                  />
+                </div>
+                <div className="flex items-center space-x-2 pt-1">
+                  <Checkbox
+                    id="linked-to-exercise"
+                    checked={slotEditorForm.linkedToExercise}
+                    onCheckedChange={(checked) =>
+                      setSlotEditorForm((prev) => ({ ...prev, linkedToExercise: checked === true }))
+                    }
+                  />
+                  <Label htmlFor="linked-to-exercise">Marcar como colación asociada a entrenamiento</Label>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => resetSlotEditor()}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveSlotEditor}>
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

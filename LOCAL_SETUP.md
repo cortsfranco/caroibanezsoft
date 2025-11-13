@@ -100,13 +100,17 @@ Puedes conectarte a la misma base de datos PostgreSQL de Replit desde tu máquin
    PGUSER=neondb_owner
    PGPASSWORD=npg_8tJ6LgXhBOzV
    PGDATABASE=neondb
-   SESSION_SECRET=mismo-secret-de-replit-o-generar-nuevo
+   SESSION_SECRET=0c1dec4f5725de18a6c383ac9ca08f57e310c80f82317b6d88c945cc1d837959
    NODE_ENV=development
    PORT=5000
    ```
 
-3. **Generar SESSION_SECRET** (opcional):
+3. **SESSION_SECRET** ya está configurado en el ejemplo. Si necesitas generar uno nuevo:
    ```bash
+   # En Windows (Git Bash o PowerShell)
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   
+   # En Linux/macOS
    openssl rand -base64 32
    ```
 

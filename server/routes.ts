@@ -16,6 +16,11 @@ import {
   insertWeeklyDietPlanSchema,
   insertWeeklyPlanMealSchema,
   insertWeeklyPlanAssignmentSchema,
+  insertConsultationSchema,
+  insertDietTemplateSchema,
+  insertDietGenerationSchema,
+  insertDietMealPlanSchema,
+  insertDietExerciseBlockSchema,
 } from "@shared/schema";
 import { createServer, type Server } from "http";
 import { wsManager } from "./websocket";
@@ -34,6 +39,30 @@ const router = Router();
 // Helper function for request validation
 function validate<T>(schema: z.ZodType<T, any, any>, data: unknown): T {
   return schema.parse(data);
+}
+
+function normalizeMeasurementPayload<T extends Record<string, unknown>>(payload: T): T {
+  const normalized: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(payload)) {
+    if (value === null || value === undefined || value === "") {
+      continue;
+    }
+
+    if (typeof value === "number" && MEASUREMENT_DECIMAL_FIELDS.includes(key)) {
+      normalized[key] = value.toString();
+      continue;
+    }
+
+    if (typeof value === "number") {
+      normalized[key] = value;
+      continue;
+    }
+
+    normalized[key] = value;
+  }
+
+  return normalized as T;
 }
 
 // ===== PATIENTS =====
@@ -349,7 +378,8 @@ router.get("/api/measurements/:id", async (req, res) => {
 
 router.post("/api/measurements", async (req, res) => {
   try {
-    const data = validate(insertMeasurementSchema, req.body);
+    const normalizedBody = normalizeMeasurementPayload(req.body);
+    const data = validate(insertMeasurementSchema, normalizedBody);
     const measurement = await storage.createMeasurement(data);
     
     // Obtener el paciente para acceder a edad y género
@@ -371,18 +401,37 @@ router.post("/api/measurements", async (req, res) => {
     }
     
     // Calcular BMI y otros indicadores automáticamente
+    const settings = await storage.getNutritionistSettings();
     const calculations = calculateAll({
       weight: measurement.weight,
       height: measurement.height,
       triceps: measurement.triceps,
+      biceps: measurement.biceps,
       subscapular: measurement.subscapular,
+      suprailiac: measurement.suprailiac,
       supraspinal: measurement.supraspinal,
       abdominal: measurement.abdominal,
       thighSkinfold: measurement.thighSkinfold,
       calfSkinfold: measurement.calfSkinfold,
       waistCircumference: measurement.waist,
       hipCircumference: measurement.hip
-    }, patientAge, patientGender);
+    }, {
+      age: patientAge,
+      gender: patientGender,
+      objective: patient?.objective ?? null,
+      activityProfile: {
+        exercisesRegularly: patient?.exercisesRegularly ?? null,
+        exerciseDays: patient?.exerciseDays ?? null,
+        exerciseSchedule: patient?.exerciseSchedule ?? null,
+        sportType: patient?.sportType ?? null,
+      },
+      preferences: {
+        proteinMultiplierLoss: settings.proteinMultiplierLoss,
+        proteinMultiplierMaintain: settings.proteinMultiplierMaintain,
+        proteinMultiplierGain: settings.proteinMultiplierGain,
+        fatPerKg: settings.fatPerKg,
+      },
+    });
     
     // Guardar los cálculos si hay algún resultado
     if (Object.keys(calculations).length > 0) {
@@ -419,7 +468,8 @@ router.patch("/api/measurements/:id", async (req, res) => {
       return res.status(400).json({ error: "version must be a valid number" });
     }
     
-    const data = validate(insertMeasurementSchema.partial(), updateData);
+    const normalizedUpdate = normalizeMeasurementPayload(updateData);
+    const data = validate(insertMeasurementSchema.partial(), normalizedUpdate);
     const measurement = await storage.updateMeasurement(req.params.id, data, versionNum);
     
     if (!measurement) {
@@ -445,18 +495,37 @@ router.patch("/api/measurements/:id", async (req, res) => {
     }
     
     // Re-calcular BMI y otros indicadores cuando se actualiza
+    const settings = await storage.getNutritionistSettings();
     const calculations = calculateAll({
       weight: measurement.weight,
       height: measurement.height,
       triceps: measurement.triceps,
+      biceps: measurement.biceps,
       subscapular: measurement.subscapular,
+      suprailiac: measurement.suprailiac,
       supraspinal: measurement.supraspinal,
       abdominal: measurement.abdominal,
       thighSkinfold: measurement.thighSkinfold,
       calfSkinfold: measurement.calfSkinfold,
       waistCircumference: measurement.waist,
       hipCircumference: measurement.hip
-    }, patientAge, patientGender);
+    }, {
+      age: patientAge,
+      gender: patientGender,
+      objective: patient?.objective ?? null,
+      activityProfile: {
+        exercisesRegularly: patient?.exercisesRegularly ?? null,
+        exerciseDays: patient?.exerciseDays ?? null,
+        exerciseSchedule: patient?.exerciseSchedule ?? null,
+        sportType: patient?.sportType ?? null,
+      },
+      preferences: {
+        proteinMultiplierLoss: settings.proteinMultiplierLoss,
+        proteinMultiplierMaintain: settings.proteinMultiplierMaintain,
+        proteinMultiplierGain: settings.proteinMultiplierGain,
+        fatPerKg: settings.fatPerKg,
+      },
+    });
     
     // Actualizar o crear cálculos
     if (Object.keys(calculations).length > 0) {
@@ -934,40 +1003,32 @@ router.get("/api/diet-templates", async (req, res) => {
 
 router.post("/api/diet-templates", async (req, res) => {
   try {
-    const data = {
-      name: req.body.name,
-      description: req.body.description || null,
-      objective: req.body.objective || null,
-      content: req.body.content,
-      targetCalories: req.body.targetCalories || null,
-      isActive: req.body.isActive ?? true,
-      macros: null,
-      mealStructure: null,
-      sampleMeals: null,
-      restrictions: null,
-      tags: null,
-      successRate: null,
-    };
-    
+    const data = validate(insertDietTemplateSchema, req.body);
     const template = await storage.createDietTemplate(data);
     res.status(201).json(template);
   } catch (error) {
     console.error("Error creating diet template:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
     res.status(500).json({ error: "Failed to create diet template" });
   }
 });
 
 router.patch("/api/diet-templates/:id", async (req, res) => {
   try {
-    const data = {
-      name: req.body.name,
-      description: req.body.description || null,
-      objective: req.body.objective || null,
-      content: req.body.content,
-      targetCalories: req.body.targetCalories || null,
-      isActive: req.body.isActive,
-    };
+    const { version, ...updateData } = req.body;
     
+    if (version === undefined || version === null) {
+      return res.status(400).json({ error: "version field is required for updates" });
+    }
+    
+    const versionNum = Number(version);
+    if (isNaN(versionNum)) {
+      return res.status(400).json({ error: "version must be a valid number" });
+    }
+    
+    const data = validate(insertDietTemplateSchema.partial(), updateData);
     const template = await storage.updateDietTemplate(req.params.id, data);
     if (!template) {
       return res.status(404).json({ error: "Template not found" });
@@ -976,6 +1037,90 @@ router.patch("/api/diet-templates/:id", async (req, res) => {
   } catch (error) {
     console.error("Error updating diet template:", error);
     res.status(500).json({ error: "Failed to update diet template" });
+  }
+});
+
+router.delete("/api/diet-templates/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteDietTemplate(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Diet template not found" });
+    }
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting diet template:", error);
+    res.status(500).json({ error: "Failed to delete diet template" });
+  }
+});
+
+// ===== CONSULTATIONS =====
+router.get("/api/consultations", async (req, res) => {
+  try {
+    const { patientId } = req.query;
+    if (!patientId || typeof patientId !== "string") {
+      return res.status(400).json({ error: "patientId query parameter is required" });
+    }
+    const consultations = await storage.getConsultationsByPatient(patientId);
+    res.json(consultations);
+  } catch (error) {
+    console.error("Error fetching consultations:", error);
+    res.status(500).json({ error: "Failed to fetch consultations" });
+  }
+});
+
+router.post("/api/consultations", async (req, res) => {
+  try {
+    const data = validate(
+      insertConsultationSchema,
+      {
+        ...req.body,
+        consultationDate: req.body.consultationDate ? new Date(req.body.consultationDate) : undefined,
+      },
+    );
+    const consultation = await storage.createConsultation(data);
+    res.status(201).json(consultation);
+  } catch (error) {
+    console.error("Error creating consultation:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to create consultation" });
+  }
+});
+
+router.patch("/api/consultations/:id", async (req, res) => {
+  try {
+    const data = validate(
+      insertConsultationSchema.partial(),
+      {
+        ...req.body,
+        consultationDate: req.body.consultationDate ? new Date(req.body.consultationDate) : undefined,
+      },
+    );
+    const updated = await storage.updateConsultation(req.params.id, data);
+    if (!updated) {
+      return res.status(404).json({ error: "Consultation not found" });
+    }
+    res.json(updated);
+  } catch (error) {
+    console.error("Error updating consultation:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update consultation" });
+  }
+});
+
+router.delete("/api/consultations/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteConsultation(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Consultation not found" });
+    }
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting consultation:", error);
+    res.status(500).json({ error: "Failed to delete consultation" });
   }
 });
 
@@ -1763,6 +1908,41 @@ router.post("/api/weekly-plans/:id/generate-pdf", async (req, res) => {
   } catch (error) {
     console.error("Error generating weekly plan PDF:", error);
     res.status(500).json({ error: "Failed to generate PDF" });
+  }
+});
+
+// ===== NUTRITIONIST SETTINGS =====
+const settingsSchema = z.object({
+  profileName: z.string().optional().nullable(),
+  proteinMultiplierLoss: z.number().min(0.5).max(5).optional(),
+  proteinMultiplierMaintain: z.number().min(0.5).max(5).optional(),
+  proteinMultiplierGain: z.number().min(0.5).max(5).optional(),
+  fatPerKg: z.number().min(0.1).max(5).optional(),
+  whatsappTemplateClassic: z.string().optional().nullable(),
+  whatsappTemplateWithDocs: z.string().optional().nullable(),
+});
+
+router.get("/api/settings", async (_req, res) => {
+  try {
+    const settings = await storage.getNutritionistSettings();
+    res.json(settings);
+  } catch (error) {
+    console.error("Error fetching settings:", error);
+    res.status(500).json({ error: "Failed to fetch settings" });
+  }
+});
+
+router.put("/api/settings", async (req, res) => {
+  try {
+    const data = validate(settingsSchema, req.body);
+    const updated = await storage.updateNutritionistSettings(data);
+    res.json(updated);
+  } catch (error) {
+    console.error("Error updating settings:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", details: error.errors });
+    }
+    res.status(500).json({ error: "Failed to update settings" });
   }
 });
 

@@ -28,6 +28,10 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import type { Patient } from "@shared/schema";
+import { Link } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Users, Activity, Calendar } from "lucide-react";
 
 export default function Patients() {
   const { toast } = useToast();
@@ -431,13 +435,48 @@ export default function Patients() {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPatients.map((patient) => (
-              <PatientCard
-                key={patient.id}
-                id={patient.id}
-                name={patient.name}
-                age={patient.birthDate ? new Date().getFullYear() - new Date(patient.birthDate).getFullYear() : 0}
-                objective={patient.objective as "pérdida" | "ganancia" | "mantenimiento" | undefined}
-              />
+              <Link key={patient.id} href={`/pacientes/${patient.id}`}>
+                <Card className="hover-elevate cursor-pointer" data-testid={`patient-card-${patient.id}`}>
+                  <CardContent className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{patient.name}</h2>
+                      <p className="text-sm text-muted-foreground">{patient.email || "Sin email"}</p>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        {patient.objective && (
+                          <Badge variant="outline" className="bg-primary/10 text-primary">
+                            {patient.objective}
+                          </Badge>
+                        )}
+                        {patient.gender && (
+                          <Badge variant="outline" className="bg-white/30 dark:bg-white/10">
+                            {patient.gender === "M" ? "Masculino" : patient.gender === "F" ? "Femenino" : "Otro"}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-2 text-sm md:items-end">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span>{patient.groupCount ?? 0} grupos</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                        <span>{patient.measurementCount ?? 0} mediciones</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          Alta {new Date(patient.createdAt).toLocaleDateString("es-AR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             ))}
           </div>
 

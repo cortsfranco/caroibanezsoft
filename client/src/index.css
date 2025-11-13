@@ -43,6 +43,9 @@
   --chart-3: 43 74% 49%;
   --chart-4: 27 87% 55%;
   --chart-5: 340 82% 52%;
+  --caro-pink: 333 86% 67%;
+  --caro-pink-soft: 333 100% 94%;
+  --caro-pink-intense: 333 82% 58%;
   --font-sans: Inter, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: ui-monospace, monospace;
@@ -93,48 +96,51 @@
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
-  --background: 0 0% 7%;
-  --foreground: 0 0% 95%;
-  --border: 0 0% 16%;
-  --card: 200 25% 12%;
-  --card-foreground: 0 0% 95%;
-  --card-border: 200 20% 18%;
-  --sidebar: 220 100% 38%;
+  --background: 211 100% 9%;
+  --foreground: 210 30% 96%;
+  --border: 211 74% 18%;
+  --card: 213 65% 12%;
+  --card-foreground: 210 30% 96%;
+  --card-border: 213 64% 20%;
+  --sidebar: 213 85% 18%;
   --sidebar-foreground: 0 0% 100%;
-  --sidebar-border: 220 100% 45%;
-  --sidebar-primary: 203 89% 53%;
+  --sidebar-border: 213 85% 25%;
+  --sidebar-primary: 198 90% 55%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 215 100% 18%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-ring: 203 89% 53%;
-  --popover: 0 0% 13%;
-  --popover-foreground: 0 0% 95%;
-  --popover-border: 0 0% 16%;
-  --primary: 203 89% 53%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 0 0% 17%;
-  --secondary-foreground: 0 0% 95%;
-  --muted: 0 2% 14%;
-  --muted-foreground: 0 2% 75%;
-  --accent: 203 15% 16%;
-  --accent-foreground: 203 15% 88%;
+  --sidebar-accent: 205 80% 26%;
+  --sidebar-accent-foreground: 210 30% 96%;
+  --sidebar-ring: 198 90% 55%;
+  --popover: 214 70% 14%;
+  --popover-foreground: 210 30% 96%;
+  --popover-border: 214 65% 20%;
+  --primary: 198 90% 55%;
+  --primary-foreground: 210 30% 96%;
+  --secondary: 212 50% 20%;
+  --secondary-foreground: 210 30% 96%;
+  --muted: 211 50% 18%;
+  --muted-foreground: 211 30% 75%;
+  --accent: 209 65% 20%;
+  --accent-foreground: 210 30% 96%;
   --destructive: 0 84% 45%;
   --destructive-foreground: 0 0% 98%;
-  --input: 0 0% 25%;
-  --ring: 203 89% 53%;
-  --chart-1: 203 89% 63%;
+  --input: 213 45% 26%;
+  --ring: 198 90% 55%;
+  --chart-1: 198 90% 70%;
   --chart-2: 173 58% 59%;
   --chart-3: 43 74% 69%;
-  --chart-4: 27 87% 70%;
+  --chart-4: 27 87% 68%;
   --chart-5: 340 82% 67%;
+  --caro-pink: 333 81% 70%;
+  --caro-pink-soft: 333 100% 85%;
+  --caro-pink-intense: 333 82% 62%;
   --shadow-2xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-xs: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-sm: 0 2px 4px -1px rgb(0 0 0 / 0.08), 0 2px 3px -1px rgb(0 0 0 / 0.06);
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.08);
-  --shadow-md: 0 6px 16px -4px rgb(0 0 0 / 0.12), 0 4px 8px -3px rgb(0 0 0 / 0.08);
-  --shadow-lg: 0 10px 24px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 32px -8px rgb(0 0 0 / 0.18), 0 12px 16px -8px rgb(0 0 0 / 0.12);
-  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 6px 16px -4px rgb(0 0 0 / 0.15), 0 4px 8px -3px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 12px 26px -6px rgb(0 0 0 / 0.2), 0 8px 12px -8px rgb(0 0 0 / 0.12);
+  --shadow-xl: 0 20px 32px -8px rgb(0 0 0 / 0.25), 0 12px 16px -8px rgb(0 0 0 / 0.15);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.3);
 
 /* Fallback for older browsers */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -180,6 +186,117 @@
   
   .dark [data-sidebar="sidebar"] {
     background: linear-gradient(180deg, hsla(205, 80%, 50%, 0.85) 0%, hsla(220, 85%, 35%, 0.85) 100%) !important;
+  }
+
+  @keyframes caroFloatIn {
+    0% {
+      opacity: 0;
+      transform: translateY(24px) scale(0.97);
+      filter: blur(6px);
+    }
+    55% {
+      opacity: 1;
+      transform: translateY(-6px) scale(1.01);
+      filter: blur(0px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0px);
+    }
+  }
+
+  .card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #3a8bf7 0%, #2a63e2 100%);
+    border: none;
+    color: #ffffff;
+    box-shadow: 0 12px 28px -10px rgba(42, 99, 226, 0.45);
+    animation: caroFloatIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--caro-anim-delay, 0s) both;
+    backdrop-filter: saturate(105%);
+  }
+
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: auto 10% -12% 10%;
+    height: 3px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, hsla(var(--caro-pink-soft) / 0.8) 0%, hsla(var(--caro-pink) / 0.8) 100%);
+    opacity: 0.9;
+  }
+
+  .card::after {
+    content: "";
+    position: absolute;
+    inset: -30% -20% auto auto;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle at top right, hsla(var(--caro-pink) / 0.45) 0%, rgba(255, 255, 255, 0) 65%);
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0.9;
+    transform: rotate(12deg);
+  }
+
+  .card .text-muted-foreground {
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  .card input,
+  .card textarea,
+  .card select,
+  .card .bg-white,
+  .card .bg-[#fff],
+  .card .bg-background {
+    color: hsl(var(--foreground));
+  }
+
+  .caro-animate {
+    position: relative;
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+    animation: caroFloatIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) var(--caro-anim-delay, 0s) both;
+  }
+
+  .caro-animate-rise {
+    position: relative;
+    opacity: 0;
+    transform: translateY(32px) scale(0.96);
+    animation: caroFloatIn 0.85s cubic-bezier(0.24, 1, 0.32, 1) var(--caro-anim-delay, 0s) both;
+  }
+
+  .caro-accent-pill {
+    background: linear-gradient(90deg, hsla(var(--caro-pink) / 0.85) 0%, hsla(var(--caro-pink-intense) / 0.9) 100%);
+    color: hsl(0 0% 100%);
+    box-shadow: 0 8px 20px -12px hsla(var(--caro-pink) / 0.8);
+  }
+
+  .caro-soft-tag {
+    background: hsla(var(--caro-pink-soft) / 0.65);
+    color: hsla(var(--caro-pink) / 0.9);
+  }
+
+  table.caro-animate,
+  .caro-table-row {
+    position: relative;
+    opacity: 0;
+    transform: translateY(18px) scale(0.99);
+    animation: caroFloatIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) var(--caro-anim-delay, 0s) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card,
+    .caro-animate,
+    .caro-animate-rise,
+    table.caro-animate,
+    .caro-table-row {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      filter: none !important;
+    }
   }
 }
 

@@ -42,22 +42,12 @@ Write-Host ""
 # Verificar archivo .env
 if (-not (Test-Path ".env")) {
     Write-Warning-Custom "Archivo .env no encontrado"
-    Write-Host "Copiando desde .env.example..." -ForegroundColor White
-    Copy-Item ".env.example" ".env"
+    Write-Host "Copiando desde env.example..." -ForegroundColor White
+    Copy-Item "env.example" ".env"
     Write-Host ""
-    Write-Info "IMPORTANTE: Edita el archivo .env con tus credenciales antes de continuar"
+    Write-Success "Archivo .env creado desde env.example"
+    Write-Host "NOTA: El archivo .env ya tiene los valores de Neon configurados" -ForegroundColor Green
     Write-Host ""
-    Write-Host "Necesitas configurar:" -ForegroundColor Yellow
-    Write-Host "  - DATABASE_URL (PostgreSQL)" -ForegroundColor Yellow
-    Write-Host "  - SESSION_SECRET (genera uno con: node -e `"console.log(require('crypto').randomBytes(32).toString('hex'))`")" -ForegroundColor Yellow
-    Write-Host "  - GOOGLE_API_KEY (opcional, para IA)" -ForegroundColor Yellow
-    Write-Host ""
-    
-    $continue = Read-Host "¿Continuar de todas formas? (s/n)"
-    if ($continue -ne 's' -and $continue -ne 'S') {
-        Write-Host "Setup pausado. Edita .env y ejecuta ./start.ps1 de nuevo." -ForegroundColor Yellow
-        exit 0
-    }
 }
 
 Write-Success "Archivo .env configurado"
