@@ -118,8 +118,19 @@ export function PatientsTable({ patients }: PatientsTableProps) {
 
   const calculateAge = (birthDate: Date | string | null): number | null => {
     if (!birthDate) return null;
+    
     const today = new Date();
-    const birth = birthDate instanceof Date ? birthDate : new Date(birthDate);
+    let birth: Date;
+    
+    // Handle string dates properly to avoid timezone issues
+    if (typeof birthDate === 'string') {
+      // Parse YYYY-MM-DD as local date
+      const parts = birthDate.split('T')[0].split('-');
+      birth = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    } else {
+      birth = birthDate;
+    }
+    
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
