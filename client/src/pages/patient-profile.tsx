@@ -138,12 +138,22 @@ export default function PatientProfile() {
     },
   });
 
+  // All hooks MUST be before any conditional returns
   const formattedPhone = useMemo(() => {
     if (!patient?.phone) return null;
     const digits = patient.phone.replace(/[^0-9]/g, "");
     return digits.length >= 10 ? digits : null;
   }, [patient?.phone]);
 
+  const sortedConsultations = useMemo(() => {
+    return [...profileConsultations].sort(
+      (a, b) =>
+        new Date(b.consultation.consultationDate).getTime() -
+        new Date(a.consultation.consultationDate).getTime(),
+    );
+  }, [profileConsultations]);
+
+  // Helper functions (can be after hooks but before returns)
   const handleWhatsAppOpen = (mode: "simple" | "with_documents") => {
     if (!formattedPhone) return;
     const baseUrl = `https://wa.me/${formattedPhone}`;
@@ -154,6 +164,7 @@ export default function PatientProfile() {
     window.open(`${baseUrl}?text=${encoded}`, "_blank");
   };
 
+  // Early returns AFTER all hooks
   if (!match || !patientId) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -182,6 +193,7 @@ export default function PatientProfile() {
     );
   }
 
+  // Derived values (after conditional returns is OK)
   const initials = patient.name
     .split(" ")
     .map((n) => n[0])
@@ -200,14 +212,6 @@ export default function PatientProfile() {
         ? "bg-white dark:bg-slate-900/60"
         : "bg-[hsla(203,89%,53%,0.08)] dark:bg-[hsla(203,89%,53%,0.18)]"
     );
-
-  const sortedConsultations = useMemo(() => {
-    return [...profileConsultations].sort(
-      (a, b) =>
-        new Date(b.consultation.consultationDate).getTime() -
-        new Date(a.consultation.consultationDate).getTime(),
-    );
-  }, [profileConsultations]);
 
   return (
     <div className="space-y-6">
@@ -255,7 +259,7 @@ export default function PatientProfile() {
                       {formattedPhone ? (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="link" className="px-0 h-auto text-primary">
+                            <Button variant="ghost" className="px-0 h-auto text-primary hover:bg-transparent">
                               {patient.phone}
                             </Button>
                           </DropdownMenuTrigger>
