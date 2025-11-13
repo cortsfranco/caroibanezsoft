@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import type { Patient } from "@shared/schema";
+import type { Patient, PatientGroup } from "@shared/schema";
 import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,7 @@ export default function Patients() {
     foodDislikes: "",
     medicalConditions: "",
     medications: "",
+    groupId: undefined as string | undefined,
   });
 
   // Fetch patients from API
@@ -64,31 +65,50 @@ export default function Patients() {
     queryKey: ["/api/patients"],
   });
 
+  // Fetch groups from API
+  const { data: groups = [] } = useQuery<PatientGroup[]>({
+    queryKey: ["/api/groups"],
+  });
+
   const createPatientMutation = useMutation({
     mutationFn: async (data: typeof newPatient) => {
+      // Excluir groupId del payload de paciente
+      const { groupId, ...patientData } = data;
+      
       const payload: any = {
-        name: data.name,
-        email: data.email || null,
-        phone: data.phone || null,
-        birthDate: data.birthDate || null,
-        gender: data.gender || null,
-        objective: data.objective || null,
-        notes: data.notes || null,
-        exercisesRegularly: data.exercisesRegularly,
-        sportType: data.sportType || null,
-        exerciseDays: data.exerciseDays || null,
-        exerciseSchedule: data.exerciseSchedule || null,
-        isVegetarian: data.isVegetarian,
-        isVegan: data.isVegan,
-        foodAllergies: data.foodAllergies || null,
-        foodDislikes: data.foodDislikes || null,
-        medicalConditions: data.medicalConditions || null,
-        medications: data.medications || null,
+        name: patientData.name,
+        email: patientData.email || null,
+        phone: patientData.phone || null,
+        birthDate: patientData.birthDate || null,
+        gender: patientData.gender || null,
+        objective: patientData.objective || null,
+        notes: patientData.notes || null,
+        exercisesRegularly: patientData.exercisesRegularly,
+        sportType: patientData.sportType || null,
+        exerciseDays: patientData.exerciseDays || null,
+        exerciseSchedule: patientData.exerciseSchedule || null,
+        isVegetarian: patientData.isVegetarian,
+        isVegan: patientData.isVegan,
+        foodAllergies: patientData.foodAllergies || null,
+        foodDislikes: patientData.foodDislikes || null,
+        medicalConditions: patientData.medicalConditions || null,
+        medications: patientData.medications || null,
       };
-      return await apiRequest("POST", "/api/patients", payload);
+      const patient = await apiRequest("POST", "/api/patients", payload);
+      
+      // Si se seleccionó un grupo, crear la membresía
+      if (groupId) {
+        await apiRequest("POST", "/api/memberships", {
+          patientId: patient.id,
+          groupId: groupId,
+        });
+      }
+      
+      return patient;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/memberships"] });
       setIsCreateDialogOpen(false);
       setNewPatient({
         name: "",
@@ -108,6 +128,7 @@ export default function Patients() {
         foodDislikes: "",
         medicalConditions: "",
         medications: "",
+        groupId: undefined,
       });
       toast({
         title: "Paciente creado",
@@ -226,6 +247,25 @@ export default function Patients() {
                     <SelectItem value="pérdida">Pérdida de peso</SelectItem>
                     <SelectItem value="ganancia">Ganancia de masa</SelectItem>
                     <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="group">Grupo</Label>
+                <Select
+                  value={newPatient.groupId}
+                  onValueChange={(value) => setNewPatient({ ...newPatient, groupId: value === "none" ? undefined : value })}
+                >
+                  <SelectTrigger id="group" data-testid="select-patient-group">
+                    <SelectValue placeholder="Sin grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin grupo</SelectItem>
+                    {groups.map((group) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

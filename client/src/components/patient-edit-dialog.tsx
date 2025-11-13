@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useRef, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, Loader2 } from "lucide-react";
-import type { Patient } from "@shared/schema";
+import type { Patient, PatientGroup, GroupMembership } from "@shared/schema";
 
 interface PatientEditDialogProps {
   patient: Patient;
@@ -55,32 +55,85 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
     medicalConditions: patient.medicalConditions || "",
     medications: patient.medications || "",
     avatarUrl: patient.avatarUrl || null,
+    groupId: undefined as string | undefined,
   });
+
+  // Fetch groups from API
+  const { data: groups = [] } = useQuery<PatientGroup[]>({
+    queryKey: ["/api/groups"],
+  });
+
+  // Fetch patient's current group membership
+  const { data: memberships = [] } = useQuery<GroupMembership[]>({
+    queryKey: [`/api/memberships?patientId=${patient.id}`],
+  });
+
+  // Update groupId when memberships change
+  useEffect(() => {
+    if (memberships.length > 0) {
+      setFormData(prev => ({ ...prev, groupId: memberships[0].groupId }));
+    }
+  }, [memberships]);
 
   const updatePatientMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Excluir groupId del payload de paciente
+      const { groupId, ...patientData } = data;
+      
       const payload: any = {
-        ...data,
-        email: data.email || null,
-        phone: data.phone || null,
-        birthDate: data.birthDate || null,
-        gender: data.gender || null,
-        objective: data.objective || null,
-        notes: data.notes || null,
-        sportType: data.sportType || null,
-        exerciseDays: data.exerciseDays || null,
-        exerciseSchedule: data.exerciseSchedule || null,
-        foodAllergies: data.foodAllergies || null,
-        foodDislikes: data.foodDislikes || null,
-        medicalConditions: data.medicalConditions || null,
-        medications: data.medications || null,
+        name: patientData.name,
+        email: patientData.email || null,
+        phone: patientData.phone || null,
+        birthDate: patientData.birthDate || null,
+        gender: patientData.gender || null,
+        objective: patientData.objective || null,
+        notes: patientData.notes || null,
+        exercisesRegularly: patientData.exercisesRegularly,
+        sportType: patientData.sportType || null,
+        exerciseDays: patientData.exerciseDays || null,
+        exerciseSchedule: patientData.exerciseSchedule || null,
+        isVegetarian: patientData.isVegetarian,
+        isVegan: patientData.isVegan,
+        foodAllergies: patientData.foodAllergies || null,
+        foodDislikes: patientData.foodDislikes || null,
+        medicalConditions: patientData.medicalConditions || null,
+        medications: patientData.medications || null,
+        avatarUrl: patientData.avatarUrl,
         version: patient.version,
       };
-      return await apiRequest("PATCH", `/api/patients/${patient.id}`, payload);
+      
+      // Actualizar datos del paciente
+      const updatedPatient = await apiRequest("PATCH", `/api/patients/${patient.id}`, payload);
+      
+      // Obtener membresía actual justo antes de actualizar
+      const currentMembershipsResponse = await fetch(`/api/memberships?patientId=${patient.id}`);
+      const currentMemberships: GroupMembership[] = await currentMembershipsResponse.json();
+      const currentMembership = currentMemberships[0];
+      const oldGroupId = currentMembership?.groupId;
+      
+      // Manejar cambios en la membresía de grupo
+      if (groupId !== oldGroupId) {
+        // Si hay una membresía anterior, eliminarla
+        if (currentMembership) {
+          await apiRequest("DELETE", `/api/memberships/${currentMembership.id}`);
+        }
+        
+        // Si se seleccionó un nuevo grupo, crear la membresía
+        if (groupId) {
+          await apiRequest("POST", "/api/memberships", {
+            patientId: patient.id,
+            groupId: groupId,
+          });
+        }
+      }
+      
+      return updatedPatient;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/patients", patient.id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/memberships?patientId=${patient.id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/memberships"] });
       onOpenChange(false);
       toast({
         title: "Paciente actualizado",
@@ -313,6 +366,25 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
                   <SelectItem value="pérdida">Pérdida de peso</SelectItem>
                   <SelectItem value="ganancia">Ganancia de masa</SelectItem>
                   <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-group">Grupo</Label>
+              <Select
+                value={formData.groupId}
+                onValueChange={(value) => setFormData({ ...formData, groupId: value === "none" ? undefined : value })}
+              >
+                <SelectTrigger id="edit-group" data-testid="select-edit-group">
+                  <SelectValue placeholder="Sin grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin grupo</SelectItem>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
