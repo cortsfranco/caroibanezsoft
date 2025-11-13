@@ -47,7 +47,7 @@ type EditedPatient = {
   notes: string;
 };
 
-type SortColumn = "name" | "email" | "phone" | "birthDate" | "gender" | "objective" | "notes";
+type SortColumn = "name" | "email" | "phone" | "age" | "objective" | "notes";
 type SortDirection = "asc" | "desc" | null;
 
 export function PatientsTable({ patients }: PatientsTableProps) {
@@ -116,6 +116,18 @@ export function PatientsTable({ patients }: PatientsTableProps) {
     },
   });
 
+  const calculateAge = (birthDate: Date | string | null): number | null => {
+    if (!birthDate) return null;
+    const today = new Date();
+    const birth = birthDate instanceof Date ? birthDate : new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const sortedAndFilteredPatients = useMemo(() => {
     // First filter
     let result = patients.filter((patient) =>
@@ -127,19 +139,23 @@ export function PatientsTable({ patients }: PatientsTableProps) {
     // Then sort
     if (sortColumn && sortDirection) {
       result = [...result].sort((a, b) => {
-        let aValue = a[sortColumn];
-        let bValue = b[sortColumn];
+        // Handle age sorting
+        if (sortColumn === "age") {
+          const aAge = calculateAge(a.birthDate);
+          const bAge = calculateAge(b.birthDate);
+          
+          if (aAge === null) return sortDirection === "asc" ? 1 : -1;
+          if (bAge === null) return sortDirection === "asc" ? -1 : 1;
+          
+          return sortDirection === "asc" ? aAge - bAge : bAge - aAge;
+        }
+
+        let aValue = a[sortColumn as keyof Patient];
+        let bValue = b[sortColumn as keyof Patient];
 
         // Handle nulls
         if (aValue === null || aValue === undefined) return sortDirection === "asc" ? 1 : -1;
         if (bValue === null || bValue === undefined) return sortDirection === "asc" ? -1 : 1;
-
-        // Handle dates
-        if (sortColumn === "birthDate") {
-          const aDate = new Date(aValue as string).getTime();
-          const bDate = new Date(bValue as string).getTime();
-          return sortDirection === "asc" ? aDate - bDate : bDate - aDate;
-        }
 
         // Handle strings
         const comparison = String(aValue).localeCompare(String(bValue), 'es', { sensitivity: 'base' });
@@ -354,25 +370,14 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                     variant="ghost"
                     size="sm"
                     className="h-8 -ml-3 hover:bg-transparent"
-                    onClick={() => handleSort("birthDate")}
-                    data-testid="sort-birthDate"
+                    onClick={() => handleSort("age")}
+                    data-testid="sort-age"
                   >
-                    Fecha de Nacimiento
-                    {getSortIcon("birthDate")}
+                    Edad
+                    {getSortIcon("age")}
                   </Button>
                 </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 -ml-3 hover:bg-transparent"
-                    onClick={() => handleSort("gender")}
-                    data-testid="sort-gender"
-                  >
-                    Género
-                    {getSortIcon("gender")}
-                  </Button>
-                </TableHead>
+                <TableHead>Grupo</TableHead>
                 <TableHead>
                   <Button
                     variant="ghost"
@@ -457,38 +462,14 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                         )}
                       </TableCell>
                       <TableCell>
-                        {isEditing ? (
-                          <Input
-                            type="date"
-                            value={editedData.birthDate}
-                            onChange={(e) => setEditedData({ ...editedData, birthDate: e.target.value })}
-                            className="h-8"
-                            data-testid={`input-birthDate-${patient.id}`}
-                          />
+                        {calculateAge(patient.birthDate) !== null ? (
+                          <span>{calculateAge(patient.birthDate)} años</span>
                         ) : (
-                          <span>{patient.birthDate ? new Date(patient.birthDate).toLocaleDateString() : "-"}</span>
+                          <span>-</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {isEditing ? (
-                          <Select
-                            value={editedData.gender}
-                            onValueChange={(value) => setEditedData({ ...editedData, gender: value })}
-                          >
-                            <SelectTrigger className="h-8" data-testid={`select-gender-${patient.id}`}>
-                              <SelectValue placeholder="Seleccionar" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="M">Masculino</SelectItem>
-                              <SelectItem value="F">Femenino</SelectItem>
-                              <SelectItem value="Other">Otro</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <span>
-                            {patient.gender === "M" ? "Masculino" : patient.gender === "F" ? "Femenino" : patient.gender === "Other" ? "Otro" : "-"}
-                          </span>
-                        )}
+                        <span>-</span>
                       </TableCell>
                       <TableCell>
                         {isEditing ? (
@@ -506,7 +487,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <span>{patient.objective || "-"}</span>
+                          <span>{patient.objective ? patient.objective.charAt(0).toUpperCase() + patient.objective.slice(1) : "-"}</span>
                         )}
                       </TableCell>
                       <TableCell>
