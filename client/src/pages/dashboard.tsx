@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   LineChart,
@@ -19,9 +19,14 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { Users, Activity, Scale, TrendingUp } from "lucide-react";
+import { Users, Activity, Scale, TrendingUp, PieChart as PieIcon, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CHART_TYPES, ChartType, getAllVividColors } from "@/lib/chart-colors";
+import { getObjectiveBadgeClasses, getObjectiveLabel, normalizeObjective } from "@/lib/objectives";
+import { Separator } from "@/components/ui/separator";
+import { TimeRangeSelector } from "@/components/time-range-selector";
+import { getDefaultTimeRange, getTimeRangeKey, rangeToQueryParams, type TimeRangeValue } from "@/lib/time-range";
+import type { MeasurementCalculation } from "@shared/schema";
 
 interface GroupStatistics {
   groupId: string;
@@ -36,6 +41,16 @@ interface GroupStatistics {
   bmiTrend: { date: string; value: number }[];
 }
 
+interface MeasurementWithPatient {
+  id: string;
+  patientId: string | null;
+  measurementDate: string;
+  weight: string | null;
+  notes: string | null;
+  patient?: { id: string | null; name: string | null; objective: string | null } | null;
+  calculations?: MeasurementCalculation | null;
+}
+
 const CHART_BACKGROUND = "#0f1d32";
 const GRID_COLOR = "rgba(148, 163, 184, 0.25)";
 const AXIS_COLOR = "#cbd5f5";
@@ -48,11 +63,73 @@ const delayStyle = (step: number): CSSProperties => ({
 });
 
 export default function Dashboard() {
-  const { data: statistics = [], isLoading } = useQuery<GroupStatistics[]>({
-    queryKey: ["/api/dashboard/statistics"],
-  });
+  const [timeRange, setTimeRange] = useState<TimeRangeValue>(() => getDefaultTimeRange());
   const [patientChartType, setPatientChartType] = useState<ChartType>("bar");
   const [measurementChartType, setMeasurementChartType] = useState<ChartType>("line");
+
+  const rangeKey = getTimeRangeKey(timeRange);
+
+  const { data: statistics = [], isLoading } = useQuery<GroupStatistics[]>({
+    queryKey: ["/api/dashboard/statistics", rangeKey],
+    queryFn: async () => {
+      const params = new URLSearchParams(rangeToQueryParams(timeRange));
+      const query = params.toString();
+      const response = await fetch(`/api/dashboard/statistics${query ? `?${query}` : ""}`);
+      if (!response.ok) throw new Error("Failed to fetch dashboard statistics");
+      return response.json();
+    },
+  });
+
+  const { data: measurements = [] } = useQuery<MeasurementWithPatient[]>({
+    queryKey: ["/api/measurements", { rangeKey }],
+    queryFn: async () => {
+      const params = new URLSearchParams(rangeToQueryParams(timeRange));
+      const query = params.toString();
+      const response = await fetch(`/api/measurements${query ? `?${query}` : ""}`);
+      if (!response.ok) throw new Error("Failed to fetch measurements");
+      return response.json();
+    },
+  });
+
+  const latestMeasurementsByPatient = useMemo(() => {
+    const latestMap = new Map<string, MeasurementWithPatient>();
+    measurements.forEach((measurement) => {
+      if (!measurement.patientId) return;
+      const existing = latestMap.get(measurement.patientId);
+      if (!existing || new Date(measurement.measurementDate) > new Date(existing.measurementDate)) {
+        latestMap.set(measurement.patientId, measurement);
+      }
+    });
+    return latestMap;
+  }, [measurements]);
+
+  const patientsWithMeasurements = latestMeasurementsByPatient.size;
+
+  const averageBodyFat = useMemo(() => {
+    let sum = 0;
+    let count = 0;
+    latestMeasurementsByPatient.forEach((measurement) => {
+      const fat = measurement.calculations?.bodyFatPercentage ? parseFloat(measurement.calculations.bodyFatPercentage) : null;
+      if (typeof fat === "number" && !Number.isNaN(fat)) {
+        sum += fat;
+        count += 1;
+      }
+    });
+    return count > 0 ? Number((sum / count).toFixed(1)) : null;
+  }, [latestMeasurementsByPatient]);
+
+  const averageLeanMass = useMemo(() => {
+    let sum = 0;
+    let count = 0;
+    latestMeasurementsByPatient.forEach((measurement) => {
+      const lean = measurement.calculations?.leanMass ? parseFloat(measurement.calculations.leanMass) : null;
+      if (typeof lean === "number" && !Number.isNaN(lean)) {
+        sum += lean;
+        count += 1;
+      }
+    });
+    return count > 0 ? Number((sum / count).toFixed(1)) : null;
+  }, [latestMeasurementsByPatient]);
 
   const groupComparisonData = useMemo(() => (
     statistics.map((stat) => ({
@@ -71,43 +148,113 @@ export default function Dashboard() {
 
   const summaryCards = [
     {
-      title: "Total Grupos",
+      title: "Pacientes activos",
       icon: <Users className="h-4 w-4 text-slate-600 dark:text-white" />,
       iconBg: "bg-white/80 text-slate-700 dark:bg-white/15",
-      value: statistics.length,
-      subtitle: `${groupsWithData} con mediciones`,
-      suffix: "",
-    },
-    {
-      title: "Total Pacientes",
-      icon: <Users className="h-4 w-4 text-slate-600 dark:text-white" />,
-      iconBg: "bg-[hsla(var(--caro-pink)/0.15)] text-[hsla(var(--caro-pink)/0.9)] dark:bg-[hsla(var(--caro-pink)/0.45)]",
       value: totalPatients,
-      subtitle: `Distribuidos en ${statistics.length} grupos`,
+      subtitle: `${statistics.length} grupos registrados` ,
       suffix: "",
     },
     {
-      title: "Total Mediciones",
+      title: "Con medición reciente",
       icon: <Activity className="h-4 w-4 text-slate-600 dark:text-white" />,
-      iconBg: "bg-white/80 text-slate-700 dark:bg-white/12",
-      value: totalMeasurements,
-      subtitle: `${totalPatients > 0 ? (totalMeasurements / totalPatients).toFixed(1) : 0} promedio/paciente`,
+      iconBg: "bg-[hsla(var(--caro-pink)/0.15)] text-[hsla(var(--caro-pink)/0.9)] dark:bg-[hsla(var(--caro-pink)/0.45)]",
+      value: patientsWithMeasurements,
+      subtitle: `${totalMeasurements} mediciones totales`,
       suffix: "",
     },
     {
-      title: "Peso Promedio Global",
+      title: "% Grasa corporal promedio",
+      icon: <PieIcon className="h-4 w-4 text-slate-600 dark:text-white" />,
+      iconBg: "bg-white/80 text-slate-700 dark:bg-white/15",
+      value: averageBodyFat !== null ? averageBodyFat : "-",
+      subtitle: "Últimas mediciones por paciente",
+      suffix: averageBodyFat !== null ? " %" : "",
+    },
+    {
+      title: "Masa magra promedio",
       icon: <Scale className="h-4 w-4 text-slate-600 dark:text-white" />,
       iconBg: "bg-white/80 text-slate-700 dark:bg-white/15",
-      value: statistics.length > 0
-        ? (
-            statistics.reduce((sum, s) => sum + (s.avgWeight || 0), 0) /
-            statistics.filter((s) => s.avgWeight !== null).length
-          ).toFixed(1)
-        : "-",
-      subtitle: "Entre todos los grupos",
-      suffix: " kg",
+      value: averageLeanMass !== null ? averageLeanMass : "-",
+      subtitle: "Kg promedio en la medición más reciente",
+      suffix: averageLeanMass !== null ? " kg" : "",
     },
   ];
+
+  const objectiveDistribution = useMemo(() => {
+    const counts: Record<string, { total: number; fatSum: number; fatCount: number; leanSum: number; leanCount: number }> = {};
+
+    latestMeasurementsByPatient.forEach((measurement) => {
+      const normalizedObjective = normalizeObjective(measurement.patient?.objective ?? undefined);
+      const key = normalizedObjective ?? "sin-objetivo";
+      if (!counts[key]) {
+        counts[key] = { total: 0, fatSum: 0, fatCount: 0, leanSum: 0, leanCount: 0 };
+      }
+      counts[key].total += 1;
+      const fat = measurement.calculations?.bodyFatPercentage ? parseFloat(measurement.calculations.bodyFatPercentage) : null;
+      const lean = measurement.calculations?.leanMass ? parseFloat(measurement.calculations.leanMass) : null;
+      if (typeof fat === "number" && !Number.isNaN(fat)) {
+        counts[key].fatSum += fat;
+        counts[key].fatCount += 1;
+      }
+      if (typeof lean === "number" && !Number.isNaN(lean)) {
+        counts[key].leanSum += lean;
+        counts[key].leanCount += 1;
+      }
+    });
+
+    return Object.entries(counts).map(([key, value]) => {
+      const isUndefinedObjective = key === "sin-objetivo";
+      const label = isUndefinedObjective
+        ? "Sin objetivo"
+        : key === "loss"
+          ? getObjectiveLabel("loss")
+          : key === "gain"
+            ? getObjectiveLabel("gain")
+            : getObjectiveLabel("maintain");
+      const badgeClass = isUndefinedObjective
+        ? "bg-slate-200 text-slate-700 border-slate-300 dark:bg-slate-900/60 dark:text-slate-200 dark:border-slate-800"
+        : key === "loss"
+          ? getObjectiveBadgeClasses("loss")
+          : key === "gain"
+            ? getObjectiveBadgeClasses("gain")
+            : getObjectiveBadgeClasses("maintain");
+
+      return {
+        key,
+        label,
+        badgeClass,
+        total: value.total,
+        avgFat: value.fatCount > 0 ? Number((value.fatSum / value.fatCount).toFixed(1)) : null,
+        avgLean: value.leanCount > 0 ? Number((value.leanSum / value.leanCount).toFixed(1)) : null,
+      };
+    });
+  }, [latestMeasurementsByPatient]);
+
+  const objectiveTimeline = useMemo(() => {
+    const timelineMap = new Map<string, { loss: number[]; gain: number[]; maintain: number[] }>();
+    measurements
+      .slice()
+      .sort((a, b) => new Date(a.measurementDate).getTime() - new Date(b.measurementDate).getTime())
+      .forEach((measurement) => {
+        const dateLabel = new Date(measurement.measurementDate).toLocaleDateString();
+        if (!timelineMap.has(dateLabel)) {
+          timelineMap.set(dateLabel, { loss: [], gain: [], maintain: [] });
+        }
+        const entry = timelineMap.get(dateLabel)!;
+        const weightValue = measurement.weight ? parseFloat(measurement.weight) : null;
+        const normalized = normalizeObjective(measurement.patient?.objective ?? undefined);
+        if (weightValue === null || Number.isNaN(weightValue) || !normalized) return;
+        entry[normalized].push(weightValue);
+      });
+
+    return Array.from(timelineMap.entries()).map(([date, entry]) => ({
+      date,
+      perdida: entry.loss.length ? Number((entry.loss.reduce((sum, weight) => sum + weight, 0) / entry.loss.length).toFixed(1)) : null,
+      mantenimiento: entry.maintain.length ? Number((entry.maintain.reduce((sum, weight) => sum + weight, 0) / entry.maintain.length).toFixed(1)) : null,
+      ganancia: entry.gain.length ? Number((entry.gain.reduce((sum, weight) => sum + weight, 0) / entry.gain.length).toFixed(1)) : null,
+    }));
+  }, [measurements]);
 
   if (isLoading) {
     return (
@@ -203,6 +350,18 @@ export default function Dashboard() {
         </p>
       </div>
 
+      <Card className="shadow-md">
+        <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Filtrar informes</p>
+            <p className="text-xs text-muted-foreground">
+              Las métricas y tendencias se recalculan según el rango temporal seleccionado.
+            </p>
+          </div>
+          <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {summaryCards.map((card, index) => (
           <Card
@@ -234,6 +393,82 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-xl caro-animate-rise text-slate-900 dark:text-white" style={delayStyle(0.32)}>
+          <CardHeader className="flex items-start justify-between">
+            <div className="space-y-2">
+              <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                <Sparkles className="h-5 w-5 text-slate-600 dark:text-white" />
+                Evolución del peso por objetivo
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-600 dark:text-white/80">
+                Promedio de peso en kg según el objetivo de cada paciente.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={objectiveTimeline}>
+                <CartesianGrid stroke={GRID_COLOR} strokeDasharray="4 4" />
+                <XAxis dataKey="date" tick={{ fill: AXIS_COLOR, fontSize: 12 }} interval={0} angle={-30} textAnchor="end" height={70} />
+                <YAxis tick={{ fill: AXIS_COLOR }} stroke={GRID_COLOR} />
+                <Tooltip contentStyle={{ backgroundColor: CHART_BACKGROUND, border: "1px solid #1e3765", borderRadius: "8px", color: "white" }} />
+                <Legend wrapperStyle={{ color: AXIS_COLOR }} />
+                <Line type="monotone" dataKey="perdida" stroke="#f87171" strokeWidth={3} dot={{ r: 3 }} name="Pérdida" />
+                <Line type="monotone" dataKey="mantenimiento" stroke="#34d399" strokeWidth={3} dot={{ r: 3 }} name="Mantenimiento" />
+                <Line type="monotone" dataKey="ganancia" stroke="#fb923c" strokeWidth={3} dot={{ r: 3 }} name="Ganancia" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xl caro-animate-rise text-slate-900 dark:text-white" style={delayStyle(0.36)}>
+          <CardHeader className="flex items-start justify-between">
+            <div className="space-y-2">
+              <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+                <PieIcon className="h-5 w-5 text-slate-600 dark:text-white" />
+                Balance por objetivo
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-600 dark:text-white/80">
+                Pacientes, % grasa y masa magra promedio de la última medición.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {objectiveDistribution.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Aún no hay mediciones recientes para mostrar.</p>
+            ) : (
+              <div className="space-y-3">
+                {objectiveDistribution.map((item) => (
+                  <div key={item.key} className="rounded-xl border border-white/10 bg-white/60 p-4 shadow-sm dark:bg-white/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${item.badgeClass}`}>
+                          {item.label}
+                        </span>
+                        <span className="text-sm text-muted-foreground">{item.total} pacientes</span>
+                      </div>
+                      <span className="text-sm font-semibold text-slate-800 dark:text-white">{
+                        item.avgFat !== null ? `${item.avgFat}% grasa` : "-"
+                      }</span>
+                    </div>
+                    <Separator className="my-3" />
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Grasa corporal promedio</span>
+                      <span className="font-semibold text-slate-800 dark:text-white">{item.avgFat !== null ? `${item.avgFat}%` : "-"}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Masa magra promedio</span>
+                      <span className="font-semibold text-slate-800 dark:text-white">{item.avgLean !== null ? `${item.avgLean} kg` : "-"}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

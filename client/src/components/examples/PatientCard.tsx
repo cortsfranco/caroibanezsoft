@@ -9,7 +9,7 @@ export default function PatientCardExample() {
         age={31}
         lastMeasurement="15/08/2023"
         nextAppointment="20/12/2024"
-        objective="ganancia"
+        objective="gain"
         group="Gimnasia"
       />
     </div>

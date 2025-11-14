@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -32,9 +33,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Edit, Save, X, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import type { Patient } from "@shared/schema";
+import {
+  getObjectiveBadgeClasses,
+  getObjectiveLabel,
+  normalizeObjective as normalizeObjectiveValue,
+  type NormalizedObjective,
+} from "@/lib/objectives";
 
 interface PatientsTableProps {
   patients: Patient[];
+  patientGroupNamesMap: Record<string, string[]>;
 }
 
 type EditedPatient = {
@@ -43,14 +51,14 @@ type EditedPatient = {
   phone: string;
   birthDate: string;
   gender: string;
-  objective: string;
+  objective: NormalizedObjective | "";
   notes: string;
 };
 
-type SortColumn = "name" | "email" | "phone" | "age" | "objective" | "notes";
+type SortColumn = "name" | "email" | "phone" | "age" | "objective" | "notes" | "group";
 type SortDirection = "asc" | "desc" | null;
 
-export function PatientsTable({ patients }: PatientsTableProps) {
+export function PatientsTable({ patients, patientGroupNamesMap }: PatientsTableProps) {
   const { toast } = useToast();
   const [globalFilter, setGlobalFilter] = useState("");
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
@@ -71,8 +79,20 @@ export function PatientsTable({ patients }: PatientsTableProps) {
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   const updatePatientMutation = useMutation({
-    mutationFn: async ({ id, data, version }: { id: string; data: Partial<EditedPatient>; version: number }) => {
-      return await apiRequest("PATCH", `/api/patients/${id}`, { ...data, version });
+    mutationFn: async ({
+      id,
+      data,
+      version,
+    }: {
+      id: string;
+      data: Partial<EditedPatient>;
+      version: number;
+    }) => {
+      const payload = {
+        ...data,
+        objective: data.objective ? data.objective : null,
+      };
+      return await apiRequest("PATCH", `/api/patients/${id}`, { ...payload, version });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/patients"] });
@@ -86,8 +106,8 @@ export function PatientsTable({ patients }: PatientsTableProps) {
       const isConflict = error?.message?.includes("409");
       toast({
         title: "Error",
-        description: isConflict 
-          ? "El paciente fue modificado por otro usuario. Recarga la página." 
+        description: isConflict
+          ? "El paciente fue modificado por otro usuario. Recarga la página."
           : "No se pudo actualizar el paciente",
         variant: "destructive",
       });
@@ -144,7 +164,10 @@ export function PatientsTable({ patients }: PatientsTableProps) {
     let result = patients.filter((patient) =>
       patient.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
       patient.email?.toLowerCase().includes(globalFilter.toLowerCase()) ||
-      patient.phone?.toLowerCase().includes(globalFilter.toLowerCase())
+      patient.phone?.toLowerCase().includes(globalFilter.toLowerCase()) ||
+      (patientGroupNamesMap[patient.id] || []).some((groupName) =>
+        groupName.toLowerCase().includes(globalFilter.toLowerCase())
+      )
     );
 
     // Then sort
@@ -159,6 +182,13 @@ export function PatientsTable({ patients }: PatientsTableProps) {
           if (bAge === null) return sortDirection === "asc" ? -1 : 1;
           
           return sortDirection === "asc" ? aAge - bAge : bAge - aAge;
+        }
+
+        if (sortColumn === "group") {
+          const aGroups = (patientGroupNamesMap[a.id] || []).join(", ") || "";
+          const bGroups = (patientGroupNamesMap[b.id] || []).join(", ") || "";
+          const comparison = aGroups.localeCompare(bGroups, "es", { sensitivity: "base" });
+          return sortDirection === "asc" ? comparison : -comparison;
         }
 
         let aValue = a[sortColumn as keyof Patient];
@@ -188,7 +218,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
       phone: patient.phone || "",
       birthDate: patient.birthDate ? new Date(patient.birthDate).toISOString().split('T')[0] : "",
       gender: patient.gender || "",
-      objective: patient.objective || "",
+      objective: normalizeObjectiveValue(patient.objective) ?? "",
       notes: patient.notes || "",
     });
   };
@@ -388,7 +418,18 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                     {getSortIcon("age")}
                   </Button>
                 </TableHead>
-                <TableHead>Grupo</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 -ml-3 hover:bg-transparent"
+                    onClick={() => handleSort("group")}
+                    data-testid="sort-group"
+                  >
+                    Grupo
+                    {getSortIcon("group")}
+                  </Button>
+                </TableHead>
                 <TableHead>
                   <Button
                     variant="ghost"
@@ -422,6 +463,9 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                   const isEditing = editingId === patient.id;
                   const isEvenRow = index % 2 === 0;
                   const isSelected = selectedIds.has(patient.id);
+                  const groupNames = patientGroupNamesMap[patient.id] || [];
+                  const objectiveLabel = getObjectiveLabel(patient.objective);
+                  const objectiveClass = getObjectiveBadgeClasses(patient.objective);
                   return (
                     <TableRow 
                       key={patient.id} 
@@ -480,25 +524,45 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                         )}
                       </TableCell>
                       <TableCell>
-                        <span>-</span>
+                        {groupNames.length > 0 ? (
+                          <span className="truncate block max-w-[200px]" title={groupNames.join(", ")}>
+                            {groupNames.join(", ")}
+                          </span>
+                        ) : (
+                          <span>-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {isEditing ? (
                           <Select
-                            value={editedData.objective}
-                            onValueChange={(value) => setEditedData({ ...editedData, objective: value })}
+                            value={editedData.objective || ""}
+                            onValueChange={(value) =>
+                              setEditedData({
+                                ...editedData,
+                                objective: (value as NormalizedObjective | ""),
+                              })
+                            }
                           >
-                            <SelectTrigger className="h-8" data-testid={`select-objective-${patient.id}`}>
+                            <SelectTrigger className="h-9">
                               <SelectValue placeholder="Seleccionar" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="pérdida">Pérdida</SelectItem>
-                              <SelectItem value="ganancia">Ganancia</SelectItem>
-                              <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                              <SelectItem value="">
+                                Sin objetivo
+                              </SelectItem>
+                              <SelectItem value="loss">Pérdida de grasa</SelectItem>
+                              <SelectItem value="gain">Ganancia muscular</SelectItem>
+                              <SelectItem value="maintain">Mantenimiento</SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
-                          <span>{patient.objective ? patient.objective.charAt(0).toUpperCase() + patient.objective.slice(1) : "-"}</span>
+                          patient.objective ? (
+                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${getObjectiveBadgeClasses(patient.objective)}`}>
+                              {getObjectiveLabel(patient.objective)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )
                         )}
                       </TableCell>
                       <TableCell>

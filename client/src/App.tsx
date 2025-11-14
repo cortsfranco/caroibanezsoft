@@ -11,6 +11,7 @@ import Dashboard from "@/pages/dashboard";
 import PatientsPage from "@/pages/patients";
 import PatientProfile from "@/pages/patient-profile";
 import GroupsPage from "@/pages/groups";
+import GroupDetailPage from "@/pages/group-detail";
 import Measurements from "@/pages/measurements";
 import Diets from "@/pages/diets";
 import DietLibrary from "@/pages/diet-library";
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/pacientes" component={PatientsPage} />
       <Route path="/pacientes/:id" component={PatientProfile} />
       <Route path="/grupos" component={GroupsPage} />
+      <Route path="/grupos/:id" component={GroupDetailPage} />
       <Route path="/mediciones" component={Measurements} />
       <Route path="/dietas" component={Diets} />
       <Route path="/biblioteca-dietas" component={DietLibrary} />

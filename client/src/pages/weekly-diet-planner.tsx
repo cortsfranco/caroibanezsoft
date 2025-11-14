@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, Fragment, type CSSProperties } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Meal, WeeklyDietPlan, WeeklyPlanMeal, PatientGroup, Patient, MeasurementCalculation, DietTemplate } from "@shared/schema";
@@ -38,6 +38,15 @@ const MEAL_TIMES = [
   { id: "dinner", label: "Cena", defaultTime: "20:00" },
 ];
 
+const EMPTY_SELECT_VALUE = "__none__";
+const ACTIVITY_SLOTS = MEAL_TIMES.slice(0, -1).map((slot, index) => {
+  const nextSlot = MEAL_TIMES[index + 1];
+  return {
+    id: `${slot.id}__${nextSlot.id}`,
+    label: `Actividad entre ${slot.label} y ${nextSlot.label}`,
+  };
+});
+
 const animationDelay = (value: number): CSSProperties => {
   return {
     "--caro-anim-delay": `${value.toFixed(2)}s`,
@@ -53,11 +62,18 @@ interface PlannedMeal {
 }
 
 type WeeklyPlanSlot = typeof MEAL_TIMES[number]["id"];
+type ActivitySlot = (typeof ACTIVITY_SLOTS)[number]["id"];
+
+type DayPlan = Record<WeeklyPlanSlot, PlannedMeal[]>;
 
 type WeeklyPlanGrid = {
-  [day: string]: {
-    [mealTime: string]: PlannedMeal[];
-  };
+  [day: string]: DayPlan;
+};
+
+type ActivitiesBySlot = Record<ActivitySlot, PlannedActivity[]>;
+
+type WeeklyActivitiesGrid = {
+  [day: string]: ActivitiesBySlot;
 };
 
 type ViewMode = "list" | "create" | "edit";
@@ -79,6 +95,32 @@ type SlotEditorFormState = {
 };
 
 const UNITS = ["porción", "u", "g", "ml", "taza", "cda"] as const;
+
+interface PlannedActivity {
+  id: string;
+  name: string;
+}
+
+const DEFAULT_DAY_LINKS: Record<string, string | null> = Object.fromEntries(
+  DAYS_OF_WEEK.map((day) => [day, null]),
+) as Record<string, string | null>;
+
+function generateId(prefix: string) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function createEmptyActivities(): WeeklyActivitiesGrid {
+  return DAYS_OF_WEEK.reduce((acc, day) => {
+    acc[day] = ACTIVITY_SLOTS.reduce((slotAcc, slot) => {
+      slotAcc[slot.id] = [];
+      return slotAcc;
+    }, {} as Record<ActivitySlot, PlannedActivity[]>);
+    return acc;
+  }, {} as WeeklyActivitiesGrid);
+}
 
 type MealGuideline = {
   calories: number | null;
@@ -111,6 +153,8 @@ export default function WeeklyDietPlanner() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlanGrid>(() => createEmptyPlan());
+  const [weeklyActivities, setWeeklyActivities] = useState<WeeklyActivitiesGrid>(() => createEmptyActivities());
+  const [dayLinks, setDayLinks] = useState<Record<string, string | null>>(() => ({ ...DEFAULT_DAY_LINKS }));
   const [draggedMeal, setDraggedMeal] = useState<Meal | null>(null);
   const [slotEditor, setSlotEditor] = useState<SlotEditorState | null>(null);
   const [planContextPatientId, setPlanContextPatientId] = useState<string>("");
@@ -139,6 +183,117 @@ export default function WeeklyDietPlanner() {
     () => availableTemplates.find((template) => template.id === appliedTemplateId) ?? null,
     [availableTemplates, appliedTemplateId],
   );
+  const resolveBaseDay = useCallback(
+    (day: string) => {
+      let current = day;
+      const visited = new Set<string>();
+      while (dayLinks[current]) {
+        if (visited.has(current)) break;
+        visited.add(current);
+        current = dayLinks[current] as string;
+      }
+      return current;
+    },
+    [dayLinks],
+  );
+
+  const applyPlanUpdate = useCallback(
+    (baseDay: string, updater: (dayPlan: DayPlan) => DayPlan) => {
+      setWeeklyPlan((prev) => {
+        const basePlan = cloneDayPlan(prev[baseDay]);
+        const updatedBase = updater(basePlan);
+        const nextPlan: WeeklyPlanGrid = {
+          ...prev,
+          [baseDay]: updatedBase,
+        };
+        Object.entries(dayLinks).forEach(([day, linkedBase]) => {
+          if (linkedBase === baseDay) {
+            nextPlan[day] = cloneDayPlan(updatedBase);
+          }
+        });
+        return nextPlan;
+      });
+    },
+    [dayLinks],
+  );
+
+  const applyActivitiesUpdate = useCallback(
+    (baseDay: string, updater: (activities: ActivitiesBySlot) => ActivitiesBySlot) => {
+      setWeeklyActivities((prev) => {
+        const baseActivities = cloneActivitiesDay(prev[baseDay]);
+        const updatedBase = updater(baseActivities);
+        const nextActivities: WeeklyActivitiesGrid = {
+          ...prev,
+          [baseDay]: updatedBase,
+        };
+        Object.entries(dayLinks).forEach(([day, linkedBase]) => {
+          if (linkedBase === baseDay) {
+            nextActivities[day] = cloneActivitiesDay(updatedBase);
+          }
+        });
+        return nextActivities;
+      });
+    },
+    [dayLinks],
+  );
+
+  const dayGroups = useMemo(() => {
+    const seen = new Set<string>();
+    const groups: { base: string; days: string[]; label: string }[] = [];
+    DAYS_OF_WEEK.forEach((day) => {
+      const base = resolveBaseDay(day);
+      if (seen.has(base)) return;
+      seen.add(base);
+      const members = DAYS_OF_WEEK.filter((candidate) => resolveBaseDay(candidate) === base);
+      groups.push({
+        base,
+        days: members,
+        label: members.join(" · "),
+      });
+    });
+    return groups;
+  }, [resolveBaseDay]);
+
+  useEffect(() => {
+    setWeeklyPlan((prev) => {
+      let updated = prev;
+      let modified = false;
+      Object.entries(dayLinks).forEach(([day, base]) => {
+        if (base) {
+          const source = prev[base];
+          if (!source) return;
+          if (areDayPlansEqual(prev[day], source)) {
+            return;
+          }
+          if (!modified) {
+            updated = { ...prev };
+            modified = true;
+          }
+          updated[day] = cloneDayPlan(source);
+        }
+      });
+      return modified ? updated : prev;
+    });
+    setWeeklyActivities((prev) => {
+      let updated = prev;
+      let modified = false;
+      Object.entries(dayLinks).forEach(([day, base]) => {
+        if (base) {
+          const source = prev[base];
+          if (!source) return;
+          if (areActivitiesEqual(prev[day], source)) {
+            return;
+          }
+          if (!modified) {
+            updated = { ...prev };
+            modified = true;
+          }
+          updated[day] = cloneActivitiesDay(source);
+        }
+      });
+      return modified ? updated : prev;
+    });
+  }, [dayLinks, weeklyPlan, weeklyActivities]);
   
   // Plan metadata form
   const [planName, setPlanName] = useState("");
@@ -210,10 +365,17 @@ export default function WeeklyDietPlanner() {
     if (!planPatientProfile) return;
     const latestConsultation = planPatientProfile.consultations?.[0]?.consultation;
     if (latestConsultation?.supplements && !planSupplements) {
-      const supplementsText = typeof latestConsultation.supplements.plan === "string"
-        ? latestConsultation.supplements.plan
-        : JSON.stringify(latestConsultation.supplements);
-      setPlanSupplements(supplementsText ?? "");
+      const rawSupplements = latestConsultation.supplements;
+      if (typeof rawSupplements === "string") {
+        setPlanSupplements(rawSupplements);
+      } else if (typeof rawSupplements === "object" && rawSupplements !== null) {
+        const structured = rawSupplements as Record<string, unknown>;
+        if (typeof structured.plan === "string") {
+          setPlanSupplements(structured.plan);
+        } else {
+          setPlanSupplements(JSON.stringify(structured));
+        }
+      }
     }
   }, [planPatientProfile, planSupplements]);
 
@@ -557,13 +719,95 @@ export default function WeeklyDietPlanner() {
   function createEmptyPlan(): WeeklyPlanGrid {
     const plan: WeeklyPlanGrid = {};
     DAYS_OF_WEEK.forEach(day => {
-      plan[day] = {};
+    plan[day] = {} as DayPlan;
       MEAL_TIMES.forEach(mealTime => {
         plan[day][mealTime.id] = [];
       });
     });
     return plan;
   }
+
+function cloneDayPlan(plan: DayPlan): DayPlan {
+  const clone = {} as DayPlan;
+  MEAL_TIMES.forEach(({ id }) => {
+    clone[id] = plan[id]?.map((meal) => ({ ...meal })) ?? [];
+  });
+  return clone;
+}
+
+function cloneActivitiesDay(activities: ActivitiesBySlot | undefined): ActivitiesBySlot {
+  const base = activities ?? ({} as ActivitiesBySlot);
+  const clone = {} as ActivitiesBySlot;
+  ACTIVITY_SLOTS.forEach(({ id }) => {
+    clone[id] = base[id]?.map((activity) => ({ ...activity })) ?? [];
+  });
+  return clone;
+}
+
+function hasActivitiesData(grid: WeeklyActivitiesGrid): boolean {
+  return Object.values(grid).some((dayActivities) =>
+    ACTIVITY_SLOTS.some(({ id }) => (dayActivities[id] ?? []).length > 0),
+  );
+}
+
+function normalizeActivitiesPayload(grid: WeeklyActivitiesGrid): Record<string, Record<ActivitySlot, string[]>> {
+  const payload: Record<string, Record<ActivitySlot, string[]>> = {};
+  DAYS_OF_WEEK.forEach((day) => {
+    payload[day] = {} as Record<ActivitySlot, string[]>;
+    ACTIVITY_SLOTS.forEach(({ id }) => {
+      payload[day][id] = (grid[day]?.[id] ?? []).map((activity) => activity.name);
+    });
+  });
+  return payload;
+}
+
+function hydrateActivitiesPayload(
+  payload?: Record<string, Partial<Record<ActivitySlot, string[]>>>,
+): WeeklyActivitiesGrid {
+  const grid = createEmptyActivities();
+  if (!payload) return grid;
+  DAYS_OF_WEEK.forEach((day) => {
+    ACTIVITY_SLOTS.forEach(({ id }) => {
+      const values = payload[day]?.[id] ?? [];
+      grid[day][id] = values.map((name, index) => ({
+        id: generateId(`${day}-${id}-${index}`),
+        name,
+      }));
+    });
+  });
+  return grid;
+}
+
+function areDayPlansEqual(a?: DayPlan, b?: DayPlan): boolean {
+  if (!a || !b) return false;
+  return MEAL_TIMES.every(({ id }) => {
+    const listA = a[id] ?? [];
+    const listB = b[id] ?? [];
+    if (listA.length !== listB.length) return false;
+    return listA.every((meal, index) => {
+      const other = listB[index];
+      if (!other) return false;
+      const baseMealId = meal.meal.id ?? meal.meal.name;
+      const otherMealId = other.meal.id ?? other.meal.name;
+      return (
+        baseMealId === otherMealId &&
+        meal.time === other.time &&
+        meal.note === other.note &&
+        meal.linkedToExercise === other.linkedToExercise
+      );
+    });
+  });
+}
+
+function areActivitiesEqual(a?: ActivitiesBySlot, b?: ActivitiesBySlot): boolean {
+  if (!a || !b) return false;
+  return ACTIVITY_SLOTS.every(({ id }) => {
+    const listA = a[id] ?? [];
+    const listB = b[id] ?? [];
+    if (listA.length !== listB.length) return false;
+    return listA.every((activity, index) => activity.name === listB[index]?.name);
+  });
+}
 
   function buildCustomMealFromWeeklyMeal(meal: WeeklyPlanMeal): Meal {
     return {
@@ -600,6 +844,8 @@ export default function WeeklyDietPlanner() {
         title: "Plantilla desasignada",
         description: "Podés seguir editando el plan desde cero.",
       });
+      setDayLinks({ ...DEFAULT_DAY_LINKS });
+      setWeeklyActivities(createEmptyActivities());
       return;
     }
 
@@ -612,6 +858,8 @@ export default function WeeklyDietPlanner() {
     if (template.targetCalories) {
       setPlanCalories(String(template.targetCalories));
     }
+    setDayLinks({ ...DEFAULT_DAY_LINKS });
+    setWeeklyActivities(createEmptyActivities());
     toast({
       title: "Plantilla aplicada",
       description: `Usaremos "${template.name}" como base del plan.`,
@@ -629,6 +877,8 @@ export default function WeeklyDietPlanner() {
     setPlanNotes("");
     setPlanVersion(1);
     setWeeklyPlan(createEmptyPlan());
+    setWeeklyActivities(createEmptyActivities());
+    setDayLinks({ ...DEFAULT_DAY_LINKS });
     setEditingPlanId(null);
     setPlanContextPatientId("");
     setMealGuidelines({} as Record<WeeklyPlanSlot, MealGuideline>);
@@ -653,6 +903,31 @@ export default function WeeklyDietPlanner() {
     setSlotEditorForm({ mealId: "", quantity: "", unit: UNITS[0], note: "", linkedToExercise: false });
     setSlotEditorSearch("");
     setSlotEditorTime("08:00");
+  }
+
+  function handleDayLinkChange(day: string, value: string | null) {
+    if (!value || value === day) {
+      setDayLinks((prev) => ({ ...prev, [day]: null }));
+      return;
+    }
+
+    const base = resolveBaseDay(value);
+    if (base === day) {
+      setDayLinks((prev) => ({ ...prev, [day]: null }));
+      return;
+    }
+
+    setDayLinks((prev) => ({ ...prev, [day]: base }));
+    setWeeklyPlan((prev) => {
+      const next = { ...prev };
+      next[day] = cloneDayPlan(prev[base]);
+      return next;
+    });
+    setWeeklyActivities((prev) => {
+      const next = { ...prev };
+      next[day] = cloneActivitiesDay(prev[base]);
+      return next;
+    });
   }
 
   function parseMealNote(note?: string) {
@@ -687,35 +962,30 @@ export default function WeeklyDietPlanner() {
     e.preventDefault();
   }
 
-  function handleDrop(day: string, mealTimeId: string, defaultTime: string) {
-    if (draggedMeal) {
-      const newMeal: PlannedMeal = {
-        id: `${day}-${mealTimeId}-${Date.now()}`,
-        meal: draggedMeal,
-        time: defaultTime,
-        note: JSON.stringify({ quantity: "", unit: UNITS[0], note: "" }),
-        linkedToExercise: false,
-      };
-      
-      setWeeklyPlan(prev => ({
-        ...prev,
-        [day]: {
-          ...prev[day],
-          [mealTimeId]: [...prev[day][mealTimeId], newMeal],
-        },
-      }));
-      setDraggedMeal(null);
-    }
+  function handleDrop(day: string, mealTimeId: WeeklyPlanSlot, defaultTime: string) {
+    if (!draggedMeal) return;
+    const baseDay = resolveBaseDay(day);
+    const newMeal: PlannedMeal = {
+      id: generateId(`${baseDay}-${mealTimeId}`),
+      meal: draggedMeal,
+      time: defaultTime,
+      note: JSON.stringify({ quantity: "", unit: UNITS[0], note: "" }),
+      linkedToExercise: false,
+    };
+
+    applyPlanUpdate(baseDay, (dayPlan) => {
+      dayPlan[mealTimeId] = [...dayPlan[mealTimeId], newMeal];
+      return dayPlan;
+    });
+    setDraggedMeal(null);
   }
 
-  function handleRemoveMeal(day: string, mealTimeId: string, mealInstanceId: string) {
-    setWeeklyPlan(prev => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [mealTimeId]: prev[day][mealTimeId].filter(m => m.id !== mealInstanceId),
-      },
-    }));
+  function handleRemoveMeal(day: string, mealTimeId: WeeklyPlanSlot, mealInstanceId: string) {
+    const baseDay = resolveBaseDay(day);
+    applyPlanUpdate(baseDay, (dayPlan) => {
+      dayPlan[mealTimeId] = dayPlan[mealTimeId].filter((m) => m.id !== mealInstanceId);
+      return dayPlan;
+    });
   }
 
   function handleSavePlan() {
@@ -757,6 +1027,18 @@ export default function WeeklyDietPlanner() {
       });
     });
 
+    const activitiesPayload = normalizeActivitiesPayload(weeklyActivities);
+    const hasActivities = hasActivitiesData(weeklyActivities);
+    const hasLinkedDays = Object.values(dayLinks).some((value) => Boolean(value));
+    const supplementsPayload =
+      (planSupplements && planSupplements.trim().length > 0) || hasActivities || hasLinkedDays
+        ? {
+            plan: planSupplements?.trim().length ? planSupplements : null,
+            activities: activitiesPayload,
+            dayLinks,
+          }
+        : null;
+
     const planData = {
       name: planName,
       description: planDescription || null,
@@ -767,13 +1049,42 @@ export default function WeeklyDietPlanner() {
       carbsGrams: planCarbs || null,
       fatsGrams: planFats || null,
       notes: planNotes || null,
-      supplements: planSupplements ? { plan: planSupplements } : null,
+      supplements: supplementsPayload,
     };
 
     if (viewMode === "edit" && editingPlanId) {
       updatePlanMutation.mutate({ planId: editingPlanId, plan: planData, meals: mealsArray, version: planVersion });
     } else {
       createPlanMutation.mutate({ plan: planData, meals: mealsArray });
+    }
+  }
+
+  function applySupplementsPayload(data: Record<string, unknown>) {
+    if (typeof data.plan === "string") {
+      setPlanSupplements(data.plan);
+    }
+
+    const activitiesPayload = data.activities as
+      | Record<string, Partial<Record<ActivitySlot, string[]>>>
+      | undefined;
+    if (activitiesPayload) {
+      setWeeklyActivities(hydrateActivitiesPayload(activitiesPayload));
+    } else {
+      setWeeklyActivities(createEmptyActivities());
+    }
+
+    const storedLinks = data.dayLinks as Record<string, string | null> | undefined;
+    if (storedLinks) {
+      setDayLinks(() => {
+        const mapping = { ...DEFAULT_DAY_LINKS };
+        DAYS_OF_WEEK.forEach((day) => {
+          const value = storedLinks[day];
+          mapping[day] = typeof value === "string" && value ? value : null;
+        });
+        return mapping;
+      });
+    } else {
+      setDayLinks({ ...DEFAULT_DAY_LINKS });
     }
   }
 
@@ -795,14 +1106,26 @@ export default function WeeklyDietPlanner() {
       setPlanCarbs(fullPlan.carbsGrams?.toString() || "");
       setPlanFats(fullPlan.fatsGrams?.toString() || "");
       setPlanNotes(fullPlan.notes || "");
+      setPlanSupplements("");
+      setWeeklyActivities(createEmptyActivities());
+      setDayLinks({ ...DEFAULT_DAY_LINKS });
+
       if (fullPlan.supplements) {
-        setPlanSupplements(
-          typeof fullPlan.supplements.plan === "string"
-            ? fullPlan.supplements.plan
-            : JSON.stringify(fullPlan.supplements),
-        );
-      } else {
-        setPlanSupplements("");
+        const supplementData = fullPlan.supplements as Record<string, unknown> | string;
+        if (typeof supplementData === "string") {
+          try {
+            const parsed = JSON.parse(supplementData);
+            if (parsed && typeof parsed === "object") {
+              applySupplementsPayload(parsed as Record<string, unknown>);
+            } else {
+              setPlanSupplements(supplementData);
+            }
+          } catch {
+            setPlanSupplements(supplementData);
+          }
+        } else {
+          applySupplementsPayload(supplementData as Record<string, unknown>);
+        }
       }
       setPlanVersion(fullPlan.version);
       setAppliedTemplateId("");
@@ -909,8 +1232,9 @@ export default function WeeklyDietPlanner() {
       linkedToExercise: slotEditorForm.linkedToExercise,
     };
 
-    setWeeklyPlan((prev) => {
-      const slotMeals = [...prev[slotEditor.day][slotEditor.slot]];
+    const baseDay = resolveBaseDay(slotEditor.day);
+    applyPlanUpdate(baseDay, (dayPlan) => {
+      const slotMeals = [...dayPlan[slotEditor.slot]];
 
       if (slotEditor.mode === "edit" && slotEditor.mealInstanceId) {
         const index = slotMeals.findIndex((m) => m.id === slotEditor.mealInstanceId);
@@ -921,46 +1245,65 @@ export default function WeeklyDietPlanner() {
         slotMeals.push(plannedMeal);
       }
 
-      return {
-        ...prev,
-        [slotEditor.day]: {
-          ...prev[slotEditor.day],
-          [slotEditor.slot]: slotMeals,
-        },
-      };
+      dayPlan[slotEditor.slot] = slotMeals;
+      return dayPlan;
     });
 
     resetSlotEditor();
   }
 
   function handleReorderMeal(day: string, slot: WeeklyPlanSlot, mealInstanceId: string, direction: "up" | "down") {
-    setWeeklyPlan((prev) => {
-      const slotMeals = [...prev[day][slot]];
+    const baseDay = resolveBaseDay(day);
+    applyPlanUpdate(baseDay, (dayPlan) => {
+      const slotMeals = [...dayPlan[slot]];
       const index = slotMeals.findIndex((m) => m.id === mealInstanceId);
-      if (index === -1) return prev;
+      if (index === -1) return dayPlan;
       const newIndex = direction === "up" ? index - 1 : index + 1;
-      if (newIndex < 0 || newIndex >= slotMeals.length) return prev;
+      if (newIndex < 0 || newIndex >= slotMeals.length) return dayPlan;
       const [item] = slotMeals.splice(index, 1);
       slotMeals.splice(newIndex, 0, item);
 
-      return {
-        ...prev,
-        [day]: {
-          ...prev[day],
-          [slot]: slotMeals,
-        },
-      };
+      dayPlan[slot] = slotMeals;
+      return dayPlan;
     });
   }
 
   function handleSlotTimeChange(day: string, slot: WeeklyPlanSlot, time: string) {
-    setWeeklyPlan((prev) => ({
-      ...prev,
-      [day]: {
-        ...prev[day],
-        [slot]: prev[day][slot].map((meal) => ({ ...meal, time })),
-      },
-    }));
+    const baseDay = resolveBaseDay(day);
+    applyPlanUpdate(baseDay, (dayPlan) => {
+      dayPlan[slot] = dayPlan[slot].map((meal) => ({ ...meal, time }));
+      return dayPlan;
+    });
+  }
+
+  function handleAddActivity(day: string, activitySlot: ActivitySlot) {
+    const baseDay = resolveBaseDay(day);
+    applyActivitiesUpdate(baseDay, (activities) => {
+      const current = activities[activitySlot] ?? [];
+      activities[activitySlot] = [
+        ...current,
+        { id: generateId(`${baseDay}-${activitySlot}`), name: "" },
+      ];
+      return activities;
+    });
+  }
+
+  function handleActivityChange(day: string, activitySlot: ActivitySlot, activityId: string, value: string) {
+    const baseDay = resolveBaseDay(day);
+    applyActivitiesUpdate(baseDay, (activities) => {
+      activities[activitySlot] = (activities[activitySlot] ?? []).map((activity) =>
+        activity.id === activityId ? { ...activity, name: value } : activity,
+      );
+      return activities;
+    });
+  }
+
+  function handleRemoveActivity(day: string, activitySlot: ActivitySlot, activityId: string) {
+    const baseDay = resolveBaseDay(day);
+    applyActivitiesUpdate(baseDay, (activities) => {
+      activities[activitySlot] = (activities[activitySlot] ?? []).filter((activity) => activity.id !== activityId);
+      return activities;
+    });
   }
 
   function renderSlot(day: string, slot: WeeklyPlanSlot, defaultTime: string) {
@@ -1085,6 +1428,40 @@ export default function WeeklyDietPlanner() {
             </div>
           )}
         </div>
+      </div>
+    );
+  }
+
+  function renderActivityCell(day: string, activitySlot: ActivitySlot) {
+    const activities = weeklyActivities[day]?.[activitySlot] ?? [];
+    return (
+      <div className="space-y-2 rounded-lg border border-primary/10 bg-white/70 p-3 shadow-sm">
+        {activities.length === 0 ? (
+          <p className="text-[11px] text-primary/70">Sin actividades registradas para este intervalo.</p>
+        ) : (
+          activities.map((activity) => (
+            <div key={activity.id} className="flex items-center gap-2">
+              <Input
+                value={activity.name}
+                onChange={(event) => handleActivityChange(day, activitySlot, activity.id, event.target.value)}
+                placeholder="Ej: Trabajo, Running, Yoga..."
+                className="text-sm"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:bg-destructive/10"
+                onClick={() => handleRemoveActivity(day, activitySlot, activity.id)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))
+        )}
+        <Button variant="secondary" size="sm" onClick={() => handleAddActivity(day, activitySlot)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Agregar actividad
+        </Button>
       </div>
     );
   }
@@ -1346,12 +1723,15 @@ export default function WeeklyDietPlanner() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="plan-patient-source">Precargar con paciente</Label>
-                  <Select value={planContextPatientId} onValueChange={setPlanContextPatientId}>
+                  <Select
+                    value={planContextPatientId || EMPTY_SELECT_VALUE}
+                    onValueChange={(value) => setPlanContextPatientId(value === EMPTY_SELECT_VALUE ? "" : value)}
+                  >
                     <SelectTrigger id="plan-patient-source" data-testid="select-plan-patient-source">
                       <SelectValue placeholder="Seleccionar paciente" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin selección</SelectItem>
+                      <SelectItem value={EMPTY_SELECT_VALUE}>Sin selección</SelectItem>
                       {patients.map((patient) => (
                         <SelectItem key={patient.id} value={patient.id}>
                           {patient.name}
@@ -1364,14 +1744,16 @@ export default function WeeklyDietPlanner() {
                 <div className="space-y-2">
                   <Label htmlFor="plan-template-source">Plantilla base</Label>
                   <Select
-                    value={appliedTemplateId}
+                    value={appliedTemplateId || EMPTY_SELECT_VALUE}
                     onValueChange={(value) => {
-                      if (!value) {
+                      if (value === EMPTY_SELECT_VALUE) {
                         applyTemplateToPlan(null);
+                        setAppliedTemplateId("");
                         return;
                       }
                       const template = availableTemplates.find((t) => t.id === value);
                       if (template) {
+                        setAppliedTemplateId(template.id);
                         applyTemplateToPlan(template);
                       }
                     }}
@@ -1380,7 +1762,7 @@ export default function WeeklyDietPlanner() {
                       <SelectValue placeholder="Sin plantilla" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin plantilla</SelectItem>
+                      <SelectItem value={EMPTY_SELECT_VALUE}>Sin plantilla</SelectItem>
                       {availableTemplates.map((template) => (
                         <SelectItem key={template.id} value={template.id}>
                           {template.name}
@@ -1596,21 +1978,83 @@ export default function WeeklyDietPlanner() {
               Ajusta las comidas según horarios, entrenamientos y preferencias alimentarias
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-[120px_repeat(5,minmax(0,1fr))] gap-1 rounded-lg overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm">
-              {MEAL_TIMES.map((mealTime) => (
-                <div key={mealTime.id} className="contents">
-                  <div className="flex items-center justify-between bg-white/10 px-4 py-3 text-xs uppercase tracking-[0.2em] text-white/75">
-                    <span>{mealTime.label}</span>
-                    <Clock className="h-4 w-4" />
-                  </div>
-                  {DAYS_OF_WEEK.map((day) => (
-                    <div key={`${day}-${mealTime.id}`} className="border-l border-white/5 bg-white/5/50 p-3">
-                      {renderSlot(day, mealTime.id as WeeklyPlanSlot, mealTime.defaultTime)}
+          <CardContent className="space-y-6">
+            <div className="rounded-lg border border-white/15 bg-white/10 p-4 shadow-inner">
+              <p className="text-xs uppercase tracking-[0.28em] text-white/70 mb-3">Configurar días repetidos</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {DAYS_OF_WEEK.map((day, index) => {
+                  const options = DAYS_OF_WEEK.slice(0, index);
+                  return (
+                    <div key={day} className="space-y-1">
+                      <Label className="text-[11px] uppercase tracking-[0.2em] text-white/60">{day}</Label>
+                      <Select
+                        value={dayLinks[day] ?? EMPTY_SELECT_VALUE}
+                        onValueChange={(value) => handleDayLinkChange(day, value === EMPTY_SELECT_VALUE ? null : value)}
+                      >
+                        <SelectTrigger className="h-9 bg-white/60 text-left text-sm text-primary shadow-sm">
+                          <SelectValue placeholder="Plan propio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={EMPTY_SELECT_VALUE}>Plan propio</SelectItem>
+                          {options.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-white/15 bg-white/10 p-4 shadow-inner">
+              <table className="w-full border-separate border-spacing-y-3">
+                <thead>
+                  <tr>
+                    <th className="w-44 rounded-lg bg-primary/20 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em] text-primary">
+                      Intervalo
+                    </th>
+                    {dayGroups.map((group) => (
+                      <th
+                        key={group.base}
+                        className="rounded-lg bg-primary/15 px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.22em] text-primary-800"
+                      >
+                        {group.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {MEAL_TIMES.map((mealTime, index) => (
+                    <Fragment key={`${mealTime.id}-section`}>
+                      <tr>
+                        <th className="align-top rounded-lg bg-white/70 px-4 py-3 text-left text-sm font-semibold text-primary shadow-sm">
+                          {mealTime.label}
+                        </th>
+                        {dayGroups.map((group) => (
+                          <td key={`${group.base}-${mealTime.id}`} className="align-top px-2">
+                            {renderSlot(group.base, mealTime.id as WeeklyPlanSlot, mealTime.defaultTime)}
+                          </td>
+                        ))}
+                      </tr>
+                      {index < ACTIVITY_SLOTS.length && (
+                        <tr>
+                          <th className="rounded-lg bg-primary/10 px-4 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-800">
+                            {ACTIVITY_SLOTS[index].label}
+                          </th>
+                          {dayGroups.map((group) => (
+                            <td key={`${group.base}-${ACTIVITY_SLOTS[index].id}`} className="align-top px-2">
+                              {renderActivityCell(group.base, ACTIVITY_SLOTS[index].id)}
+                            </td>
+                          ))}
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
-                </div>
-              ))}
+                </tbody>
+              </table>
             </div>
           </CardContent>
         </Card>

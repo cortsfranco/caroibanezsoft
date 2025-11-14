@@ -3,6 +3,14 @@
  * D. Kerr 1988 - 5 Component Fractionation Model
  */
 
+import {
+  calculateBodyComposition,
+  type MeasurementData,
+  calculateZScore,
+  getReferenceValues,
+  toNumberOrNull,
+} from "@shared/isak-calculations";
+
 const MEAL_DISTRIBUTION: Record<string, number> = {
   breakfast: 0.25,
   snack1: 0.1,
@@ -53,6 +61,19 @@ export interface MeasurementCalculationResult {
   carbsPerDay?: string;
   fatsPerDay?: string;
   perMealPlan?: Record<string, MealMacroTarget>;
+  skinMassKg?: string;
+  skinMassPercent?: string;
+  adiposeMassKg?: string;
+  adiposeMassPercent?: string;
+  muscleMassKg?: string;
+  muscleMassPercent?: string;
+  boneMassKg?: string;
+  boneMassPercent?: string;
+  residualMassKg?: string;
+  residualMassPercent?: string;
+  weightZScore?: string;
+  heightZScore?: string;
+  bmiZScore?: string;
 }
 
 function normalizeObjective(objective?: string | null): "loss" | "gain" | "maintain" {
@@ -425,6 +446,7 @@ export function calculateAll(
   measurementData: {
     weight?: string | null;
     height?: string | null;
+    seatedHeight?: string | null;
     triceps?: string | null;
     biceps?: string | null;
     subscapular?: string | null;
@@ -435,6 +457,20 @@ export function calculateAll(
     calfSkinfold?: string | null;
     waistCircumference?: string | null;
     hipCircumference?: string | null;
+    head?: string | null;
+    relaxedArm?: string | null;
+    flexedArm?: string | null;
+    forearm?: string | null;
+    thoraxCirc?: string | null;
+    thighSuperior?: string | null;
+    thighMedial?: string | null;
+    calf?: string | null;
+    biacromial?: string | null;
+    thoraxTransverse?: string | null;
+    thoraxAnteroposterior?: string | null;
+    biiliocristideo?: string | null;
+    humeral?: string | null;
+    femoral?: string | null;
   },
   options?: {
     age?: number | null;
@@ -513,7 +549,85 @@ export function calculateAll(
   if (somatotype.mesomorphy) result.mesomorphy = somatotype.mesomorphy;
   if (somatotype.ectomorphy) result.ectomorphy = somatotype.ectomorphy;
 
-  // 8. Calcular objetivos nutricionales automáticos
+  // 8. Fraccionamiento corporal de 5 componentes
+  const numericWeight = toNumberOrNull(measurementData.weight ?? null);
+  const numericHeight = toNumberOrNull(measurementData.height ?? null);
+  const requiredSkinfolds = [
+    measurementData.triceps,
+    measurementData.subscapular,
+    measurementData.supraspinal,
+    measurementData.abdominal,
+    measurementData.thighSkinfold,
+    measurementData.calfSkinfold,
+  ].every((value) => toNumberOrNull(value ?? null) !== null);
+
+  const requiredPerimeters = [
+    measurementData.relaxedArm,
+    measurementData.flexedArm,
+    measurementData.forearm,
+    measurementData.thoraxCirc,
+    measurementData.waistCircumference,
+    measurementData.hipCircumference,
+    measurementData.thighMedial,
+    measurementData.calf,
+  ].every((value) => toNumberOrNull(value ?? null) !== null);
+
+  const requiredDiameters = [
+    measurementData.humeral,
+    measurementData.femoral,
+  ].every((value) => toNumberOrNull(value ?? null) !== null);
+
+  if (
+    numericWeight !== null &&
+    numericHeight !== null &&
+    requiredSkinfolds &&
+    requiredPerimeters &&
+    requiredDiameters
+  ) {
+    const measurementNumeric: MeasurementData = {
+      weight: numericWeight,
+      height: numericHeight,
+      seatedHeight: toNumberOrNull(measurementData.seatedHeight) ?? undefined,
+      triceps: toNumberOrNull(measurementData.triceps) ?? 0,
+      subscapular: toNumberOrNull(measurementData.subscapular) ?? 0,
+      supraspinal: toNumberOrNull(measurementData.supraspinal) ?? 0,
+      abdominal: toNumberOrNull(measurementData.abdominal) ?? 0,
+      thighSkinfold: toNumberOrNull(measurementData.thighSkinfold) ?? 0,
+      calfSkinfold: toNumberOrNull(measurementData.calfSkinfold) ?? 0,
+      head: toNumberOrNull(measurementData.head) ?? undefined,
+      relaxedArm: toNumberOrNull(measurementData.relaxedArm) ?? 0,
+      flexedArm: toNumberOrNull(measurementData.flexedArm) ?? 0,
+      forearm: toNumberOrNull(measurementData.forearm) ?? 0,
+      thoraxCirc: toNumberOrNull(measurementData.thoraxCirc) ?? 0,
+      waist: toNumberOrNull(measurementData.waistCircumference) ?? 0,
+      hip: toNumberOrNull(measurementData.hipCircumference) ?? 0,
+      thighSuperior: toNumberOrNull(measurementData.thighSuperior) ?? undefined,
+      thighMedial: toNumberOrNull(measurementData.thighMedial) ?? 0,
+      calf: toNumberOrNull(measurementData.calf) ?? 0,
+      biacromial: toNumberOrNull(measurementData.biacromial) ?? undefined,
+      thoraxTransverse: toNumberOrNull(measurementData.thoraxTransverse) ?? undefined,
+      thoraxAnteroposterior: toNumberOrNull(measurementData.thoraxAnteroposterior) ?? undefined,
+      biiliocristideo: toNumberOrNull(measurementData.biiliocristideo) ?? undefined,
+      humeral: toNumberOrNull(measurementData.humeral) ?? 0,
+      femoral: toNumberOrNull(measurementData.femoral) ?? 0,
+    };
+
+    const normalizedGender = (options?.gender ?? "M").toUpperCase().startsWith("F") ? "female" : "male";
+    const bodyComposition = calculateBodyComposition(measurementNumeric, normalizedGender);
+
+    result.skinMassKg = roundTo(bodyComposition.skinMassKg, 3);
+    result.skinMassPercent = roundTo(bodyComposition.skinMassPercent, 2);
+    result.adiposeMassKg = roundTo(bodyComposition.adiposeMassKg, 3);
+    result.adiposeMassPercent = roundTo(bodyComposition.adiposeMassPercent, 2);
+    result.muscleMassKg = roundTo(bodyComposition.muscleMassKg, 3);
+    result.muscleMassPercent = roundTo(bodyComposition.muscleMassPercent, 2);
+    result.boneMassKg = roundTo(bodyComposition.boneMassKg, 3);
+    result.boneMassPercent = roundTo(bodyComposition.boneMassPercent, 2);
+    result.residualMassKg = roundTo(bodyComposition.residualMassKg, 3);
+    result.residualMassPercent = roundTo(bodyComposition.residualMassPercent, 2);
+  }
+
+  // 9. Cálculo de objetivos nutricionales automáticos
   const weightNum = measurementData.weight ? parseFloat(measurementData.weight) : null;
   const heightNum = measurementData.height ? parseFloat(measurementData.height) : null;
   const leanMassNum = result.leanMass ? parseFloat(result.leanMass) : null;
@@ -588,6 +702,34 @@ export function calculateAll(
     });
 
     result.perMealPlan = perMealPlan;
+  }
+
+  // 10. Score-Z principales
+  if (measurementData.weight) {
+    const numeric = parseFloat(measurementData.weight);
+    if (Number.isFinite(numeric)) {
+      const ref = getReferenceValues("weight");
+      result.weightZScore = roundTo(calculateZScore(numeric, ref.mean, ref.sd));
+    }
+  }
+
+  if (measurementData.height) {
+    const numeric = parseFloat(measurementData.height);
+    if (Number.isFinite(numeric)) {
+      const ref = getReferenceValues("height");
+      result.heightZScore = roundTo(calculateZScore(numeric, ref.mean, ref.sd));
+    }
+  }
+
+  if (result.bmi) {
+    const numericBmi = parseFloat(result.bmi);
+    if (Number.isFinite(numericBmi) && measurementData.height) {
+      const ref = getReferenceValues("weight");
+      const heightRef = getReferenceValues("height");
+      const meanBmi = ref.mean / Math.pow(heightRef.mean / 100, 2);
+      const sdBmi = meanBmi * 0.1; // aproximación conservadora
+      result.bmiZScore = roundTo(calculateZScore(numericBmi, meanBmi, sdBmi));
+    }
   }
 
   return result;

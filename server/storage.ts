@@ -123,7 +123,16 @@ export interface IStorage {
 
   // Measurements
   getMeasurements(patientId?: string): Promise<Measurement[]>;
-  getMeasurementsWithPatient(patientId?: string): Promise<Array<Measurement & { patient: { name: string | null } }>>;
+  getMeasurementsWithPatient(
+    patientId?: string,
+  ): Promise<
+    Array<
+      Measurement & {
+        patient: { id: string | null; name: string | null; objective: string | null } | null;
+        calculations: MeasurementCalculation | null;
+      }
+    >
+  >;
   getMeasurement(id: string): Promise<Measurement | null>;
   createMeasurement(data: InsertMeasurement): Promise<Measurement>;
   updateMeasurement(id: string, data: Partial<InsertMeasurement>, expectedVersion?: number): Promise<Measurement | null>;

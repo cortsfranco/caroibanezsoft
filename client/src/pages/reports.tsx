@@ -230,12 +230,12 @@ export default function Reports() {
         </div>
       )}
 
-      <Dialog open={!!selectedReport} onOpenChange={setSelectedReport}>
-        <DialogContent>
+      <Dialog open={!!selectedReport} onOpenChange={(open) => !open && setSelectedReport(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Informe de Medición</DialogTitle>
+            <DialogTitle>Detalle del Informe</DialogTitle>
             <DialogDescription>
-              Detalles del informe de la medición {selectedReport?.measurementId}.
+              {selectedReport ? (patientLookup.get(selectedReport.patientId)?.name ?? "Paciente Desconocido") : "Paciente Desconocido"} - {selectedReport?.reportType} - {selectedReport ? new Date(selectedReport.createdAt).toLocaleDateString() : ""}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -269,7 +269,11 @@ export default function Reports() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!reportToDelete} onOpenChange={setReportToDelete}>
+      <AlertDialog open={!!reportToDelete} onOpenChange={(open) => {
+        if (!open) {
+          setReportToDelete(null);
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro de que quieres eliminar este informe?</AlertDialogTitle>

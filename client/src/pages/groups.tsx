@@ -671,6 +671,16 @@ export default function Groups() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
+                  <Link href={`/grupos/${group.id}`}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-full"
+                      data-testid={`button-view-group-${group.id}`}
+                    >
+                      Ver panel del grupo
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             );

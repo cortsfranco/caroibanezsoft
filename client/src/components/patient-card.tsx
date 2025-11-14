@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { FileText, Ruler, Calendar } from "lucide-react";
 import { useLocation } from "wouter";
+import { getObjectiveBadgeClasses, getObjectiveLabel, type NormalizedObjective } from "@/lib/objectives";
 
 interface PatientCardProps {
   id: string;
@@ -11,7 +12,7 @@ interface PatientCardProps {
   age: number;
   lastMeasurement?: string;
   nextAppointment?: string;
-  objective?: "pérdida" | "ganancia" | "mantenimiento";
+  objective?: NormalizedObjective | null;
   group?: string;
 }
 
@@ -32,12 +33,6 @@ export function PatientCard({
     .substring(0, 2)
     .toUpperCase();
 
-  const objectiveColors = {
-    pérdida: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-    ganancia: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-    mantenimiento: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-  };
-
   return (
     <Card className="hover-elevate" data-testid={`patient-card-${id}`}>
       <CardHeader>
@@ -56,8 +51,8 @@ export function PatientCard({
             </div>
           </div>
           {objective && (
-            <Badge variant="secondary" className={objectiveColors[objective]}>
-              {objective}
+            <Badge variant="secondary" className={getObjectiveBadgeClasses(objective)}>
+              {getObjectiveLabel(objective)}
             </Badge>
           )}
         </div>

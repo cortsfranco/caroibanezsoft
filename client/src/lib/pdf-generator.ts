@@ -1,15 +1,15 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { type Measurement } from '@/../../shared/schema';
-import { 
-  calculateBodyComposition, 
-  type MeasurementData, 
+import {
+  calculateBodyComposition,
+  type MeasurementData,
   type BodyCompositionResult,
   calculateAdjustedValue,
   getETM,
   getReferenceValues,
-  calculateZScore 
-} from './isak-calculations';
+  calculateZScore
+} from '@shared/isak-calculations';
 
 export interface PDFReportData {
   patient: {

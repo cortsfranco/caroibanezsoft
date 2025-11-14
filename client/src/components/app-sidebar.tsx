@@ -13,7 +13,8 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import carolinaAvatar from "@assets/image_1762966212646.png";
+import logoLight from "@/assets/logo-carolina.svg";
+import carolinaAvatar from "@/assets/image_1762966212646.png";
 
 const menuItems = [
   {
@@ -73,14 +74,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/20 text-white backdrop-blur-sm">
-            <Activity className="h-5 w-5" />
+      <SidebarHeader className="p-5 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 p-1.5 shadow-inner">
+            <img src={logoLight} alt="Caro Ibáñez" className="h-full w-full object-contain" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-white">Nutrición</h2>
-            <p className="text-xs text-white/70">Carolina Ibáñez</p>
+            <h2 className="font-heading text-base font-semibold text-white">Caro Ibáñez</h2>
+            <p className="text-xs uppercase tracking-[0.28em] text-white/70">Nutrición Deportiva</p>
           </div>
         </div>
       </SidebarHeader>
@@ -107,17 +108,17 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
+      <SidebarFooter className="p-5 border-t border-sidebar-border">
         <div className="flex items-center gap-3">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={carolinaAvatar} alt="Carolina Ibáñez" />
+          <Avatar className="h-12 w-12 border border-white/20 bg-white/10">
+            <AvatarImage src={logoLight} alt="Carolina Ibáñez" className="object-contain p-1" />
             <AvatarFallback className="bg-white/20 text-white text-sm backdrop-blur-sm">
               CI
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 text-sm">
-            <p className="font-medium text-white">Carolina Ibáñez</p>
-            <p className="text-xs text-white/70">Nutricionista</p>
+            <p className="font-heading font-semibold text-white">Carolina Ibáñez</p>
+            <p className="text-xs text-white/70">Consultorio &amp; Alto Rendimiento</p>
           </div>
         </div>
       </SidebarFooter>

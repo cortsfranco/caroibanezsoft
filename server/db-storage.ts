@@ -266,7 +266,14 @@ export class DbStorage implements IStorage {
     return await db.select().from(measurements).orderBy(desc(measurements.measurementDate));
   }
 
-  async getMeasurementsWithPatient(patientId?: string): Promise<Array<Measurement & { patient: { name: string | null } }>> {
+  async getMeasurementsWithPatient(patientId?: string): Promise<
+    Array<
+      Measurement & {
+        patient: { id: string | null; name: string | null; objective: string | null } | null;
+        calculations: MeasurementCalculation | null;
+      }
+    >
+  > {
     const query = db
       .select({
         id: measurements.id,
@@ -305,11 +312,15 @@ export class DbStorage implements IStorage {
         createdAt: measurements.createdAt,
         updatedAt: measurements.updatedAt,
         patient: {
+          id: patients.id,
           name: patients.name,
+          objective: patients.objective,
         },
+        calculations: measurementCalculations,
       })
       .from(measurements)
       .leftJoin(patients, eq(measurements.patientId, patients.id))
+      .leftJoin(measurementCalculations, eq(measurementCalculations.measurementId, measurements.id))
       .orderBy(desc(measurements.measurementDate));
 
     if (patientId) {

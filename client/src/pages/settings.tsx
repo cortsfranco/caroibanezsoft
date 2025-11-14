@@ -119,7 +119,7 @@ export default function SettingsPage() {
                     <FormItem>
                       <FormLabel>Nombre del perfil</FormLabel>
                       <FormControl>
-                        <Input placeholder="Carolina Ibáñez" {...field} />
+                        <Input placeholder="Carolina Ibáñez" {...field} value={field.value ?? ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -191,9 +191,10 @@ export default function SettingsPage() {
                       <FormLabel>Mensaje WhatsApp (seguimiento)</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Hola {{nombre}}! ¿Cómo venís con el plan?..."
+                          placeholder="Hola [Paciente]!"
                           rows={4}
                           {...field}
+                          value={field.value ?? ""}
                         />
                       </FormControl>
                       <FormMessage />
@@ -208,9 +209,10 @@ export default function SettingsPage() {
                       <FormLabel>Mensaje WhatsApp (plan + informe)</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Hola {{nombre}}! Te adjunto tu plan..."
+                          placeholder="Hola [Paciente]! Te comparto tu plan: [LinkPlan]"
                           rows={4}
                           {...field}
+                          value={field.value ?? ""}
                         />
                       </FormControl>
                       <FormMessage />

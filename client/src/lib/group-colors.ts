@@ -3,68 +3,106 @@
  * Genera gradientes sutiles pero distintivos con transparencia
  */
 
-/**
- * Convierte un color hex a RGB
- */
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : null;
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
-/**
- * Genera un gradiente translúcido para una card de grupo
- * @param color - Color hex del grupo
- * @returns String CSS con el gradiente
- */
-export function getGroupGradient(color: string): string {
-  const rgb = hexToRgb(color);
-  if (!rgb) return "linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.02))";
-  
-  // Gradiente diagonal sutil con opacidades bajas (8% a 2%)
-  return `linear-gradient(135deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.12), rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.03))`;
+function hexToRgb(hex: string) {
+  let sanitized = hex.replace("#", "");
+  if (sanitized.length === 3) {
+    sanitized = sanitized.split("").map((char) => char + char).join("");
+  }
+  const intValue = parseInt(sanitized, 16);
+  const r = (intValue >> 16) & 255;
+  const g = (intValue >> 8) & 255;
+  const b = intValue & 255;
+  return { r, g, b };
 }
 
-/**
- * Genera un color de borde sutil basado en el color del grupo
- * @param color - Color hex del grupo
- * @returns String CSS con el color rgba
- */
-export function getGroupBorderColor(color: string): string {
-  const rgb = hexToRgb(color);
-  if (!rgb) return "rgba(59, 130, 246, 0.2)";
-  
-  // Borde con 20% de opacidad
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`;
+function rgbToHsl(r: number, g: number, b: number) {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
+    }
+
+    h /= 6;
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100),
+  };
 }
 
-/**
- * Genera un color de texto/badge basado en el color del grupo
- * @param color - Color hex del grupo
- * @returns String CSS con el color rgba para texto
- */
-export function getGroupAccentColor(color: string): string {
-  const rgb = hexToRgb(color);
-  if (!rgb) return "rgba(59, 130, 246, 0.8)";
-  
-  // Color más visible para badges y detalles (80% opacidad)
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.85)`;
+function parseHexColor(hex: string) {
+  const { r, g, b } = hexToRgb(hex);
+  return rgbToHsl(r, g, b);
 }
 
-/**
- * Genera un fondo sutil para badges basado en el color del grupo
- * @param color - Color hex del grupo
- * @returns String CSS con el color rgba
- */
-export function getGroupBadgeBg(color: string): string {
-  const rgb = hexToRgb(color);
-  if (!rgb) return "rgba(59, 130, 246, 0.15)";
-  
-  // Fondo sutil para badges (15% opacidad)
-  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15)`;
+function hslToHex(h: number, s: number, l: number) {
+  s /= 100;
+  l /= 100;
+
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const color = l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return Math.round(255 * color);
+  };
+
+  const r = f(0);
+  const g = f(8);
+  const b = f(4);
+
+  const toHex = (value: number) => value.toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+export function getGroupGradient(baseColor: string): string {
+  const { h, s, l } = parseHexColor(baseColor);
+  const gradientStart = { h, s: clamp(s + 8, 0, 100), l: clamp(l + 12, 0, 100) };
+  const gradientEnd = { h, s: clamp(s - 12, 0, 100), l: clamp(l - 8, 0, 100) };
+  return `linear-gradient(135deg, hsl(${gradientStart.h} ${gradientStart.s}% ${gradientStart.l}%), hsl(${gradientEnd.h} ${gradientEnd.s}% ${gradientEnd.l}%))`;
+}
+
+export function getGroupBorderColor(baseColor: string): string {
+  const { h, s, l } = parseHexColor(baseColor);
+  const border = { h, s: clamp(s - 6, 0, 100), l: clamp(l - 18, 0, 100) };
+  return `hsl(${border.h} ${border.s}% ${border.l}%)`;
+}
+
+export function getGroupBadgeBg(baseColor: string): string {
+  const { r, g, b } = hexToRgb(baseColor);
+  return `rgba(${r}, ${g}, ${b}, 0.12)`;
+}
+
+export function getGroupBadgeText(baseColor: string): string {
+  const { h, s, l } = parseHexColor(baseColor);
+  const text = { h, s: clamp(s + 4, 0, 100), l: clamp(l - 32, 0, 100) };
+  return `hsl(${text.h} ${text.s}% ${text.l}%)`;
+}
+
+export function getGroupAccentColor(baseColor: string): string {
+  return getGroupBadgeText(baseColor);
 }

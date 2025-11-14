@@ -73,6 +73,33 @@ export default function MealCatalogPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+
+  const resetImageState = () => {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setPendingImageFile(null);
+    setImagePreview(null);
+    setRemoveExistingImage(false);
+  };
+
+  const handleImageSelection = (file: File | null) => {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
+
+    if (file) {
+      setPendingImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setRemoveExistingImage(false);
+    } else {
+      setPendingImageFile(null);
+      setImagePreview(null);
+    }
+  };
 
   // Fetch meals with filters
   const { data: meals = [], isLoading: mealsLoading } = useQuery<Meal[]>({
@@ -116,7 +143,6 @@ export default function MealCatalogPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/meals"] });
-      setIsCreateDialogOpen(false);
       toast({
         title: "Comida creada",
         description: "La comida se ha agregado al catálogo exitosamente.",
@@ -304,10 +330,7 @@ export default function MealCatalogPage() {
     },
   });
 
-  const onSubmit = (data: MealFormValues) => {
-    // Transform form values to API format
-    // calories/prepTime/cookTime: string → integer
-    // protein/carbs/fats/fiber: string → string (decimals)
+  const onSubmit = async (data: MealFormValues) => {
     const apiData: any = {
       name: data.name,
       category: data.category,
@@ -329,19 +352,48 @@ export default function MealCatalogPage() {
       notes: data.notes || undefined,
     };
 
-    if (editingMeal) {
-      updateMealMutation.mutate({
-        id: editingMeal.id,
-        data: apiData,
-        version: editingMeal.version,
+    try {
+      if (editingMeal) {
+        const mealId = editingMeal.id;
+        const mealVersion = editingMeal.version;
+        await updateMealMutation.mutateAsync({ id: mealId, data: apiData, version: mealVersion });
+
+        if (removeExistingImage && editingMeal.imageUrl) {
+          await deleteImageMutation.mutateAsync(mealId);
+        }
+
+        if (pendingImageFile) {
+          await uploadImageMutation.mutateAsync({ id: mealId, file: pendingImageFile });
+        }
+
+        setEditingMeal(null);
+      } else {
+        const createdMeal = await createMealMutation.mutateAsync(apiData);
+        if (pendingImageFile && createdMeal?.id) {
+          await uploadImageMutation.mutateAsync({ id: createdMeal.id, file: pendingImageFile });
+        }
+        setIsCreateDialogOpen(false);
+      }
+
+      resetImageState();
+      form.reset();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.message || "No se pudo guardar la comida",
+        variant: "destructive",
       });
-    } else {
-      createMealMutation.mutate(apiData);
     }
   };
 
   const handleEdit = (meal: Meal) => {
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setEditingMeal(meal);
+    setPendingImageFile(null);
+    setRemoveExistingImage(false);
+    setImagePreview(meal.imageUrl ?? null);
     form.reset({
       name: meal.name,
       description: String(meal.description ?? ""),
@@ -427,11 +479,15 @@ export default function MealCatalogPage() {
             setIsCreateDialogOpen(false);
             setEditingMeal(null);
             form.reset();
+            resetImageState();
           }
         }}>
           <DialogTrigger asChild>
             <Button
-              onClick={() => setIsCreateDialogOpen(true)}
+              onClick={() => {
+                resetImageState();
+                setIsCreateDialogOpen(true);
+              }}
               data-testid="button-create-meal"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -507,6 +563,49 @@ export default function MealCatalogPage() {
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-2">
+                  <FormLabel>Imagen</FormLabel>
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start">
+                    <div className="flex items-center justify-center rounded-md border border-dashed border-primary/30 bg-primary/5 p-4 md:min-w-[180px] md:min-h-[120px]">
+                      {imagePreview ? (
+                        <img src={imagePreview} alt="Vista previa de la comida" className="max-h-40 rounded-md object-cover" />
+                      ) : (
+                        <span className="text-xs text-muted-foreground text-center">
+                          Sin imagen seleccionada
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 w-full">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) => handleImageSelection(event.target.files?.[0] ?? null)}
+                        data-testid="input-meal-image"
+                      />
+                      {(imagePreview || editingMeal?.imageUrl) && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="self-start"
+                          onClick={() => {
+                            handleImageSelection(null);
+                            if (editingMeal?.imageUrl) {
+                              setRemoveExistingImage(true);
+                            }
+                          }}
+                        >
+                          Quitar imagen
+                        </Button>
+                      )}
+                      {removeExistingImage && (
+                        <p className="text-xs text-destructive">
+                          La imagen actual se eliminará cuando guardes los cambios.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField

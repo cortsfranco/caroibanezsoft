@@ -36,6 +36,36 @@ import fs from "fs/promises";
 
 const router = Router();
 
+const MEASUREMENT_DECIMAL_FIELDS = [
+  "weight",
+  "height",
+  "seatedHeight",
+  "biacromial",
+  "thoraxTransverse",
+  "thoraxAnteroposterior",
+  "biiliocristideo",
+  "humeral",
+  "femoral",
+  "head",
+  "relaxedArm",
+  "flexedArm",
+  "forearm",
+  "thoraxCirc",
+  "waist",
+  "hip",
+  "thighSuperior",
+  "thighMedial",
+  "calf",
+  "triceps",
+  "biceps",
+  "subscapular",
+  "suprailiac",
+  "supraspinal",
+  "abdominal",
+  "thighSkinfold",
+  "calfSkinfold",
+];
+
 // Helper function for request validation
 function validate<T>(schema: z.ZodType<T, any, any>, data: unknown): T {
   return schema.parse(data);
@@ -284,6 +314,42 @@ router.delete("/api/groups/:id", async (req, res) => {
   }
 });
 
+router.get("/api/groups/:id/insights", async (req, res) => {
+  try {
+    const group = await storage.getPatientGroup(req.params.id);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    const groupMemberships = await storage.getGroupMemberships(req.params.id);
+    const patientIds = groupMemberships
+      .map((m) => m.patientId)
+      .filter((id): id is string => Boolean(id));
+
+    const patients = (
+      await Promise.all(patientIds.map((id) => storage.getPatient(id)))
+    ).filter(
+      (patient): patient is NonNullable<Awaited<ReturnType<typeof storage.getPatient>>> => Boolean(patient)
+    );
+
+    const measurementsByPatient: Record<string, Awaited<ReturnType<typeof storage.getMeasurementsWithPatient>>> = {};
+
+    for (const patient of patients) {
+      measurementsByPatient[patient.id] = await storage.getMeasurementsWithPatient(patient.id);
+    }
+
+    res.json({
+      group,
+      memberships: groupMemberships,
+      patients,
+      measurementsByPatient,
+    });
+  } catch (error) {
+    console.error("Error fetching group insights:", error);
+    res.status(500).json({ error: "Failed to fetch group insights" });
+  }
+});
+
 // ===== GROUP MEMBERSHIPS =====
 router.get("/api/memberships", async (req, res) => {
   try {
@@ -405,6 +471,7 @@ router.post("/api/measurements", async (req, res) => {
     const calculations = calculateAll({
       weight: measurement.weight,
       height: measurement.height,
+      seatedHeight: measurement.seatedHeight,
       triceps: measurement.triceps,
       biceps: measurement.biceps,
       subscapular: measurement.subscapular,
@@ -414,7 +481,21 @@ router.post("/api/measurements", async (req, res) => {
       thighSkinfold: measurement.thighSkinfold,
       calfSkinfold: measurement.calfSkinfold,
       waistCircumference: measurement.waist,
-      hipCircumference: measurement.hip
+      hipCircumference: measurement.hip,
+      head: measurement.head,
+      relaxedArm: measurement.relaxedArm,
+      flexedArm: measurement.flexedArm,
+      forearm: measurement.forearm,
+      thoraxCirc: measurement.thoraxCirc,
+      thighSuperior: measurement.thighSuperior,
+      thighMedial: measurement.thighMedial,
+      calf: measurement.calf,
+      biacromial: measurement.biacromial,
+      thoraxTransverse: measurement.thoraxTransverse,
+      thoraxAnteroposterior: measurement.thoraxAnteroposterior,
+      biiliocristideo: measurement.biiliocristideo,
+      humeral: measurement.humeral,
+      femoral: measurement.femoral,
     }, {
       age: patientAge,
       gender: patientGender,
@@ -450,7 +531,8 @@ router.post("/api/measurements", async (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation error", details: error.errors });
     }
-    res.status(500).json({ error: "Failed to create measurement" });
+    const message = error instanceof Error ? error.message : "Failed to create measurement";
+    res.status(500).json({ error: "Failed to create measurement", message });
   }
 });
 
@@ -499,6 +581,7 @@ router.patch("/api/measurements/:id", async (req, res) => {
     const calculations = calculateAll({
       weight: measurement.weight,
       height: measurement.height,
+      seatedHeight: measurement.seatedHeight,
       triceps: measurement.triceps,
       biceps: measurement.biceps,
       subscapular: measurement.subscapular,
@@ -508,7 +591,21 @@ router.patch("/api/measurements/:id", async (req, res) => {
       thighSkinfold: measurement.thighSkinfold,
       calfSkinfold: measurement.calfSkinfold,
       waistCircumference: measurement.waist,
-      hipCircumference: measurement.hip
+      hipCircumference: measurement.hip,
+      head: measurement.head,
+      relaxedArm: measurement.relaxedArm,
+      flexedArm: measurement.flexedArm,
+      forearm: measurement.forearm,
+      thoraxCirc: measurement.thoraxCirc,
+      thighSuperior: measurement.thighSuperior,
+      thighMedial: measurement.thighMedial,
+      calf: measurement.calf,
+      biacromial: measurement.biacromial,
+      thoraxTransverse: measurement.thoraxTransverse,
+      thoraxAnteroposterior: measurement.thoraxAnteroposterior,
+      biiliocristideo: measurement.biiliocristideo,
+      humeral: measurement.humeral,
+      femoral: measurement.femoral,
     }, {
       age: patientAge,
       gender: patientGender,
@@ -556,7 +653,8 @@ router.patch("/api/measurements/:id", async (req, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: "Validation error", details: error.errors });
     }
-    res.status(500).json({ error: "Failed to update measurement" });
+    const message = error instanceof Error ? error.message : "Failed to update measurement";
+    res.status(500).json({ error: "Failed to update measurement", message });
   }
 });
 
@@ -880,7 +978,7 @@ router.delete("/api/reports/:id", async (req, res) => {
 // Generate PDF Report
 router.post("/api/reports/generate", async (req, res) => {
   try {
-    const { patientId, measurementId } = req.body;
+    const { patientId, measurementId, summary, recommendations, notes } = req.body;
     
     if (!patientId || !measurementId) {
       return res.status(400).json({ error: "patientId and measurementId are required" });
@@ -899,12 +997,36 @@ router.post("/api/reports/generate", async (req, res) => {
     
     // Obtener cálculos si existen
     const calculations = await storage.getMeasurementCalculations(measurementId);
+
+    // Determinar número de medición y medición anterior
+    const patientMeasurements = await storage.getMeasurements(measurement.patientId);
+    const sortedMeasurements = [...patientMeasurements].sort((a, b) => {
+      const dateA = a.measurementDate ? new Date(a.measurementDate).getTime() : 0;
+      const dateB = b.measurementDate ? new Date(b.measurementDate).getTime() : 0;
+      if (dateA !== dateB) {
+        return dateA - dateB;
+      }
+      const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return createdA - createdB;
+    });
+
+    const measurementIndex = sortedMeasurements.findIndex((m) => m.id === measurement.id);
+    const measurementNumber = measurementIndex >= 0 ? measurementIndex + 1 : sortedMeasurements.length;
+    const previousMeasurement = measurementIndex > 0 ? sortedMeasurements[measurementIndex - 1] : null;
     
     // Generar PDF
     const pdfUrl = await generateMeasurementReport({
       patient,
       measurement,
-      calculations: calculations.length > 0 ? calculations : undefined
+      previousMeasurement,
+      measurementNumber,
+      calculations: calculations.length > 0 ? calculations : undefined,
+      annotations: {
+        summary,
+        recommendations,
+        notes,
+      },
     });
     
     // Crear registro de report
@@ -922,7 +1044,7 @@ router.post("/api/reports/generate", async (req, res) => {
     res.status(201).json(report);
   } catch (error) {
     console.error("Error generating report PDF:", error);
-    res.status(500).json({ error: "Failed to generate report" });
+    res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
 

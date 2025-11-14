@@ -27,6 +27,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Patient, DietAssignment, Measurement, Report } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { getObjectiveBadgeClasses, getObjectiveLabel } from "@/lib/objectives";
 
 type ConsultationSummary = {
   consultation: {
@@ -70,6 +71,8 @@ export default function PatientProfile() {
   const [consultationActivity, setConsultationActivity] = useState("");
   const [consultationDietary, setConsultationDietary] = useState("");
   const [consultationSupplements, setConsultationSupplements] = useState("");
+  const [focusedMeasurementId, setFocusedMeasurementId] = useState<string | null>(null);
+
   const { toast } = useToast();
   
   // Sync URL when tab changes
@@ -99,6 +102,16 @@ export default function PatientProfile() {
     queryFn: async () => {
       const response = await fetch(`/api/diet-assignments?patientId=${patientId}`);
       if (!response.ok) throw new Error("Failed to fetch diet assignments");
+      return response.json();
+    },
+    enabled: !!patientId,
+  });
+
+  const { data: reports = [], isLoading: isLoadingReports } = useQuery<Report[]>({
+    queryKey: ["/api/reports", { patientId }],
+    queryFn: async () => {
+      const response = await fetch(`/api/reports?patientId=${patientId}`);
+      if (!response.ok) throw new Error("Failed to fetch reports");
       return response.json();
     },
     enabled: !!patientId,
@@ -206,11 +219,6 @@ export default function PatientProfile() {
     ? new Date().getFullYear() - new Date(patient.birthDate).getFullYear()
     : null;
 
-  const capitalizeObjective = (objective: string | null): string => {
-    if (!objective) return "-";
-    return objective.charAt(0).toUpperCase() + objective.slice(1);
-  };
-
   const sectionCardClass = (index: number) =>
     cn(
       "shadow-md border border-slate-200/70 dark:border-white/10 transition-colors duration-200",
@@ -238,11 +246,19 @@ export default function PatientProfile() {
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-3xl font-bold text-primary">{patient.name}</h1>
-                  {patient.objective && (
-                    <Badge className="text-sm px-3 py-1 bg-gradient-to-r from-primary/80 to-primary text-white">
-                      {capitalizeObjective(patient.objective)}
-                    </Badge>
-                  )}
+                  {(() => {
+                    const objectiveLabel = getObjectiveLabel(patient.objective);
+                    const objectiveClass = getObjectiveBadgeClasses(patient.objective);
+                    if (!objectiveLabel) return <span>-</span>;
+                    return (
+                      <Badge
+                        variant="outline"
+                        className={`px-2 py-1 text-xs font-semibold ${objectiveClass ?? "bg-slate-100 border-slate-200 text-slate-700"}`}
+                      >
+                        {objectiveLabel}
+                      </Badge>
+                    );
+                  })()}
                 </div>
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                   {age && (
@@ -401,9 +417,13 @@ export default function PatientProfile() {
                   <Target className="h-5 w-5 text-primary mt-1" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-muted-foreground mb-1">Objetivo</p>
-                    <Badge variant="default" className="text-base font-semibold">
-                      {capitalizeObjective(patient.objective)}
-                    </Badge>
+                    {patient.objective ? (
+                      <Badge variant="outline" className={`text-sm font-semibold ${getObjectiveBadgeClasses(patient.objective)}`}>
+                        {getObjectiveLabel(patient.objective)}
+                      </Badge>
+                    ) : (
+                      <span className="text-lg font-semibold text-muted-foreground">-</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -591,23 +611,94 @@ export default function PatientProfile() {
                 Evolución antropométrica y cálculos ISAK 2
               </p>
             </div>
-            <Button onClick={() => setLocation("/mediciones")} data-testid="button-new-measurement-from-profile">
+            <Button onClick={() => setLocation(`/mediciones?mode=create&patientId=${patientId}`)} data-testid="button-new-measurement-from-profile">
               <Plus className="h-4 w-4 mr-2" />
               Nueva Medición
             </Button>
           </div>
-          <MeasurementsHistory patientId={patientId!} />
+          <MeasurementsHistory
+            patientId={patientId!}
+            reports={reports}
+            initialMeasurementId={focusedMeasurementId}
+          />
         </TabsContent>
 
         <TabsContent value="informes" className="space-y-4">
           <Card className="shadow-md">
             <CardHeader>
-              <CardTitle>Informes Generados</CardTitle>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Informes generados</CardTitle>
+                  <CardDescription>Historial completo de PDFs producidos para este paciente.</CardDescription>
+                </div>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {reports.length} informe{reports.length === 1 ? "" : "s"}
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground text-center py-8">
-                No hay informes generados para este paciente
-              </p>
+              {isLoadingReports ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : reports.length > 0 ? (
+                <div className="space-y-3">
+                  {reports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="flex flex-col gap-3 rounded-lg border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary">Informe #{report.id.slice(0, 8)}</Badge>
+                          <span className="text-sm text-muted-foreground">
+                            Generado el {new Date(report.createdAt).toLocaleString("es-AR")}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Asociado a la medición {report.measurementId.slice(0, 8)} · Estado{" "}
+                          <Badge variant="outline" className="ml-1 uppercase">
+                            {report.status ?? "pendiente"}
+                          </Badge>
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActiveTab("mediciones");
+                            setFocusedMeasurementId(report.measurementId);
+                          }}
+                        >
+                          Revisar medición
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            if (report.pdfUrl) {
+                              window.open(report.pdfUrl, "_blank");
+                            } else {
+                              toast({
+                                title: "PDF no disponible",
+                                description: "Generá nuevamente el informe para obtener el archivo.",
+                              });
+                            }
+                          }}
+                        >
+                          Ver PDF
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="py-10 text-center text-sm text-muted-foreground">
+                  Todavía no generaste informes para este paciente.
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -617,7 +708,7 @@ export default function PatientProfile() {
             <div>
               <h2 className="text-xl font-semibold">Historial de Consultas</h2>
               <p className="text-sm text-muted-foreground">
-                Cada consulta agrupa anamnesis, mediciones, planes e informes.
+                Cada visita coincide con la medición registrada ese día. Revisá la fecha y las notas asociadas.
               </p>
             </div>
             <Button onClick={() => setIsConsultationDialogOpen(true)}>
@@ -632,88 +723,73 @@ export default function PatientProfile() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {sortedConsultations.map((entry) => {
-                const { consultation, measurements, dietAssignments: diets, reports } = entry;
-                const date = new Date(consultation.consultationDate).toLocaleDateString();
+            <Card className="shadow-md">
+              <CardHeader>
+                <CardTitle>Consultas registradas</CardTitle>
+                <CardDescription>
+                  Fechas de cita, medición asociada y notas ingresadas por Carolina.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-x-auto rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[160px]">Fecha y hora</TableHead>
+                      <TableHead className="min-w-[220px]">Medición asociada</TableHead>
+                      <TableHead>Notas</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedConsultations.map((entry) => {
+                      const { consultation, measurements } = entry;
+                      const date = new Date(consultation.consultationDate);
+                      const measurement = measurements?.[0];
+                      const weight = measurement?.weight ? Number(measurement.weight) : null;
+                      const bodyFat = measurement?.calculations?.bodyFatPercentage
+                        ? Number(measurement.calculations.bodyFatPercentage)
+                        : null;
 
-                return (
-                  <Card key={consultation.id} className="shadow-md">
-                    <CardHeader className="flex flex-row items-start justify-between gap-4">
-                      <div>
-                        <CardTitle>Consulta del {date}</CardTitle>
-                        <CardDescription>
-                          {consultation.notes ? consultation.notes.slice(0, 160) : "Sin notas registradas"}
-                        </CardDescription>
-                      </div>
-                      <div className="flex gap-2 text-sm text-muted-foreground">
-                        <span>{measurements.length} mediciones</span>
-                        <span>• {diets.length} dietas</span>
-                        <span>• {reports.length} informes</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="grid gap-4 text-sm">
-                      {consultation.anamnesis && (
-                        <div>
-                          <p className="text-muted-foreground">Anamnesis</p>
-                          <pre className="rounded bg-muted/40 p-3 mt-1 whitespace-pre-wrap font-mono text-xs">
-                            {JSON.stringify(consultation.anamnesis, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                      {consultation.activity && (
-                        <div>
-                          <p className="text-muted-foreground">Actividad</p>
-                          <pre className="rounded bg-muted/40 p-3 mt-1 whitespace-pre-wrap font-mono text-xs">
-                            {JSON.stringify(consultation.activity, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                      {consultation.dietaryPreferences && (
-                        <div>
-                          <p className="text-muted-foreground">Preferencias dietarias</p>
-                          <pre className="rounded bg-muted/40 p-3 mt-1 whitespace-pre-wrap font-mono text-xs">
-                            {JSON.stringify(consultation.dietaryPreferences, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                      {consultation.supplements && (
-                        <div>
-                          <p className="text-muted-foreground">Suplementación</p>
-                          <pre className="rounded bg-muted/40 p-3 mt-1 whitespace-pre-wrap font-mono text-xs">
-                            {JSON.stringify(consultation.supplements, null, 2)}
-                          </pre>
-                        </div>
-                      )}
-                      {diets.length > 0 && (
-                        <div>
-                          <p className="text-muted-foreground">Dietas asociadas</p>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {diets.map((diet) => (
-                              <Badge key={diet.id} variant={diet.isActive ? "default" : "secondary"}>
-                                Plan #{diet.dietId.slice(0, 8)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {reports.length > 0 && (
-                        <div>
-                          <p className="text-muted-foreground">Informes generados</p>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {reports.map((report) => (
-                              <Badge key={report.id} variant="outline">
-                                Informe #{report.id.slice(0, 8)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                      return (
+                        <TableRow key={consultation.id} className="align-top">
+                          <TableCell className="whitespace-nowrap font-medium">
+                            {date.toLocaleDateString("es-AR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })}
+                            <div className="text-xs text-muted-foreground">
+                              {date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {measurement ? (
+                              <div className="space-y-1 text-sm">
+                                <p className="font-medium">
+                                  Peso: {weight !== null ? `${weight.toFixed(1)} kg` : "Sin dato"}
+                                </p>
+                                <p className="text-muted-foreground text-xs">
+                                  % grasa: {bodyFat !== null ? `${bodyFat.toFixed(1)}%` : "Sin dato"} · medición{" "}
+                                  #{measurement.id.slice(0, 8)}
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Sin medición asociada</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {consultation.notes ? (
+                              <p className="whitespace-pre-wrap leading-relaxed">{consultation.notes}</p>
+                            ) : (
+                              <span className="text-muted-foreground">Sin notas registradas</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>

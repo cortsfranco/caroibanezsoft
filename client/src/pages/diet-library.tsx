@@ -240,9 +240,9 @@ export default function DietLibrary() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="pérdida">Pérdida de Peso</SelectItem>
-                            <SelectItem value="ganancia">Ganancia Muscular</SelectItem>
-                            <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                            <SelectItem value="loss">Pérdida de Peso</SelectItem>
+                            <SelectItem value="gain">Ganancia Muscular</SelectItem>
+                            <SelectItem value="maintain">Mantenimiento</SelectItem>
                             <SelectItem value="rendimiento">Rendimiento Deportivo</SelectItem>
                           </SelectContent>
                         </Select>
