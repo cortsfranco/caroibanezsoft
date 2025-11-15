@@ -146,48 +146,85 @@ export function MeasurementReportDialog({
 
               <div className="space-y-4">
                 <Card className="border-primary/30 bg-primary/5">
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm text-primary">
                       <FileText className="h-4 w-4" />
-                      Datos clave de la medición
+                      Vista previa de datos del informe
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
-                      <span className="text-muted-foreground">Paciente</span>
-                      <span className="font-medium">
-                        {measurement.patient?.name ?? "Sin nombre"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
-                      <span className="text-muted-foreground">Fecha</span>
-                      <span className="font-medium">
-                        {format(new Date(measurement.measurementDate), "dd/MM/yyyy HH:mm")} hs
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
-                      <span className="text-muted-foreground">Peso</span>
-                      <span className="font-medium">{formatValue(measurement.weight, "kg")}</span>
-                    </div>
-                    <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2">
-                      <span className="text-muted-foreground">Σ Pliegues (6)</span>
-                      <span className="font-medium">{calculateSumOf6(measurement)}</span>
-                    </div>
-                    <Separator />
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase text-muted-foreground">Informes previos</p>
-                      {existingReportsForMeasurement.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">Todavía no generaste un informe para esta medición.</p>
-                      ) : (
-                        <div className="space-y-1">
-                          {existingReportsForMeasurement.map((report) => (
-                            <Badge key={report.id} variant="outline" className="justify-start">
-                              Informe #{report.id.slice(0, 8)} • {format(new Date(report.createdAt), "dd/MM HH:mm")}
-                            </Badge>
-                          ))}
+                  <CardContent>
+                    <ScrollArea className="h-[320px]">
+                      <div className="space-y-3 pr-4 text-xs">
+                        <div className="space-y-1.5">
+                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Datos básicos</p>
+                          <MeasurementRow label="Paciente" value={measurement.patient?.name ?? "Sin nombre"} />
+                          <MeasurementRow label="Fecha" value={format(new Date(measurement.measurementDate), "dd/MM/yyyy HH:mm")} />
+                          <MeasurementRow label="Peso (kg)" value={formatValue(measurement.weight)} />
+                          <MeasurementRow label="Talla (cm)" value={formatValue(measurement.height)} />
+                          <MeasurementRow label="Talla sentado (cm)" value={formatValue(measurement.seatedHeight)} />
                         </div>
-                      )}
-                    </div>
+
+                        <Separator />
+
+                        <div className="space-y-1.5">
+                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Diámetros (cm)</p>
+                          <MeasurementRow label="Biacromial" value={formatValue(measurement.biacromial)} />
+                          <MeasurementRow label="Tórax Transverso" value={formatValue(measurement.thoraxTransverse)} />
+                          <MeasurementRow label="Tórax Anteroposterior" value={formatValue(measurement.thoraxAnteroposterior)} />
+                          <MeasurementRow label="Bi-iliocrestídeo" value={formatValue(measurement.biiliocristideo)} />
+                          <MeasurementRow label="Humeral" value={formatValue(measurement.humeral)} />
+                          <MeasurementRow label="Femoral" value={formatValue(measurement.femoral)} />
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-1.5">
+                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Perímetros (cm)</p>
+                          <MeasurementRow label="Cabeza" value={formatValue(measurement.head)} />
+                          <MeasurementRow label="Brazo Relajado" value={formatValue(measurement.relaxedArm)} />
+                          <MeasurementRow label="Brazo Flexionado" value={formatValue(measurement.flexedArm)} />
+                          <MeasurementRow label="Antebrazo" value={formatValue(measurement.forearm)} />
+                          <MeasurementRow label="Tórax Mesoesternal" value={formatValue(measurement.thoraxCirc)} />
+                          <MeasurementRow label="Cintura" value={formatValue(measurement.waist)} />
+                          <MeasurementRow label="Caderas" value={formatValue(measurement.hip)} />
+                          <MeasurementRow label="Muslo Superior" value={formatValue(measurement.thighSuperior)} />
+                          <MeasurementRow label="Muslo Medial" value={formatValue(measurement.thighMedial)} />
+                          <MeasurementRow label="Pantorrilla" value={formatValue(measurement.calf)} />
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-1.5">
+                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Pliegues cutáneos (mm)</p>
+                          <MeasurementRow label="Tríceps" value={formatValue(measurement.triceps)} />
+                          <MeasurementRow label="Subescapular" value={formatValue(measurement.subscapular)} />
+                          <MeasurementRow label="Supraespinal" value={formatValue(measurement.supraspinal)} />
+                          <MeasurementRow label="Abdominal" value={formatValue(measurement.abdominal)} />
+                          <MeasurementRow label="Muslo Medial" value={formatValue(measurement.thighSkinfold)} />
+                          <MeasurementRow label="Pantorrilla" value={formatValue(measurement.calfSkinfold)} />
+                          <div className="mt-2 rounded-md bg-background/50 px-2 py-1.5 font-medium">
+                            <MeasurementRow label="Σ de 6 pliegues" value={calculateSumOf6(measurement)} />
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-2">
+                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Informes previos</p>
+                          {existingReportsForMeasurement.length === 0 ? (
+                            <p className="text-muted-foreground">Todavía no generaste un informe para esta medición.</p>
+                          ) : (
+                            <div className="space-y-1">
+                              {existingReportsForMeasurement.map((report) => (
+                                <Badge key={report.id} variant="outline" className="justify-start text-xs">
+                                  Informe #{report.id.slice(0, 8)} • {format(new Date(report.createdAt), "dd/MM HH:mm")}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </ScrollArea>
                   </CardContent>
                 </Card>
               </div>
@@ -247,5 +284,14 @@ function calculateSumOf6(measurement: Measurement) {
   }, 0);
 
   return sum > 0 ? `${sum.toFixed(1)} mm` : "-";
+}
+
+function MeasurementRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded border bg-background/70 px-2 py-1">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
 }
 

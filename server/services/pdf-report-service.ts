@@ -118,7 +118,7 @@ function resolveBodyComposition(
     residualMassKg: bc.residualMassKg,
     residualMassPercent: bc.residualMassPercent,
     sumOf6Skinfolds: bc.sumOf6Skinfolds,
-    muscleToBoneRatio: bc.muscleToBoneratio,
+    muscleToBoneRatio: bc.muscleToBoneRatio,
     adiposeToMuscleRatio: bc.adiposeToMuscleRatio,
     structuredWeight: bc.structuredWeight,
     weightDifference: bc.weightDifference,

@@ -343,7 +343,7 @@ muscular ideales para los patrones genéticos predeterminados.`;
   pdf.text(`Suma de 6 pliegues cutáneos: ${bc.sumOf6Skinfolds.toFixed(2)}`, 25, yPosition);
   pdf.text('42', pageWidth - 60, yPosition);
   yPosition += 5;
-  pdf.text(`Índice músculo / óseo: ${bc.muscleToBoneratio.toFixed(3)}`, 25, yPosition);
+  pdf.text(`Índice músculo / óseo: ${bc.muscleToBoneRatio.toFixed(3)}`, 25, yPosition);
   pdf.text('4', pageWidth - 60, yPosition);
   yPosition += 5;
   pdf.text(`Índice adiposo / muscular: ${bc.adiposeToMuscleRatio.toFixed(3)}`, 25, yPosition);
