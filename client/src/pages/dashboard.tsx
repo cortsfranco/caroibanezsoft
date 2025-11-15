@@ -58,8 +58,8 @@ const PRIMARY_LINE = "#7dd3fc";
 const SECONDARY_LINE = "#38bdf8";
 const PIE_COLORS = getAllVividColors();
 
-const delayStyle = (step: number): CSSProperties => ({
-  ["--caro-anim-delay" as const]: `${step.toFixed(2)}s`,
+const delayStyle = (step: number): React.CSSProperties => ({
+  ["--caro-anim-delay" as any]: `${step.toFixed(2)}s`,
 });
 
 export default function Dashboard() {
