@@ -106,127 +106,119 @@ export function MeasurementReportDialog({
 
         {measurement ? (
           <>
-            <div className="grid gap-6 lg:grid-cols-[1.25fr,0.75fr]">
-              <div className="space-y-4">
-                <ScrollArea className="h-[320px] rounded-md border">
-                  <div className="space-y-4 p-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="summary">Resumen principal</Label>
-                      <Textarea
-                        id="summary"
-                        value={summary}
-                        onChange={(event) => setSummary(event.target.value)}
-                        className="min-h-[120px]"
-                        placeholder="Describe el contexto general de la medición y los hallazgos más relevantes."
-                      />
+            <div className="grid gap-6 lg:grid-cols-[1fr,1fr]">
+              <ScrollArea className="h-[450px] rounded-md border p-4">
+                <div className="space-y-4 pr-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="summary">Resumen principal</Label>
+                    <Textarea
+                      id="summary"
+                      value={summary}
+                      onChange={(event) => setSummary(event.target.value)}
+                      className="min-h-[100px]"
+                      placeholder="Describe el contexto general de la medición y los hallazgos más relevantes."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="recommendations">Recomendaciones</Label>
+                    <Textarea
+                      id="recommendations"
+                      value={recommendations}
+                      onChange={(event) => setRecommendations(event.target.value)}
+                      className="min-h-[100px]"
+                      placeholder="Detalla los próximos pasos para plan nutricional, entrenamiento y seguimiento."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notas adicionales</Label>
+                    <Textarea
+                      id="notes"
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                      className="min-h-[100px]"
+                      placeholder="Agrega precisiones complementarias que quieras conservar en el informe."
+                    />
+                  </div>
+                </div>
+              </ScrollArea>
+
+              <div className="border-primary/30 bg-primary/5 rounded-lg border">
+                <div className="flex items-center gap-2 p-4 border-b border-primary/20">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-semibold text-primary">Vista previa de datos del informe</h3>
+                </div>
+                <ScrollArea className="h-[406px]">
+                  <div className="space-y-3 p-4 text-xs">
+                    <div className="space-y-1.5">
+                      <p className="font-semibold uppercase tracking-wider text-muted-foreground">Datos básicos</p>
+                      <MeasurementRow label="Paciente" value={measurement.patient?.name ?? "Sin nombre"} />
+                      <MeasurementRow label="Fecha" value={format(new Date(measurement.measurementDate), "dd/MM/yyyy HH:mm")} />
+                      <MeasurementRow label="Peso (kg)" value={formatValue(measurement.weight)} />
+                      <MeasurementRow label="Talla (cm)" value={formatValue(measurement.height)} />
+                      <MeasurementRow label="Talla sentado (cm)" value={formatValue(measurement.seatedHeight)} />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="recommendations">Recomendaciones</Label>
-                      <Textarea
-                        id="recommendations"
-                        value={recommendations}
-                        onChange={(event) => setRecommendations(event.target.value)}
-                        className="min-h-[120px]"
-                        placeholder="Detalla los próximos pasos para plan nutricional, entrenamiento y seguimiento."
-                      />
+
+                    <Separator />
+
+                    <div className="space-y-1.5">
+                      <p className="font-semibold uppercase tracking-wider text-muted-foreground">Diámetros (cm)</p>
+                      <MeasurementRow label="Biacromial" value={formatValue(measurement.biacromial)} />
+                      <MeasurementRow label="Tórax Transverso" value={formatValue(measurement.thoraxTransverse)} />
+                      <MeasurementRow label="Tórax Anteroposterior" value={formatValue(measurement.thoraxAnteroposterior)} />
+                      <MeasurementRow label="Bi-iliocrestídeo" value={formatValue(measurement.biiliocristideo)} />
+                      <MeasurementRow label="Humeral" value={formatValue(measurement.humeral)} />
+                      <MeasurementRow label="Femoral" value={formatValue(measurement.femoral)} />
                     </div>
+
+                    <Separator />
+
+                    <div className="space-y-1.5">
+                      <p className="font-semibold uppercase tracking-wider text-muted-foreground">Perímetros (cm)</p>
+                      <MeasurementRow label="Cabeza" value={formatValue(measurement.head)} />
+                      <MeasurementRow label="Brazo Relajado" value={formatValue(measurement.relaxedArm)} />
+                      <MeasurementRow label="Brazo Flexionado" value={formatValue(measurement.flexedArm)} />
+                      <MeasurementRow label="Antebrazo" value={formatValue(measurement.forearm)} />
+                      <MeasurementRow label="Tórax Mesoesternal" value={formatValue(measurement.thoraxCirc)} />
+                      <MeasurementRow label="Cintura" value={formatValue(measurement.waist)} />
+                      <MeasurementRow label="Caderas" value={formatValue(measurement.hip)} />
+                      <MeasurementRow label="Muslo Superior" value={formatValue(measurement.thighSuperior)} />
+                      <MeasurementRow label="Muslo Medial" value={formatValue(measurement.thighMedial)} />
+                      <MeasurementRow label="Pantorrilla" value={formatValue(measurement.calf)} />
+                    </div>
+
+                    <Separator />
+
+                    <div className="space-y-1.5">
+                      <p className="font-semibold uppercase tracking-wider text-muted-foreground">Pliegues cutáneos (mm)</p>
+                      <MeasurementRow label="Tríceps" value={formatValue(measurement.triceps)} />
+                      <MeasurementRow label="Subescapular" value={formatValue(measurement.subscapular)} />
+                      <MeasurementRow label="Supraespinal" value={formatValue(measurement.supraspinal)} />
+                      <MeasurementRow label="Abdominal" value={formatValue(measurement.abdominal)} />
+                      <MeasurementRow label="Muslo Medial" value={formatValue(measurement.thighSkinfold)} />
+                      <MeasurementRow label="Pantorrilla" value={formatValue(measurement.calfSkinfold)} />
+                      <div className="mt-2 rounded-md bg-background/50 px-2 py-1.5 font-medium">
+                        <MeasurementRow label="Σ de 6 pliegues" value={calculateSumOf6(measurement)} />
+                      </div>
+                    </div>
+
+                    <Separator />
+
                     <div className="space-y-2">
-                      <Label htmlFor="notes">Notas adicionales</Label>
-                      <Textarea
-                        id="notes"
-                        value={notes}
-                        onChange={(event) => setNotes(event.target.value)}
-                        className="min-h-[120px]"
-                        placeholder="Agrega precisiones complementarias que quieras conservar en el informe."
-                      />
+                      <p className="font-semibold uppercase tracking-wider text-muted-foreground">Informes previos</p>
+                      {existingReportsForMeasurement.length === 0 ? (
+                        <p className="text-muted-foreground">Todavía no generaste un informe para esta medición.</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {existingReportsForMeasurement.map((report) => (
+                            <Badge key={report.id} variant="outline" className="justify-start text-xs">
+                              Informe #{report.id.slice(0, 8)} • {format(new Date(report.createdAt), "dd/MM HH:mm")}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </ScrollArea>
-              </div>
-
-              <div className="space-y-4">
-                <Card className="border-primary/30 bg-primary/5">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-sm text-primary">
-                      <FileText className="h-4 w-4" />
-                      Vista previa de datos del informe
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[320px]">
-                      <div className="space-y-3 pr-4 text-xs">
-                        <div className="space-y-1.5">
-                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Datos básicos</p>
-                          <MeasurementRow label="Paciente" value={measurement.patient?.name ?? "Sin nombre"} />
-                          <MeasurementRow label="Fecha" value={format(new Date(measurement.measurementDate), "dd/MM/yyyy HH:mm")} />
-                          <MeasurementRow label="Peso (kg)" value={formatValue(measurement.weight)} />
-                          <MeasurementRow label="Talla (cm)" value={formatValue(measurement.height)} />
-                          <MeasurementRow label="Talla sentado (cm)" value={formatValue(measurement.seatedHeight)} />
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-1.5">
-                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Diámetros (cm)</p>
-                          <MeasurementRow label="Biacromial" value={formatValue(measurement.biacromial)} />
-                          <MeasurementRow label="Tórax Transverso" value={formatValue(measurement.thoraxTransverse)} />
-                          <MeasurementRow label="Tórax Anteroposterior" value={formatValue(measurement.thoraxAnteroposterior)} />
-                          <MeasurementRow label="Bi-iliocrestídeo" value={formatValue(measurement.biiliocristideo)} />
-                          <MeasurementRow label="Humeral" value={formatValue(measurement.humeral)} />
-                          <MeasurementRow label="Femoral" value={formatValue(measurement.femoral)} />
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-1.5">
-                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Perímetros (cm)</p>
-                          <MeasurementRow label="Cabeza" value={formatValue(measurement.head)} />
-                          <MeasurementRow label="Brazo Relajado" value={formatValue(measurement.relaxedArm)} />
-                          <MeasurementRow label="Brazo Flexionado" value={formatValue(measurement.flexedArm)} />
-                          <MeasurementRow label="Antebrazo" value={formatValue(measurement.forearm)} />
-                          <MeasurementRow label="Tórax Mesoesternal" value={formatValue(measurement.thoraxCirc)} />
-                          <MeasurementRow label="Cintura" value={formatValue(measurement.waist)} />
-                          <MeasurementRow label="Caderas" value={formatValue(measurement.hip)} />
-                          <MeasurementRow label="Muslo Superior" value={formatValue(measurement.thighSuperior)} />
-                          <MeasurementRow label="Muslo Medial" value={formatValue(measurement.thighMedial)} />
-                          <MeasurementRow label="Pantorrilla" value={formatValue(measurement.calf)} />
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-1.5">
-                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Pliegues cutáneos (mm)</p>
-                          <MeasurementRow label="Tríceps" value={formatValue(measurement.triceps)} />
-                          <MeasurementRow label="Subescapular" value={formatValue(measurement.subscapular)} />
-                          <MeasurementRow label="Supraespinal" value={formatValue(measurement.supraspinal)} />
-                          <MeasurementRow label="Abdominal" value={formatValue(measurement.abdominal)} />
-                          <MeasurementRow label="Muslo Medial" value={formatValue(measurement.thighSkinfold)} />
-                          <MeasurementRow label="Pantorrilla" value={formatValue(measurement.calfSkinfold)} />
-                          <div className="mt-2 rounded-md bg-background/50 px-2 py-1.5 font-medium">
-                            <MeasurementRow label="Σ de 6 pliegues" value={calculateSumOf6(measurement)} />
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        <div className="space-y-2">
-                          <p className="font-semibold uppercase tracking-wider text-muted-foreground">Informes previos</p>
-                          {existingReportsForMeasurement.length === 0 ? (
-                            <p className="text-muted-foreground">Todavía no generaste un informe para esta medición.</p>
-                          ) : (
-                            <div className="space-y-1">
-                              {existingReportsForMeasurement.map((report) => (
-                                <Badge key={report.id} variant="outline" className="justify-start text-xs">
-                                  Informe #{report.id.slice(0, 8)} • {format(new Date(report.createdAt), "dd/MM HH:mm")}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
               </div>
             </div>
           </>

@@ -41,6 +41,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { MeasurementEditDialog } from "@/components/measurement-edit-dialog";
 import { MeasurementReportDialog } from "@/components/measurement-report-dialog";
+import { MeasurementReportsListDialog } from "@/components/measurement-reports-list-dialog";
 import { TimeRangeSelector } from "@/components/time-range-selector";
 import {
   getDefaultTimeRange,
@@ -85,6 +86,8 @@ export function MeasurementsHistory({ patientId, reports: reportsProp, initialMe
   const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportsListDialogOpen, setReportsListDialogOpen] = useState(false);
+  const [reportsListMeasurement, setReportsListMeasurement] = useState<MeasurementWithRelations | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [measurementToDelete, setMeasurementToDelete] = useState<MeasurementWithRelations | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRangeValue>(() => getDefaultTimeRange());
@@ -424,9 +427,29 @@ export function MeasurementsHistory({ patientId, reports: reportsProp, initialMe
                         {sumSkinfolds > 0 ? sumSkinfolds.toFixed(1) : "-"}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge variant={measurementReports.length > 0 ? "default" : "outline"} className="font-mono text-xs">
-                          {measurementReports.length}
-                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setReportsListMeasurement(measurement);
+                            setReportsListDialogOpen(true);
+                          }}
+                          data-testid={`button-view-reports-${measurement.id}`}
+                          disabled={measurementReports.length === 0}
+                        >
+                          <Badge 
+                            variant={measurementReports.length > 0 ? "default" : "outline"} 
+                            className={cn(
+                              "font-mono text-xs",
+                              measurementReports.length > 0 && "hover-elevate cursor-pointer"
+                            )}
+                          >
+                            {measurementReports.length}
+                          </Badge>
+                        </Button>
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
@@ -649,6 +672,13 @@ export function MeasurementsHistory({ patientId, reports: reportsProp, initialMe
         onGenerated={() => {
           queryClient.invalidateQueries({ queryKey: ["/api/reports", { patientId }] });
         }}
+      />
+
+      <MeasurementReportsListDialog
+        open={reportsListDialogOpen}
+        onOpenChange={setReportsListDialogOpen}
+        reports={reportsByMeasurement[reportsListMeasurement?.id ?? ""] ?? []}
+        measurement={reportsListMeasurement}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
