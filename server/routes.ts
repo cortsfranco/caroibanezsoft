@@ -1107,13 +1107,37 @@ router.post("/api/biochemical-results", async (req, res) => {
 
 router.patch("/api/biochemical-results/:id", async (req, res) => {
   try {
-    // Validate version is provided for optimistic locking
-    if (typeof req.body.version !== 'number') {
+    // Extract and validate version for optimistic locking
+    const version = req.body.version;
+    if (typeof version !== 'number') {
       return res.status(400).json({ error: "version field is required for updates" });
     }
     
-    // Validate data with update schema (all fields optional, preserves date transforms)
-    const { version, ...payload } = req.body;
+    // Whitelist of updatable fields (exclude id, patientId, consultationId, version, createdAt, updatedAt)
+    const updatableFields = [
+      'testDate', 'glucose', 'hba1c', 'insulin',
+      'totalCholesterol', 'hdlCholesterol', 'ldlCholesterol', 'triglycerides',
+      'ast', 'alt', 'creatinine', 'bun', 'hemoglobin', 'hematocrit',
+      'tsh', 't3', 't4', 'vitaminD', 'vitaminB12', 'iron', 'ferritin',
+      'notes', 'attachmentUrl'
+    ];
+    
+    // Filter payload to only include updatable fields
+    const payload: Record<string, any> = {};
+    for (const field of updatableFields) {
+      if (field in req.body) {
+        payload[field] = req.body[field];
+      }
+    }
+    
+    // Guard against empty payloads (no updatable fields provided)
+    if (Object.keys(payload).length === 0) {
+      return res.status(400).json({ 
+        error: "At least one updatable field must be provided. Immutable fields like patientId, consultationId cannot be modified." 
+      });
+    }
+    
+    // Validate data with update schema (preserves date transforms)
     const data = validate(updateBiochemicalResultSchema, payload);
     
     const result = await storage.updateBiochemicalResult(
