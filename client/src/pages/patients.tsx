@@ -89,7 +89,7 @@ export default function Patients() {
     foodDislikes: "",
     medicalConditions: "",
     medications: "",
-    groupId: undefined as string | undefined,
+    groupId: "",
   });
 
   // Fetch patients from API
@@ -233,7 +233,7 @@ export default function Patients() {
       const patient: Patient = await response.json();
       
       // Si se seleccionó un grupo, crear la membresía
-      if (groupId) {
+      if (groupId && groupId !== "") {
         await apiRequest("POST", "/api/memberships", {
           patientId: patient.id,
           groupId,
@@ -264,7 +264,7 @@ export default function Patients() {
         foodDislikes: "",
         medicalConditions: "",
         medications: "",
-        groupId: undefined,
+        groupId: "",
       });
       toast({
         title: "Paciente creado",
@@ -409,14 +409,14 @@ export default function Patients() {
               <div className="col-span-2 space-y-3">
                 <Label htmlFor="group">Grupo</Label>
                 <Select
-                  value={newPatient.groupId || "none"}
-                  onValueChange={(value) => setNewPatient({ ...newPatient, groupId: value === "none" ? undefined : value })}
+                  value={newPatient.groupId}
+                  onValueChange={(value) => setNewPatient({ ...newPatient, groupId: value })}
                 >
                   <SelectTrigger id="group" data-testid="select-patient-group">
                     <SelectValue placeholder="Sin grupo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Sin grupo</SelectItem>
+                    <SelectItem value="">Sin grupo</SelectItem>
                     {groups.map((group) => (
                       <SelectItem key={group.id} value={group.id}>
                         {group.name}

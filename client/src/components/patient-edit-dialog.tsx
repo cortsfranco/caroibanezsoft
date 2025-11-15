@@ -56,7 +56,7 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
     medicalConditions: patient.medicalConditions || "",
     medications: patient.medications || "",
     avatarUrl: patient.avatarUrl || null,
-    groupId: null as string | null,
+    groupId: "",
   });
 
   const { data: groups = [] } = useQuery<PatientGroup[]>({
@@ -69,7 +69,7 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
 
   useEffect(() => {
     // Cargar el grupo actual del paciente (solo debería haber uno)
-    const currentGroupId = memberships[0]?.groupId || null;
+    const currentGroupId = memberships[0]?.groupId || "";
     setFormData((prev) => ({ ...prev, groupId: currentGroupId }));
   }, [memberships]);
 
@@ -152,7 +152,7 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
       }
 
       const currentMembership = currentMemberships[0];
-      const oldGroupId = currentMembership?.groupId || null;
+      const oldGroupId = currentMembership?.groupId || "";
 
       // Manejar cambios en la membresía de grupo
       if (groupId !== oldGroupId) {
@@ -162,7 +162,7 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
         }
 
         // Si se seleccionó un nuevo grupo, crear la membresía
-        if (groupId) {
+        if (groupId && groupId !== "") {
           await apiRequest("POST", "/api/memberships", {
             patientId: patient.id,
             groupId: groupId,
@@ -423,14 +423,14 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
             <div className="col-span-2 space-y-3">
               <Label htmlFor="edit-group">Grupo</Label>
               <Select
-                value={formData.groupId || "none"}
-                onValueChange={(value) => setFormData({ ...formData, groupId: value === "none" ? null : value })}
+                value={formData.groupId}
+                onValueChange={(value) => setFormData({ ...formData, groupId: value })}
               >
                 <SelectTrigger id="edit-group" data-testid="select-edit-group">
                   <SelectValue placeholder="Sin grupo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sin grupo</SelectItem>
+                  <SelectItem value="">Sin grupo</SelectItem>
                   {groups.map((group) => (
                     <SelectItem key={group.id} value={group.id}>
                       {group.name}
