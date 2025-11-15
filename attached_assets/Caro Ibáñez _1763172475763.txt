@@ -1,0 +1,1318 @@
+yo siempre tengo una hoja como cualquier
+cliente que en este caso no voy a usar esa palabra con vos
+pero
+y bueno cómo trabajás me entendés
+yo conozco un poco
+la metodología pero yo veo que vos cargás todos los macros
+al Excel y y y demás los datos al
+Excel mejor dicho
+pero no he visto otra metodología
+saquemos el el trabajo de gimnasia yo hablo de cabrio baño
+nutrición claro del consultor
+sí sí o del consultor o o de vos como Nutri
+en general con tus otros datos
+del de paciente
+entonces vos me me decís
+eh che a mí
+me pasa esto esto esto este es mi mi procedimiento
+este es mi modelo de trabajo y de negocio
+entonces ahí yo hago un análisis funcional y grande
+y digo mira caro
+con estas herramientas en mayoría de la i en sí pues
+decir i a es un concepto muy amplio qué usamos
+de la i en para qué lo usamos
+cómo lo usamos
+cómo se aplica a vos entonces lo que yo primero
+te quiero consultar
+ahora por favor
+o cuando vos gustes
+si me echan me van a decir yo trabajo así así o sea
+desde que yo me levanto
+para trabajar
+yo hago esto esto y esto mis días de trabajo o mis eh
+distintos trabajos se basan en esto
+eh en el consultorio o en el club o donde fuese y
+eh desde que llega un paciente
+yo hago esto tengo tales tipos de pacientes
+manejo estos datos
+cargo estos datos se basan en esto y así trabajo yo
+de arriba a abajo vos me podés decir eso detalladamente
+ahora sí es muy diferente el consultorio del club viste por
+por eso mismo te lo digo a mí me cobran es en lo que sería
+consultorio por el
+tema de carga de datos
+justamente eso sí hablemos
+hablemos por ejemplo ahora de solo consultorio vos tirame
+toda la metodología y todos los procedimientos que hacés
+ahora en el como caro Ibañez
+del consultorio
+claro apenas entra el paciente le o sea le pedís
+todos los datos personales
+bioquímicos todo lo que haga falta
+eh y después hago
+la anamnesis alimentaria o sea
+qué come a qué hora come para más o menos tener una idea de
+eso alimentación y sus horarios ajá
+y después en base a eso le hago la medición antropométrica
+entonces voy cargando ahí toda la toda la plataforma
+qué es la medición
+perdoname yo estoy interrumpiendo solo para ir
+acotando y y después cargándolo sí eh yo
+yo sé que vos trabajás con el método Isaac dos sí está bien
+bien hay algo en particular que tenga que saber
+de eso o que podría no ahí ya
+más o menos me hice el gasto calórico
+viste del paciente eh básico
+entonces bueno después
+saco más o menos las calorías
+y claro después me tengo que armar el plan el plan ese sí
+entonces va a ser más o menos las calorías y el objetivo
+si es bajar de peso o aumentar peso si es en forma general
+es como lo voy
+arma armando al plan eso es lo que me lleva un montón
+cómo lo es cómo lo armás al plan este de según tu
+tus conocimientos
+pero iba a decir bueno yo tengo más allá
+de que los estudiás
+caso por caso me imagino
+perdón estoy medio congestionado
+voy a decir bueno mira eh yo tomo estas tablas
+o estos valores de referencia
+los cruzo con estos datos
+obtenidos de los pacientes para eh para armar el plan
+o o es ya más de
+eh de de memoria
+como lo haces sí tengo
+tengo mucho en la cabeza así como que más o menos sé
+las calorías imaginate que armo no sé 200
+por eso por eso pero viste para saber
+che si lo tenés cargado decí no bueno a ver eh sí esto
+tengo un error relativo acá no sé del 0 5 por 100
+lo mando no es que esté exacto pero lo mando porque
+está dentro del error permitido
+claro y con depende del tipo de paciente también viste
+si es muy alta como
+tipo no es un futbolista como gimnasia
+tenés que calcularle hasta el mínimo viste claro
+por ahí si no viene alguien
+y da más o menos teniendo la estructura de lo que come
+o sea yo veo eso y lo y lo que haría yo
+lo lo trituro
+entonces hay que hacer algo medio y eso que que ves
+eh está en qué formato
+vos tenés tus tus dibujos por así decirlo tenés tus tablas
+no no eso lo lo sé eso lo
+la la forma en la que se lo eh mandás
+lo sé o o que lo diseñás lo sé
+pero la información eh en
+de la cual vos eh te alimentás para generar ese propósito
+la tenés no sé en algún
+libro o en algo más allá de tu cabeza
+eh la Tomás de cierto catálogo la Tomás de cierta
+eh o sea los cálculos
+todo eso sí no para armar
+sí la forma la metodología que no eso
+sí tengo o sea tenés formas tenés la planilla de cálculo
+la mayoría o sea
+la más o menos sé cuánto cubrir de proteína
+claro y distribuyo y lo hago
+y bueno eh qué dato
+relevante por ejemplo me
+me me dirías ahora ya vamos cerrando
+no te puede faltar
+eh o qué te haría previamente
+a lo a lo que yo te puedo armar
+te voy a ser honesto ya tengo un poco algo armado
+para proponerte
+no como venta
+sino quiero armarlo yo en grande y quiero que seas vos pero
+qué dato vos sí o sí necesitarías
+eh que esté cubierto qué acción
+te facilitaría o te daría
+mucho tiempo más allá de lo que ya me dijiste
+puede ser algo simple
+puede ser algo tonto pero
+todo lo que a vos te facilite a mí me ayudó
+porque obviamente vas a tener una base de datos vos
+como me imagino vos tenés carpeta por o vos tenés em
+cada paciente
+por carpeta o o o por
+sí yo hago viste yo hago los borradores a mano
+y después eso después lo tiro porque después
+lo plasmo ya teniendo una programación del plan ya sé
+tipo aparte casi
+todo entonces ujum
+siento que eso también me hace falta como cargar más datos
+te hace falta cargar más datos sí
+datos como cuáles vos después me podés pasar una planillita
+este
+con lo que pasa que yo
+empiezo a escribir
+viste escribo
+escribo escribo entonces
+después cuando me pongo como que después
+cuando armo el plan ya pongo viste deporte
+qué hace a qué hora lo hace todavía te quedan esos
+eh esos machetes o los tirás
+no tengo muchos
+y otros sí los termino y los tiro
+vos me matarías me pasarías
+aunque sea fotos de esos machetes sí sí o
+vos vas uno que atienda hoy te lo paso
+como como sí pero lo que pasa es que vos como que das
+ese tanto que en toda la tarde para ir uno en cero que
+creo que es el último ah ese te podría pasar
+no dejes de hacerlo te voy a explicar por qué
+porque ahí en esos detalles
+son donde ganamos tiempo mira te cuento
+íntimamente entre comillas lo que me pasó con Pablo cuando
+está como loco también el caso de mensajitos
+me refiero cuando también te vuelan
+pero bueno él lo hizo también
+que tienen todo para allá y ahí fue como
+empezamos digamos a modelar esto la idea es que gane tiempo
+en tu caso orden yo sé que vos sos superordenada
+pero a mí me
+no lo tomes a mal es como que todavía me me me me molesta
+en la el
+no las personas
+sino la idea de seguir usando Excel
+me entendés o o o no utilizar las herramientas que hay
+yo yo he empezado a ver revistas charlas
+y capacitaciones
+y pero y cómo haces para no usar Excel en la contaduría
+déjame a mí yo te explico
+yo o sea yo yo lo armo y te explico
+sí nos basamos en eso pero eh
+Excel ya
+es como no sé cómo decirte vos te acordás del
+para que vos pagás el Excel
+sale carísimo
+para que te lo
+para que te den
+el la antropometría eso no me lo has dicho a ver
+explicame claro sí vos cuando hacés el curso
+antropometría dos
+ahí te pasan el Excel
+y eso hay que pagarlo
+pero qué es lo que vos tenés una membresía mensual
+em
+no es como que te lo dan pero es como sale tan caro que si
+no Nutri me dice che
+pasame la plataforma de Isaac
+y es muy probable que no se la des
+no por supuesto que no se la vas a dar
+porque eh este sistema no es un sistema
+eh base nutricional
+yo no hago sistemas
+nosotros a la hora de hacer sistemas
+los podemos calificar como enlatados un enlatado es decir
+a ver vamos a hacer el sistema que sea
+eh una botella de agua
+eh listo mira eh que tiene la tapita
+la el plástico el agua
+la etiqueta y que tenga todos los datitos
+te lo vendo a vos la comida te la vendo se la vendo
+a la no sé a la Marisol
+o a las otras
+nutricionistas no voy a dar nombres que no quiero dar
+allá adelante entonces
+eh claro eso es un enlatado eso es es genérico
+pero yo vengo acá y te digo no caro a ver mirá
+me podrías definir cómo querés la botella
+cómo querés el agua qué forma qué colores qué tapita
+eso obviamente que va a ser tuyo y siempre tuyo
+no se lo vas a a compartir a alguien
+alguien lo quiera
+que pues perdón te toque ahí
+no es que miro
+solamente por si me llega a escribir la niñera
+perdón no no tranquilo tranquilo
+digo que yo te toqué la botella y
+pero me seguís esto es tuyo esto es licenciada
+Carolina Ibañez
+ni siquiera es
+Carolina Ibañez
+o gimnasia va y Carolina Ibañez esto es Carolina Ibañez
+y ahora por ejemplo ayer fue la base y debo tener
+no sé 20 planes para Andrea
+en cuánto tiempo haces esos 20 planes no mi amor una banda
+si yo te dijera que vos
+esos 20 planes los podés tener listos en 15 minutos
+sí me lo logro
+todos lo que pasa es que es esa
+agua de una estructura siempre es una leal leche de
+se lo vas a dar
+se lo vas a dar no nunca dije que no
+pero sabés qué pasa
+yo te digo por ejemplo si yo ahora agarro la inteligencia
+artificial y no
+y le digo bueno mirá formá un plan
+para te armo una estructura
+rebásica pero bueno me da 1 1 base
+viste como que me dijo bueno podría ser esto y me
+dame ideas de esta
+entonces como que
+no pensemos yo te quiero
+solo te quiero sacar 1 1 concepto que que no es errado
+pero es lógico
+eh yo como diseñador no o como
+este programador no no diseño
+el sistema en base
+a eso ahí está ese chat sí ese chat es fácil
+yo diseño un programa
+basado en en en
+código informático
+con tecnologías de inteligencia artificial te puedo nombrar
+muy muy nuevas eh qué
+vos decís pero qué me estás hablando no sé es como si vos
+yo te pregunto a vos de cosas muy puntuales
+yo sé lo que vos hacés ahí
+pero no está abierto al público esto o sea esto lo hago
+yo con mis estudios entonces
+tiene mucho más poder
+ahí te va a dar lo que
+él te sugiera que te le parece que es acorde a lo tuyo acá
+yo te voy a dar lo que vos querés
+que sea lo acorde a lo tuyo me entendés
+o es como todo
+eh vos sabés cuál es el uso más grande que se le da a la i
+en el mundo aunque no lo creas dale
+dale me reo no me interesa hacer eso qué cosa
+todo lo que me estás diciendo
+vos sabés cuál es el uso
+más grande que se le da a la i en el mundo no
+tirate 1 1 tuste
+para qué lo usarías vos si no fueras noticiero
+vos hablás con la hija para preguntarle qué
+me recomendación tengo que tomar
+no no está mal pero ojo todas respuestas es válida
+sabes cuál es el eh
+la pregunta o o la función que tienen ahí en general
+acompañamiento terapéutico las personas no quieren tener
+relaciones
+está proyectando que no
+no va a ser una generación sin hijos
+no les importa tener ni siquiera intimidad
+porque la hija te da lo que vos querés como vos lo querés
+es peligroso sí
+pero
+hay tantos casos de bullying en general y demás que uno no
+no sabe hasta qué punto es tu mejor compañía
+pero sí o sí tendrías que tomar tus decisiones siempre
+basadas en la vida por eso
+me parece fantástico yo hago
+yo me pongo otra cosa me gusta mucho
+y como quería hacer algo
+vamos a hacerlo con Pablo no el Pablo también aquí y es de
+más o menos de cuánto estás hablando
+o sea cuánto sale a armar todo eso
+no sabés qué árbol yo eh
+escuchá esto yo no quiero
+eh perderte nada más en realidad yo quiero eh
+poco trabajarlo con vos
+porque vos sos
+en este caso además de
+ser mi amiga como 01:01 referente para mí icónica
+no porque seamos amigos como dice Pablo
+dejá de venderme tanto porque van a pensar que trabajás
+para mí pero a lo que voy es
+eh no no en este caso me gustaría trabajarlo como
+para desarrollarlo
+después si nosotros eso se lo subvendemos entre comillas
+perdón o se lo compartimos a otros profesionales
+pero es como el sistema Caroline Ibañez de nutrición
+no el sistema nutricional y sacnos
+vamos a decir
+che pero cómo yo no se los puedo pasar
+bueno no importa porque ahí vos por ejemplo se los pasás
+igual porque nuestro sistema a carbiones
+va a tener incrustado por abajo qué sé yo yo lo programo
+es algo técnico
+todos los datos del del Excel que vos pagás bueno pero
+eso va a entrar en una suscripción por ejemplo
+que yo hago con el Pablo y esto te lo digo a vos
+porfa no se lo digas es
+es algo que va a hacer con el Fernando
+barbero que no sé si lo ubicas es su compañero de de
+maestría viste
+ujum sentados porque cuál es la idea
+no sé si fusionar las dos eh
+clínica no es una función pero trabaja en la par
+entonces cuál es la idea compartir
+datos y demás si ellos siguen escribiendo en en en page
+también ni siquiera en en Power ni siquiera en Excel
+entonces la idea
+fíjate vos la idea era que mi agente le respondiera a
+los mensajes automáticamente
+pero como lo que yo tal vez pude desarrollar hace dos meses
+eh hace un mes y medio ya lo hacía solo
+es impresionante pues la gente no le da bola a la cara
+es impresionante el potencial
+por suerte entre comillas
+no todavía no no está en en en en auge práctico en
+profesionales eh o o
+ramas de profesiones como la tuya
+al menos acá en otros lados sí eh
+um paréntesis te cuento una intimidad eh
+lo que vamos a hacer con el Pablo cuando se dé si se da que
+vamos por ahí viste
+lo hemos hablado hace un par de meses que dónde están
+va a ir porque mejor Pablo voy a terminar esto y le damos
+porque hay que hacer
+es un sistema integrado que hace todo viste te saca
+cálculos de de los pacientes
+te da un detalle a vos del paciente
+del seguimiento
+un detalle para el
+eh el paciente
+eh métricas de todo tipo
+hay muchas cosas después
+metete en eh antros
+antros por se llama
+la página pasame pasame porfa pasame ya y esa
+esa plataforma es de Luciano aspena
+es un nutricionista deportivo es nutricionista de la
+selección Argentina
+mira y lo que ha hecho es como
+ay no no sé como bien como será pero ha funcionado
+como la historia clínica la anamnesis la evaluación
+es lo mismo
+más o menos y que o sea pero no te arma el plan me parece
+bueno ahí está la diferencia
+porque mira es que eh por qué te cuento lo del Pablo
+porque yo estaba en una entrevista laboral
+sí tranqui hace dos semanas
+con un agente
+de Estados Unidos de la India en realidad es un médico
+de la India que trabaja en la bolsa de Estados Unidos
+el que me estaba reclutando para el puesto o sea para el
+puesto que postulé
+lo que quería hacer con lo que yo le mostré
+que hago con otra gente
+es exactamente lo que vamos a hacer con el Pablo lo mismo
+entonces no estamos tan lejos
+de la vanguardia por eso también te lo propongo
+porque el Pablo en algún momento te va a decir a vos
+che caro eh
+este sistema que empieza siendo este patilla para los dos
+la idea es buscarlo también como un como un servicio
+no te vendemos un sistema
+como que lo vendés como un servicio por eso te digo caro
+sistema caro y baños que debe ser como el que vos me decís
+pero lo vamos a
+a enlatar a tu forma
+y después si che me interesa
+se te dice tal o tal
+qué tengo que hacer para tenerlo y pagás una membresía
+la idea no es que te paguen mucha plata
+la idea es que muchos te paguen poca plata
+te para vos para mí obvio o sea
+por eso yo no te ofrezco venderte algo a vos
+a mí me gustaría
+en este caso sí che caro mirá esta es mi idea
+no te quiero vender ni quiero que me comprés
+te gustaría hacerlo juntos
+a otra persona
+iría yo de acá no sé a
+Buenos Aires y te lo cobro pero no no quiero
+eso como también yo lo estoy diseñando me gustaría
+eso es así aparte es algo que lo
+lo necesitan la mayoría de los de los nutricionistas
+por eso te lo digo entonces no lo vendés como un sistema
+sino como un servicio hoy en día ya nadie vende
+sistemas enlatados qué vendemos lo que se llama
+SAS software as a service
+vendemos un software como un servicio
+lo mismo que hacemos que yo hago como
+vengo me voy a ofrecer el servicio de de ser
+este mi mi Nutri bueno lo pago
+por tu servicio que de hecho te tengo que pasar 10 000
+hacéme acordar este y
+y y vos me das el servicio
+yo te voy a ir pagando mensualmente
+las veces que yo te requiera
+en este caso es lo mismo
+digo la sol porque la
+conozco che la sol le pintó por lo que fuese
+bueno dale pero va a entrar ya en otro modelo de negocio
+eh para vos
+eh bueno cuánto te pago no sé eh
+cuánto estarías dispuesto a pagar por un sistema ojo así
+$25 30 140 5 qué $100
+$100 estás dispuesta a pagar por ejemplo
+bueno mirá entonces si me
+si tendría la solución que yo termino de atender y ya vos
+sabés qué es así
+de hecho ni siquiera sabés vos porque te va a mandar dos
+eh vos terminás de atender y te mandaría
+lo que hablamos con Pablo te mandaré un informe
+automático a vos
+el informe a ella eh a
+o a la dieta perdón digo informe por el Pablo la dieta a la
+al paciente se la va a mandar en
+esta noche o mañana en la mañana
+para que obviamente
+no haya che como tiene que lo hiciste vos o quién lo hizo
+porque obviamente hay
+un factor de decir no si yo las hago
+las vas a hacer vos porque la inteligencia va a entrenarse
+tiene
+una etapa de entrenamiento de un mes dos meses tal vez
+inclusive sea de una semana
+con tu info por eso te decía che carbómeno no me podés pasar
+las notas que vos hacés
+porque yo le entreno como si fuera vos ponés a ver
+no sé si el chat
+Gepe te ya te tiene que responder a vos de las
+medica de los medicamentos o
+hasta como un amigo
+porque sabe cómo escribir
+sabe cómo hablar sí mamá a veces se pone como
+otra vez tu hija confiable ponele
+sí tremendo posta un momento
+mirá yo no te no debería
+decir todo esto así ya sabes
+pero te quiero y vos siempre lo has hecho conmigo también
+entonces te lo digo
+hay un par de herramientitas pajas
+de de la guía
+que directamente
+bueno he hecho 1 1 de esas le voy a tomar
+lo que se llama API o sea la voy a tomar por atrás
+para abusarla
+donde vos le decís yo soy
+yo soy caro así así
+así pero siempre basate en esta información
+vos no sos un chat general vos sos
+vos sos mi asistente nutricional
+y va a ser todo en base
+a eso um que no es lo mismo decírselo así nomás
+hay una cara de gato impresionante
+puedes hacer resúmenes de audio
+te sorprendería claro eh puedes hacer resúmenes de audio
+tipo podcast para poner a los pacientes
+puedes mandarle informes este
+en base a lo que vos a la forma en la que vos quieras
+ya sean pacientes jugadores podés mandar
+em todo tipo de métricas preguntitas em video lo que sea
+ahí y profecí chévere y eso cuánto sale no
+y eso va a salir de la suscripción vos querés ese plan
+el básico el básico te manda un informe va mandando así
+querés uno más el grueso
+eh con el informe que yo te mando
+tal o tal o tal cosa
+eh y tal vez bueno obviamente vos
+no sé cómo es el sistema de pago tuyo para Pablo
+vos le alquilás y nada más o le das una parte no
+yo al final del día
+eh me dicen cuánto le tengo que dar
+me está destruyendo pero
+te dicen cuánto te debes quedar por paciente atendido
+que es un porcentaje me quiero imaginar sí una banda
+estamos hablando de un 50
+sí un poco menos
+pero un montón en un 30 con esto imagínate que tengo
+tres y uno lo tengo que dejar
+bueno entonces por ejemplo
+esa es una forma
+porque acá vos atenderías también
+eh bueno acá
+siempre va a ser presencial bueno y
+quito los tiempos que yo sé que no te dan pero cómo es que
+vos vos estás en gimnasia
+y acá y dónde más
+no yo voy a la voy a lavarle una vez al mes
+perdónate conmigo voy a lavarle una vez al mes
+y a lavarle una vez al mes
+y en tu casa ni
+en mi casa estoy todo el día no no pero digo ni
+eh ni ahí recibir pacientes no pues
+me acuerdo que la primera vez que fui
+fui a tu casa por eso me
+acuerdo
+y no hay lugar para un lugar más
+está perfecto
+no no aparte es tu casa es tu lugar escúchame
+y hay un lugar o no hay un lugar
+eh
+eh en en los días en los que vos puedas decir
+che mirá este es otro lugar no es ni acá ni la Valle ni el
+ni el club para atender sí no
+no no puedo más no puedes más no y ahora
+con el club menos no puedo más
+bueno pero ahí
+también habría que eh
+ver eso con por ejemplo
+el sistema es tuyo pero los eh bueno acá en realidad es
+te paga el paciente
+y te y le pagás vos al Pablo
+pero vos definís el valor no cierto
+más o menos entre los dos
+entre los dos
+bueno ahí habría dejame que también que lo lo lo analice
+para ver cómo podría
+ser porque la membresía
+tal vez ni siquiera tiene que ser para los pacientes
+tiene que ser para
+otros Nutri me entendés como te digo
+que te van a terminar pagando a vos
+igual hay un montón de nutricionistas
+que estoy hablando de esto
+que estamos hablando es como que todo el mundo
+va va por ahí
+y me escribió un flaco Buenos Aires que está con ella que
+está dando cursos y todo eso y que se quería venir a hablar
+a ver qué se podía armar
+y el otro día también me volvió a escribir
+no sé qué carajos me dijo
+y es más o menos lo que me estás
+prometiendo que es lo que me interesa seguro
+no a ver de
+detalles más detalles menos sabes por qué yo grabo esto
+porque yo también tengo desarrollado
+mi propio sistema
+eh que hablo y yo sé más o menos lo que él eh
+ya quiere un paciente general y lo que
+eh debemos hacer en un sistema tipo entonces yo
+quiero lo estoy digamos entrenando con con caro para que
+ya saber mucho más de caro
+a la hora de hacerlo repito yo tengo algo base eh
+y para ser honesto
+en los próximos días te lo termino de pasar y vos
+me vas a decir ahí che eh Fran
+esto sí esto no
+y después mira lo que se llama el evolutivo
+perfecto yo te muestro algo mínimo base
+se llama se llama MVP es el producto mínimo base claro mirá
+sí perdón no yo
+te estoy escuchando pero a la vez estoy buscando eso
+sí sí tranqui tranqui para que veas qué es lo que es y todo
+tranquila caro esto es el mínimo base
+yo te lo dejo y vos lo probás y ahí cargás algo
+che Fran mirá como base
+está bien está perfecto
+qué le vamos metiendo ahí sí yo te voy a pedir a vos tal vez
+una evolución diaria eh de unos
+3 4 5 días al principio para que vos me digas mirá Fran
+esto me gusta pero hagámosle esto
+otro esto esto otro es como ir puliéndolo sí sí
+esto lleva un laburo de como de tres meses y demás
+pero haciéndolo como lo quiero hacer
+lo podemos hacer en un par de semanas me entendés
+y vos hacés que va así
+si yo digo que qué perdón
+vos hacés que va que que te que te arme el plan y todo
+este es no yo me encargo que te arme el plan olvidate
+sistema analítico no sé este es el flaco
+estamos en blanco
+banquero online canal eh
+analista de sistema
+eh sí analista de sistema
+es que bueno paramos un segundo
+es perdón pero es eso
+no no es porque por eso me miró el celular ah no
+pensé que me decías que tenías que ir
+que tenías que atenderme ya más allá
+no no no por eso me miró el celular
+no tranquilo si es porque estamos con
+unos amigos bárbaros
+como mi vieja estamos
+vendiendo la casa y todo entonces no me de la gana no sé si
+em
+es eso acá yo armo algo
+y vos me decís
+esto esto lo otro pero yo qué
+necesito y si vos me lo pasás hoy yo
+te juro que me pongo
+porque yo en las noches me pongo con esto eh
+sí yo te lo hago apenas te conozco a un paciente
+nuevo te muestro cómo hago
+y a mí o sea me afilaría ya tener la estructura del plan
+entendés ahora tengo que armar la estructura
+primero o sea los jugadores de fútbol
+cuándo
+en enero
+no
+yo te estoy
+entonces el juego necesito evaluarlo
+fijarme si tiene que aumentar peso o bajar peso
+y tener la estructura
+del plan y pasárselo si vos te comprometes
+eso suena muy feo pero se lo digo a los alumnos por eso
+pero si vos te comprometes conmigo a pasarme los datos
+esta semana la todos los datos
+todos los datos
+que vos
+manejés que tengas
+o que obviamente vos quieras pasarme porque también hay
+hay una hay un
+hay una confianza ideada entre nosotros
+y sí sobre todos los otros gimnasios vos no te diste cuenta no soy
+compadre de la persona de la historia no porque
+también nosotros
+tenemos un contrato de confidencialidad eso si queremos
+nos lo firmamos
+eso es lo que primero siempre se hace a ver mamá ya
+lo sé lo sé pero yo es vos por eso te lo digo
+pero vos me pasás esos datos hay plataformas viste acá
+que tienen todos los datos ingresados de gimnasia
+específicamente que es solamente del cuerpo técnico eh
+es que eso es un sistema
+privado que se los van a dar bueno eso es información
+o sea no se va a vender mía o comprada se va a vender
+desde el club
+como propiedad del club entonces
+viste por ahí te escriben y dicen
+che mirá me podés decir más o menos el GPS
+tal o la antropometría tal y no no se dice
+no se dice no no no es que
+caro no te olvides de esto este sistema es cardio y baño
+este sistema no es gimnasia para cardio y baño
+entonces eh lo entiendo
+tomemos si vos querés datos de ahí que pero datos de
+eh que que vos digas esto me sirve a mí para votarlo pero no
+este jugador
+eh pesa tanto mide
+tanto juega así o sea está dando de muy atornillamiento
+y tiene que aumentar masa
+muscular generalmente pasa eso en un futbolista sí
+entonces bueno ya tener que me arme una estructura decir
+bueno le gusta esto esto sí esto no
+bueno yo te puedo pedir esta tarea además de eso que
+me estás diciendo
+yo te pido los datos en en papel y PDF o demás lo que vos um
+uses o me quieras pasar
+y por favor te pido
+que me mandés 1 2 20
+30 audios como me mandó mi profe de caro
+de allá 36 audios me mandó pero con todo detallándome
+todo mira lo que estoy haciendo
+esto es el menú de la de la pretemporada viste sí bueno
+mira lo que es esto Fran
+son todos estos días que vamos a estar en Buenos Aires
+8 9 10 11 o sea hasta 16
+yo a eso tengo que preparar los desayunos
+que nada eso sí lo tengo listo
+pero mira lo que es este perro
+la se la almuerzo y cenas almuerzo cena
+almuerzo
+cena yo esto así en en el hotel no lo puedo entregar
+esto no pará esto además pregunta enero
+esto se va a repetir
+frecuentemente
+esto lo va a más o menos sí
+pero bueno cada
+cada cuánto cada cuánto cada día traes la intensidad
+si hay aparatillo si hay amistoso claro pero
+vos lo lo vos por así decirlo lo renovás mensualmente
+o cuánto semanalmente no lo armó toda la semana
+entonces sabés qué yo te lo digo así
+como te digo nosotros
+eh empleamos al principio una fase de entrenamiento
+porque queremos que se parezca lo más este
+eh posible a a la forma
+obviamente va a tener su error
+yo voy a tratar de encargarme con herramientas de que no
+repito no es chat eh estoy hablando del angra flanigan
+estoy hablando de tecnología muy de punta
+eh entonces
+vamos a usar todo eso también por favor pásamelo
+porque lo vamos a a como ir a en entrenando
+son varias cosas juntas yo voy a tratar de darte algo mínimo
+eh
+pero teniendo en cuenta que le vamos a ir aplicando
+todo esto
+por eso te digo mientras vos antes me des los datos
+como yo ya tengo algo así
+lo voy a ir escalando
+pero mientras
+aguante me da los datos
+pero mejor y yo todos los días te voy diciendo caro
+vamos a tener que probarlo me entendés yo
+te lo voy a tener que instalar de una forma remota además
+cosas a pagar
+sí vas a tener que pagar tal vez
+te puedo decir un servidor
+eh este un hosting
+primero te y te te
+te diría que lo comprés
+ya ni siquiera pues por lo que vamos a hacer nosotros
+por cualquier cosa ya
+comprate Caroline
+Caroline Ibañez punto com
+o Caroline Ibañez punto Io te diría que es más
+es mucho más pero
+por eso comprátelo ya no te va a salir
+el punto com te puede costar
+30 000 pesos al año
+eso Fran eso que me acabas de mostrar sí hace no sé
+una semana y ha hecho tres días
+si yo te digo que eso que vos me acabas de mostrar
+lo podés hacer en 10 minutos o 15 me
+te te sirve y sí imaginate
+tengo que terminar el número todavía no y lo
+tengo que entregar hoy
+hoy a qué hora y bueno qué hora
+no me dijeron tratar de llegar hoy a la noche viste
+y qué le quisieras cambiar a eso
+no lo que pasa es que no quiero que se me repitan
+las comidas me entendés
+esto siempre va a ser así pero ponele el sábado
+almuerzo siempre tienen una entrada
+y después tienen todo bufet entonces
+por ejemplo tienen
+en bufet la proteína uno por ejemplo pechuga de pollo
+proteína dos bife de lomo sí hidratos
+uno hidratos dos sí postre uno y postre dos
+sí listo la cena
+otra vez es lo mismo
+nada más que cambiado entendés
+y vos tenés la lista
+de todos los posible de las posibles variantes no es que
+lo lo tengo todo acá y lo voy
+plasmando ahí entonces por qué no me pasás ah enseguida
+la lista de las posibles no digo para que lo hagamos
+lo intento hacer ojo eh hasta qué hora me das tiempo
+no no sé mañana mañana
+mañana hasta qué hora
+y no sé tendría que decirle mirá mañana te lo paso
+12 m de d lo que pasa hay que mandarlo al hotel para que
+me mande el presupuesto mirá de cuán para cuándo es
+12 m de d son $150 000 esto bueno pero eso no es tema tuyo
+por eso me quieren matar sí bueno
+eh y lo y el rendimiento
+eh dónde está el equipo está en primera o está en la vez
+no y bueno entonces eh pero
+no es por nada yo no te lo digo porque te te
+te dulce el oído
+a mí me molesta la gente que no no confía o no prueba
+eh sabés cuánto le digo Chelo mandala caro
+dejate hinchar las bolas mandá al Pablo
+y no sé voy a ver bueno
+jodete no no estés en primera entonces quedate
+así después mirá yo te muestro es un poco
+lo que me ha pasado
+con la Marisol que lo hablamos con el Nico yo la quiero yo
+yo la quiero mucho pero me me
+me hace sentir mal a mí me sí eh
+y si el Nico y la ah también
+le temblaba el cuerpo a la chica cuando no me dijo sabés
+sabés sabés la tristeza que yo sentí mirá no te
+no te miento digo la puta madre
+el otro día vino una chica y me dijo que
+la a la policía directamente porque Atlético te dijo
+a la policía ya tenés denuncia no me digas
+es que sabes que mira mira cómo estás cómo estás dice
+tiene que cambiar la cabeza dice
+porque en la en la en la era que estamos ah
+con el feminismo y todo
+no no no no es que no solamente con el feminismo
+a mí ya me ha pasado
+y bueno a veces también
+viste me dice che venime a la compu bueno me me cambia
+eso pero detesto
+yo siempre digo vos querés comer bien querés estar en forma
+ah querés hacer las cosas bien andá a la Caro
+querés sufrirla
+y y ser esas que le dan la lechuguita andá a la
+te quiero mostrar esto
+sí tranquilo este es un mirá cómo lo han hecho
+este es un plan de la Copa Libertadores
+pero mirá
+te gusta ese formato
+no no sé ah para mí es un asco me parece espantoso
+por eso te digo
+pero lo que me gusta o sea yo de acá tendría que armar
+es como decir de dejar por ejemplo
+bueno desayunos
+almuerzo entonces eh
+podérselo entregar al hotel
+y que lo pueda ver un poco más fácil que estar haciendo los
+cives
+pero eso te lo puedo tener listo yo en una semana a ver
+eh ahora lo puedo entregar
+más o menos como para que hagan presupuesto
+y le digo los detalles van después
+ahora lo mirá ya lo te digo ahora
+visualmente te lo acomodó un poco te lo acomodó un poco
+pero y lo tengo que terminar ah lo tengo que terminar
+no no no pero antes de a lo que iba antes de terminarlo
+por favor pasame esto y pasame eso y pasame
+la lista de variantes de comidas
+que no querés repetir si vos me pasás eso
+mañana a primera hora yo te paso el modelo
+no le vas a pasar ese que te pasé yo vos lo revisarás
+no sí obviamente
+entiendo pero vos no tienes un modelo y en base a eso
+vos sabés los gustos de los jugadores qué comen qué no
+claro pero te quiero decir yo te voy a dar un ejemplo de
+fíjate
+vos lo hiciste en tres días bueno a ver en base a esto
+yo te lo voy a tratar de retocar en un minuto me entendés
+no te lo prometo voy a intentarlo
+eh nuestro objetivo principal es el otro
+eh pero bueno
+surgió esto y yo veo que te quiero ayudar si vos me dejás
+Carolina Ibáñez
+punto com ibanes le vamos a poner sí ibanes porque
+yo te quiero internacional a vos eh dale dale dale dale dale
+dónde está Carol viene baño dale
+esto Carol yo te recomendaría que ahora
+que ahora te lo compres ya ya
+ay Dios mío carneada boludo dale
+no hay buen wifi acá o qué acá
+63 000 el primer año
+mira punto Io yo le encargaría a ese eh Carolina Ivanes
+punto com mira ya hay alguien que se llama así no será tuyo
+puedes googlear
+a dónde quieres googlear bueno no sé
+pone Carolina Ivanes punto com
+no serás vos Ivanes Ivanes
+quién es
+quién es de Carrie baño punto com
+bueno más fácil me voy a poner carro y listo
+Carolina sí yo suelo poner eh caro Ibáñez Cocó viste
+me gusta sí pero
+eh no sé como que no me parece
+me parece que esta vez
+como que no le no no le va a dar tanto
+profesionalidad como caro Ibáñez sí sí
+pero viste bueno yo le hice el sitio al Mauri
+Mauri de la Rosa y sí sí
+ahora no se puso Mauricio de la Rosa
+es que a mí me me encuentran en la calle y
+me dicen hey cariño hay un cocón mira así este
+bueno querés ponerle Google
+ponele Google pero para mí con
+con una cuestión de profesionalismo o tenés que ser cargón
+esta es la posta que te compré este que vale
+6 000 pesos al año nada
+y a ver si hay uno que sea punto
+Io no debe ser alguna de esas no
+el sitio web entra mira Carolina Ibáñez punto com es esto
+no perdón si ese es tu LinkedIn eh perdón
+um bueno o no lo están
+o o lo han comprado y no lo están usando qué hace
+la gente compra para revenderlo más caro
+a lo mejor alguien te conoce y lo compró para revender
+tu logo mismo más caro eso pasa
+mira caro yo que vos me lo compro ya
+vale 6 000 pesos me lo compro ya no recontra
+boludo este es más caro vale 60 000 por qué porque el Io
+es como mucho más moderno y van a decir che este es muy pro
+esta flaca es muy pro
+entonces vos pagalo lo que vos quieras querés pagar 6 000 o
+querés pagar 63 000 pero hacelo ya acá
+fíjate que ya vi algo en correos
+eso
+lo necesitamos
+el eso es la como la patente del auto y
+me van a descargar los pacientes
+traigo trabajemos
+tranquila trabajálo
+bueno y para hacer esto tengo relarga la charla
+perdoname amiga
+no pero es que es como que da para hablarlo mucho más
+tres horas tuvimos un domingueo claro no no no no
+es como que
+tenemos contrainterés no no es que yo también te lo quiero
+y no no es que yo te voy a pasar algo
+no me estaba como traidora
+cómo llegó a vos
+y vos no le dijiste pero yo ya tengo a alguien
+sabes que esa vez 1 1 ese flaco yo hice la
+la especialidad
+en la universidad de Murcia sí me acuerdo
+bueno y los tipos me dijeron bueno tenés 5 meses para
+bajarte la información entonces
+hablé con ese tipo en ese momento que
+lo conocía por no la la la
+y me dijo no te bajo los videos
+y le dije cómo vas a hacer qué videos
+los videos de la plataforma de de España
+no me boludeés entonces me los descargó en mi cuenta
+ah yo le hice eso a mi profesora de de running sí vos pedime
+todas esas cosas
+yo te descargo todo así los tengo viste no todos pero
+un montón sí me los descargó
+entonces ahí quedó viste no me cobró
+y ahora claro veo que me está como
+ayudando para armar eso viste
+y no te cobró pero te voy a ser honesto
+apretás tres botones agregás
+una extensión
+y apretás tres botones y te lo descargás y lo descargás
+eso es todo y ahora podría viste
+podría qué
+podría cobrármelo viste pero no me lo cobré no recontra
+recontra pero bueno es un poco eso
+caro no te jodo más lo que sí vos pasame todo
+y y voy a necesitar que todos los días
+vos me tirés 15 minutos
+dos minutos de audio y 15 minutos de de devolución nada más
+de acá a una semana
+yo te tengo todo listo
+y si podemos pagar 50 060
+$30 no me acuerdo cuánto
+que son datos que a mí me van a no datos eh funciones
+de la nube que a mí me
+me barrerían un montón
+eso sin pelear
+pero no es para mí si yo te paso la factura obvio de de
+pero listo pasando y cerrando
+muy muy mal
+bueno y antes que nada gracias por ser tan buena
+conmigo siempre
+es un amor de Dios
+eh me he portado remal
+y había subido 4 kilos de grasa pura
+hace tres meses que me hicieron el análisis allá en 00 k m
+así que voy a
+eh
+voy a cómo es
+decir de que me traté de poner las pilas y seguís entrenando
+y a partir de la se de esta semana
+de otra manera porque le pedí un personalizado
+muy específico
+a Caro pujols mi profe se basa en esto
+teniendo en cuenta mi objetivo de 70km de Patagonia en abril
+que es mi único y gran objetivo hasta acá
+yo estoy entrenando Lu eh
+lunes miércoles y viernes en el gimnasio
+lunes y miércoles lo hago
+allá en Junín y miércoles lo hago en casa
+pero con la rutina que ya me armé caro
+tengo un poco de equipo y todo
+entonces va a ser
+la mi idea cuál es un poco
+hipertrofiar porque no
+quiero estar tan chiquitito o sea no honestamente quiero
+ganar un poco más de volumen al menos en el tren superior
+lunes miércoles
+y domingo a la tarde hago running
+a veces hago
+martes también a veces hago viernes también
+eh o a veces inclusive
+va a llegar a tener que ser martes y viernes todavía
+temporales
+ránking siempre a las 7 de la tarde eh
+ponele que un viernes sea a las dos de la tarde
+pero el viernes no hago más nada eh ah
+eh sí hago perdón musculación a la noche
+sí hago
+musculación lunes y miércoles es o al mediodía
+eh o a la tarde eso es lunes y miércoles
+por ejemplo no sé hago
+musculación a las dos de la tarde y voy a correr a las 7
+por decirte
+lo mismo sería lunes y miércoles a las dos y el viernes
+y el viernes corro a las dos
+y eh hago musculación a las 7
+eh los domingos que corro es temprano en la mañana
+puede ser un sábado y
+otra cosa que yo dije no pero esto no le doy
+tanta bola y caro me dijo no sí dale bola es
+juego al pádel los jueves a la noche y la verdad
+que sí lo siento en a veces entonces
+lo voy a poner
+y eso es fundamental viste porque generalmente cuando
+se termina lesionando cuando está afuera de su deporte
+tal cual
+eh y estás tomando suplementación
+las tres cosas que
+tomo desde que vengo acá
+y que hablo con el Pablo son creatina magnesio
+y lo que me ha dado el Pablo para la
+recuperación que me ha venido muy bien que es betalamina
+eso lo tomo hace un año y la verdad
+lo amo
+son las únicas tres cosas el magnesio es clorhidrato
+sí bien y la vitamina b la tomas todos los días eh sí son
+tres pastillas me toma me dijo el médico toma
+tres pastillas me dice cuando entrenés
+cuando no toma dos no ujum
+sí todos los días
+bueno y lo que queremos
+aumentar nuestra masa muscular hipertrofiar quiero a ver
+eh me estoy estoy fofo
+fierón obviamente no me queda que definir
+eh
+voy a trabajar un poco más la parte de superior
+todo el brazo viste
+ahí quiero quiero definir quiero definir volver a a a
+a limar ahí un poco más fino tal vez viste con
+con la edad hace un poco más de estético
+si quiere pero acá arriba sí quiero agua
+macerada no me interesa la velocidad
+o sea yo soy rápido en a mater soy rápido
+no soy el más rápido pero estoy ahí entre los entre los 10
+más ligeros estoy me entendés entonces qué pasa no
+sé bueno gracias no quiero
+eh tampoco
+ser más lento
+y no sé cuánto va a influir obviamente
+como si hubiéramos hablado viste esa
+ese momento de peso pero
+quiero seguir manteniéndome al al ritmo o seguir
+estás desayunando
+sí estoy desayunando sí pero eh hasta
+estos de estas semanas que he vuelto con el plan dije
+voy a bajar porque estaba muy arriesgándose
+de hecho intermitente
+eh y he bajado muchísimo
+con las comidas pero sí
+a partir de ahora voy a hacer lo que vos me digas
+y a qué hora te levantás
+8 7 es y media 8
+bien y durante la mañana comés comía lo que
+siempre recuerdo de que hemos comido también el desayuno
+y a media mañana
+este eh hacen comida la una milanesita de pollo eh
+11 de la mañana
+ahí almorzás sería o no no almuerzo como a las
+entre las 13 y las 14
+a 08:09 pero 8 en realidad estoy desayunando
+y bueno 11 yo te digo 11 que pase 11 y media y
+entre la una y las dos estoy almorzando y o sea y esto
+a las media mañana
+tipo milanesa
+y es una milanesa
+de pollo sí yo hago todo al horno viste pero
+porque nomás mejor si vos me habías dicho no me manto
+era como un sánguche de pollo me dijiste
+entonces qué yo digo bueno
+el pan no sé si está bien
+en mi pensamiento pero lo vengo haciendo
+hace como tres años
+claro sí lo reemplazás con chao ah
+lo acompaño con una fruta y eh
+los almuerzos carne con verduras así eh mira
+no recuerdo la la última vez que no comí
+milanesa de pollo con verdura
+este y un y una fruta de postre no me acuerdo honestamente
+ponele
+que le ponga una salsita arriba de la milanesa que no sé si
+está bien eh pero eso no me acuerdo de
+ya y con eso te vas a entrenar así sería
+o los días que entrenas
+almorzas después ah en el almuerzo después
+y siempre a las 5 de la tarde
+porque si entreno a las 7 yo
+necesito siempre dos o tres horas eh
+um los tres huevos con la tostada que vamos a enseñar
+y siempre un le unto un poquito de dulce la tostada a las
+las tres de arroz
+que me acuerdo que trae a Roger
+a una de de la otra y eso lo decía un amigo
+sí y le y le pones dulce a veces
+pero claro mira
+eh me ha dicho un amigo que soy un maleducado por hacerlo
+pero porque como para almorzar está bien siempre
+dice que ni siquiera lo mancho así que bueno eh y la cena
+y la cena
+eh pará había otra más apenas yo antes cuando viajaba
+es algo que no estoy haciendo ahora
+cuando yo terminaba de cenar acá a 09:30 arriba
+vos me habías dicho también
+eh tres huevos o el sandwich de pollo y una fruta
+eso no lo estoy haciendo porque ya llego acá a casa
+y ya me pongo a cocinar y ahí sí como ponen 2000 de Apollo
+eh en la cena a las 2 000 de Apollo
+claro pues pensando yo en ese reemplazo de la del del post
+entreno que no estaba
+que no estoy haciendo ahora y una fruta
+y ensalada ni hablar
+palta estoy comiendo mucho no sé si todavía no está mal pero
+media palta por día me estoy comiendo ujum eh
+estoy pensando por arriba a veces me me da un hambre bárbaro
+por ahí siento que me falta
+eh y bueno las tostadas
+que no se me está bien o mal
+pero es lo que tengo ahí a mano
+o les clavo otra no sé
+otra fruta o otra milanesa de pollo que me haya quedado
+pero mi dieta se basa en eso
+al menos desde que volví a rapo
+eh mi nieta se estaba pasando hace unos tres meses atrás en
+bueno déjame que te miro en Bridget Jones
+no te riñas que es verdad
+si todavía estoy medio Bridget tioneado
+me da vergüenza en la vida
+te juro que digo eh esto sí me lo plantó la Marisol
+eh esto te juro que sí claro dice mirá
+mirá ese heladera no sé qué cosa que esto
+que lo otro y te juro que me mató
+se va a poner una denuncia esa mirá
+cómo se va a poner una denuncia la tiene imagina
+pero te juro que me veo feo
+me veo mal me veo feo
+yo cuando digo si la había hecho las cosas también
+vamos
+un montón más a comparación de la de lo que teníamos
+por eso lo estás notando
+85 kilos más 85 kilos más
+bueno bien entonces ahora le damos una evolución
+pero claro mirá cuando te pesé o 70 y 7 4
+80 y 1 4 80 y 1 4
+por eso digo por eso o sea lo sentís
+no 4 kilos y medio pero vamos a ver de qué 8 kilos y medio
+claro
+sí pero no no te había visto cuando te había visto qué cosa
+no te había visto cuando te había visto no no no
+no sí en realidad esa es la que estaba buscando a ver si tenía la medición
+mirá mirá nomás
+perdona no es la explicación
+pero lo quería hacer bien pero ya estaba el palo
+el negro es tengo uno
+negro y uno marrón no para saber el de ayer sí porque
+mira no es ese
+es un video no sé perdón
+no sé no sé era ese sí
+no lo sé
+tenía las manos o sea no
+no sé cómo puede ser eso
+tenía las manos no sé qué es odio eso
+Carolina te juro que odio esto
+odio esto camina eso es broma
+pero porque te quiero y te lo debo de ver y me amo
+bajame el brazo
+bien así pero cómo no te
+en qué estás pensando
+te quiero mucho pero
+si supieras todo lo que tengo en mi cabeza
+20
+y gracias por la llamada del otro día te quiero mucho
+no
+eh sentate y fíjate a montar el visor
+no a fuerza
+párate para arriba del cajón
+tirando hacia allá
+eliminado
+bájate
+eso me tiene que pasar una captura
+de qué de eso que estás anotando
+de esa tablita sí pásame esa captura
+esas están todas con fórmulas
+el exe no lo puedes pasar
+está bien lo estoy matando a lo mejor pero y me
+sí te te va pasando como a ti te la paso
+o sea el exe lo hace sin nada
+te lo cargas entonces lo veo
+no lo puedo perdón sí ahora máximo
+ante brazo
+así
+mirame así mirame para el costado
+has metido bastante
+grasa abdominal
+bastante en el abdomen viste bastante
+caro yo no te quiero decir nada pero
+se se me puede llegar a ver una marquita ahora
+hace dos meses yo tenía
+una panza enorme por eso me daba tanta
+rabia digo voy a ir a la caro
+cuando baje un poco te juro caro que he bajado 4 kilos
+bueno mirá ah son
+4 kilos y medio
+lo que has aumentado y me dice que de esos 4 4 kilos 400
+me marca como que es de masa
+grasa y que tenés una mejora de masa muscular de 300g
+se ven mejor las piernas viste se ven mejor sí ajá
+como más en más superficie sí que eso me gusta un brazo
+bueno que eso es lo que busco
+busco sabes que estoy buscando más hombro más brazo claro
+más arriba pero ahí estudio cómo hago si busco lo otro
+claro por eso bueno tenés que hacerlo
+o sea con carbohidratos pero carbohidratos de calidad sí
+por eso por eso como te digo
+ajá perdón ya sé no me digas así no no
+no seas la la prima mal malvada de Marisol Álvaro José no
+eh la sumatoria de las medidas te da 74,5
+eso hay que bajarlo a 60 y la masa muscular
+60 o 60 ujum de 60 para abajo definido
+y la el índice de masa corporal te da 3.7
+te da rebién la masa muscular
+la relación grasa músculo te da normal y en la relación
+pesotada te da normal sí pero es
+ahí esa otra parte
+pero sabés qué pasa
+y yo te pregunto está bien está pésimo pero por
+es mi genética o qué porque digo la madre lo tiró o sea la
+le escapé dos meses le escapé
+no es que comía porquerías comía mucho
+más que porquerías comía mucho
+mm 5 años demoré para estar bueno 4
+de qué vamos a hablar la masa grasa cuesta Frán
+cuesta sacarla
+un amigo que come a los bestias pero Dios mío no hace
+nada hace está impecable
+tiempo al tiempo por eso te digo pero es genética también
+sí genética también puede ser
+no te pregunto te pregunto
+no no si yo sé que no no si yo sé que no si ya seamos buenos
+no no pero bueno viste estéticamente
+vos para la escalera
+tenés que hacer recontra alto o te da recontra bien nomás
+vamos a hacer 3.7
+bueno y qué opinás vos de de de por qué motivo
+todos los trabajos que
+vamos a que voy a hacer ahora a partir de esta semana
+eh son personalizados acorde a eso
+entonces por eso también viste
+mi idea cuál es y pero prefiero un poco acá arriba viste
+y yo nada estar un poco más fornido
+para eso vas a tener que comer antes de los entrenamientos
+ah claro meter
+un poco de carbohidrato
+para que tenga disponibilidad el músculo
+para aumentar de tamaño ujum si te vas sin comer
+no va a tener
+cómoda te va a hacer dónde carajo querés que saque
+nafta para agrandar el tamaño y no
+vos me con vos me mostraste lo de la nafta sabés qué pensás
+yo obviamente
+en mi error típico de de ignorante
+usuario y no nutrido
+no como para para bajar la grasa por ahí pero sí
+o sea para para bajar peso vale vas a modificar la masa
+muscular y qué fue lo que estaba haciendo
+eh claro no no no lo vas a destruir
+bueno caro es eso bueno déjame que lo piense igual
+nos vamos comunicando por WhatsApp um a tu plan no eso
+sí eso es lo que necesito
+volver a dar en un libro sí obvio caro yo que sí más que
+no más que pensarlo
+vos después tomalo o dejalo
+yo te lo voy a dar igual porque te lo quiero mostrar
+como para decir mirá Franco hace esto después
+no lo lo de nosotros sí eso lo vamos a hablar a ver si qué
+qué se puede hacer ah me hablás de mi plan en serio tu plan
+ah pensé que
+hablás de lo otro sí no no el plan te lo armo todo okay
+sí por favor y además
+esto sí lo que yo ahora acabo
+lo necesito apuesto a que no me
+pásame por favor ya una captura de eso te lo suplico
+me manda hasta
+o mándame al Excel mándame al Excel
+y lo que pasa es que al
+Excel lo tengo que cargar así que me voy a demorar
+cómo lo tenés que cargar
+y lo tengo que cargar al
+al mail para pasártelo por WhatsApp
+el antro Po te la paso no no tengo WhatsApp
+en la computadora
+no puedes abrirlo seguro no nunca he puesto WhatsApp
+en la computadora bueno bueno
+bueno es como que cuando estoy en la
+computadora necesito que mi teléfono esté acá
+me entendés está perfecto
+bueno pasámelo
+compartímelo en el Drive o alguna cosa así o por mail por
+dale
+pero mirá que esta noche yo me voy a poner pásame algo
+todo lo que quieras mirá que yo me voy a poner para hacerlo
+te quiero mucho te agradezco un montón
+gracias por soportarme
+te tengo que pasar los días ya te lo juro
+gracias gracias nos vemos chao chao
