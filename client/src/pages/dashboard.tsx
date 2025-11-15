@@ -350,17 +350,12 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <Card className="shadow-md">
-        <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Filtrar informes</p>
-            <p className="text-xs text-muted-foreground">
-              Las métricas y tendencias se recalculan según el rango temporal seleccionado.
-            </p>
-          </div>
-          <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between gap-4 px-1">
+        <p className="text-xs text-muted-foreground">
+          Filtrar informes por rango temporal
+        </p>
+        <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {summaryCards.map((card, index) => (

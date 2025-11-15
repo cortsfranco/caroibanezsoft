@@ -494,10 +494,10 @@ export default function Groups() {
                   borderColor: getGroupBorderColor(groupColor),
                 }}
               >
-                <CardHeader>
-                  <div className="flex items-start justify-between gap-2">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between gap-2">
                     <CardTitle
-                      className="flex-1"
+                      className="flex-1 text-base"
                       data-testid={`text-group-name-${group.id}`}
                     >
                       {group.name}
@@ -522,12 +522,12 @@ export default function Groups() {
                     </div>
                   </div>
                   {group.description && (
-                    <p className="text-sm text-muted-foreground" data-testid={`text-group-description-${group.id}`}>
+                    <p className="text-xs text-muted-foreground mt-1.5" data-testid={`text-group-description-${group.id}`}>
                       {group.description}
                     </p>
                   )}
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 pt-0">
                   <Collapsible
                     open={isExpanded}
                     onOpenChange={(open) => {
@@ -540,15 +540,15 @@ export default function Groups() {
                       setExpandedGroups(newExpanded);
                     }}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-1">
                       <CollapsibleTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="flex items-center gap-2 p-0 hover:bg-transparent"
+                          className="flex items-center gap-2 p-0 h-auto hover:bg-transparent"
                           data-testid={`button-toggle-patients-${group.id}`}
                         >
-                          <span className="text-sm font-medium">Pacientes</span>
+                          <span className="text-xs font-semibold uppercase tracking-wide text-foreground/80">Pacientes</span>
                           <Badge 
                             variant="secondary" 
                             data-testid={`badge-patient-count-${group.id}`}

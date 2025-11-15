@@ -81,8 +81,8 @@ function hslToHex(h: number, s: number, l: number) {
 
 export function getGroupGradient(baseColor: string): string {
   const { h, s, l } = parseHexColor(baseColor);
-  const gradientStart = { h, s: clamp(s + 8, 0, 100), l: clamp(l + 12, 0, 100) };
-  const gradientEnd = { h, s: clamp(s - 12, 0, 100), l: clamp(l - 8, 0, 100) };
+  const gradientStart = { h, s: clamp(s + 15, 0, 100), l: clamp(l + 18, 0, 100) };
+  const gradientEnd = { h, s: clamp(s + 5, 0, 100), l: clamp(l - 5, 0, 100) };
   return `linear-gradient(135deg, hsl(${gradientStart.h} ${gradientStart.s}% ${gradientStart.l}%), hsl(${gradientEnd.h} ${gradientEnd.s}% ${gradientEnd.l}%))`;
 }
 
@@ -94,7 +94,7 @@ export function getGroupBorderColor(baseColor: string): string {
 
 export function getGroupBadgeBg(baseColor: string): string {
   const { r, g, b } = hexToRgb(baseColor);
-  return `rgba(${r}, ${g}, ${b}, 0.12)`;
+  return `rgba(${r}, ${g}, ${b}, 0.25)`;
 }
 
 export function getGroupBadgeText(baseColor: string): string {
