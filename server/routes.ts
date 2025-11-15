@@ -10,6 +10,8 @@ import {
   insertDietSchema,
   insertDietAssignmentSchema,
   insertReportSchema,
+  insertBiochemicalResultSchema,
+  updateBiochemicalResultSchema,
   insertMealSchema,
   insertMealTagSchema,
   insertMealTagAssignmentSchema,
@@ -1045,6 +1047,106 @@ router.post("/api/reports/generate", async (req, res) => {
   } catch (error) {
     console.error("Error generating report PDF:", error);
     res.status(500).json({ error: "Failed to generate PDF" });
+  }
+});
+
+// ===== BIOCHEMICAL RESULTS =====
+router.get("/api/biochemical-results", async (req, res) => {
+  try {
+    // Require patientId to prevent leaking all patients' lab data
+    if (!req.query.patientId) {
+      return res.status(400).json({ error: "patientId query parameter is required" });
+    }
+    const results = await storage.getBiochemicalResults(req.query.patientId as string);
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching biochemical results:", error);
+    res.status(500).json({ error: "Failed to fetch biochemical results" });
+  }
+});
+
+router.get("/api/biochemical-results/:id", async (req, res) => {
+  try {
+    const result = await storage.getBiochemicalResult(req.params.id);
+    if (!result) {
+      return res.status(404).json({ error: "Biochemical result not found" });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching biochemical result:", error);
+    res.status(500).json({ error: "Failed to fetch biochemical result" });
+  }
+});
+
+router.get("/api/patients/:patientId/biochemical-results/latest", async (req, res) => {
+  try {
+    const result = await storage.getLatestBiochemicalResult(req.params.patientId);
+    if (!result) {
+      return res.status(404).json({ error: "No biochemical results found for this patient" });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching latest biochemical result:", error);
+    res.status(500).json({ error: "Failed to fetch latest biochemical result" });
+  }
+});
+
+router.post("/api/biochemical-results", async (req, res) => {
+  try {
+    const data = validate(insertBiochemicalResultSchema, req.body);
+    const result = await storage.createBiochemicalResult(data);
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Error creating biochemical result:", error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    res.status(500).json({ error: "Failed to create biochemical result" });
+  }
+});
+
+router.patch("/api/biochemical-results/:id", async (req, res) => {
+  try {
+    // Validate version is provided for optimistic locking
+    if (typeof req.body.version !== 'number') {
+      return res.status(400).json({ error: "version field is required for updates" });
+    }
+    
+    // Validate data with update schema (all fields optional, preserves date transforms)
+    const { version, ...payload } = req.body;
+    const data = validate(updateBiochemicalResultSchema, payload);
+    
+    const result = await storage.updateBiochemicalResult(
+      req.params.id,
+      data,
+      version
+    );
+    if (!result) {
+      return res.status(404).json({ error: "Biochemical result not found" });
+    }
+    res.json(result);
+  } catch (error) {
+    if (error instanceof VersionConflictError) {
+      return res.status(409).json({ error: error.message });
+    }
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors });
+    }
+    console.error("Error updating biochemical result:", error);
+    res.status(500).json({ error: "Failed to update biochemical result" });
+  }
+});
+
+router.delete("/api/biochemical-results/:id", async (req, res) => {
+  try {
+    const deleted = await storage.deleteBiochemicalResult(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: "Biochemical result not found" });
+    }
+    res.status(204).send();
+  } catch (error) {
+    console.error("Error deleting biochemical result:", error);
+    res.status(500).json({ error: "Failed to delete biochemical result" });
   }
 });
 

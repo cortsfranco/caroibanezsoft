@@ -15,6 +15,8 @@ import type {
   InsertDietAssignment,
   Report,
   InsertReport,
+  BiochemicalResult,
+  InsertBiochemicalResult,
   DietTemplate,
   InsertDietTemplate,
   DietGeneration,
@@ -164,6 +166,14 @@ export interface IStorage {
   createReport(data: InsertReport): Promise<Report>;
   updateReport(id: string, data: Partial<InsertReport>, expectedVersion?: number): Promise<Report | null>;
   deleteReport(id: string): Promise<boolean>;
+
+  // Biochemical Results (patientId required for security)
+  getBiochemicalResults(patientId: string): Promise<BiochemicalResult[]>;
+  getBiochemicalResult(id: string): Promise<BiochemicalResult | null>;
+  createBiochemicalResult(data: InsertBiochemicalResult): Promise<BiochemicalResult>;
+  updateBiochemicalResult(id: string, data: Partial<InsertBiochemicalResult>, expectedVersion?: number): Promise<BiochemicalResult | null>;
+  deleteBiochemicalResult(id: string): Promise<boolean>;
+  getLatestBiochemicalResult(patientId: string): Promise<BiochemicalResult | null>;
 
   // Dashboard Statistics
   getGroupStatistics(): Promise<GroupStatistics[]>;

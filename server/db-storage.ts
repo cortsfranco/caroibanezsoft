@@ -9,6 +9,7 @@ import {
   diets,
   dietAssignments,
   reports,
+  biochemicalResults,
   dietTemplates,
   dietGenerations,
   dietMealPlans,
@@ -35,6 +36,8 @@ import {
   type InsertDietAssignment,
   type Report,
   type InsertReport,
+  type BiochemicalResult,
+  type InsertBiochemicalResult,
   type DietTemplate,
   type InsertDietTemplate,
   type DietGeneration,
@@ -566,6 +569,63 @@ export class DbStorage implements IStorage {
   async deleteReport(id: string): Promise<boolean> {
     const result = await db.delete(reports).where(eq(reports.id, id));
     return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  // Biochemical Results
+  async getBiochemicalResults(patientId: string): Promise<BiochemicalResult[]> {
+    // Security: Always filter by patientId to prevent leaking sensitive lab data
+    return await db
+      .select()
+      .from(biochemicalResults)
+      .where(eq(biochemicalResults.patientId, patientId))
+      .orderBy(desc(biochemicalResults.testDate));
+  }
+
+  async getBiochemicalResult(id: string): Promise<BiochemicalResult | null> {
+    const result = await db.select().from(biochemicalResults).where(eq(biochemicalResults.id, id)).limit(1);
+    return result[0] || null;
+  }
+
+  async createBiochemicalResult(data: InsertBiochemicalResult): Promise<BiochemicalResult> {
+    const result = await db.insert(biochemicalResults).values(data).returning();
+    return result[0];
+  }
+
+  async updateBiochemicalResult(id: string, data: Partial<InsertBiochemicalResult>, expectedVersion?: number): Promise<BiochemicalResult | null> {
+    const whereConditions = expectedVersion !== undefined
+      ? and(eq(biochemicalResults.id, id), eq(biochemicalResults.version, expectedVersion))
+      : eq(biochemicalResults.id, id);
+
+    const result = await db
+      .update(biochemicalResults)
+      .set({ 
+        ...data, 
+        updatedAt: new Date(),
+        version: sql`${biochemicalResults.version} + 1`
+      })
+      .where(whereConditions)
+      .returning();
+
+    if (!result[0] && expectedVersion !== undefined) {
+      throw new VersionConflictError();
+    }
+
+    return result[0] || null;
+  }
+
+  async deleteBiochemicalResult(id: string): Promise<boolean> {
+    const result = await db.delete(biochemicalResults).where(eq(biochemicalResults.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
+  }
+
+  async getLatestBiochemicalResult(patientId: string): Promise<BiochemicalResult | null> {
+    const result = await db
+      .select()
+      .from(biochemicalResults)
+      .where(eq(biochemicalResults.patientId, patientId))
+      .orderBy(desc(biochemicalResults.testDate))
+      .limit(1);
+    return result[0] || null;
   }
 
   async getGroupStatistics(): Promise<import("./storage").GroupStatistics[]> {

@@ -73,7 +73,14 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
     const ids = memberships
       .map((membership) => membership.groupId)
       .filter((id): id is string => Boolean(id));
-    setFormData((prev) => ({ ...prev, groupIds: ids }));
+    
+    // Solo actualizar si los IDs realmente cambiaron para evitar loop infinito
+    setFormData((prev) => {
+      const currentIds = JSON.stringify(prev.groupIds.sort());
+      const newIds = JSON.stringify(ids.sort());
+      if (currentIds === newIds) return prev;
+      return { ...prev, groupIds: ids };
+    });
   }, [memberships]);
 
   const createGroupMutation = useMutation({

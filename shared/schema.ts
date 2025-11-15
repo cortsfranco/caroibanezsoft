@@ -283,6 +283,79 @@ export const insertReportSchema = createInsertSchema(reports).omit({
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Report = typeof reports.$inferSelect;
 
+// Biochemical Results Table (Lab tests and clinical values)
+export const biochemicalResults = pgTable("biochemical_results", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  patientId: uuid("patient_id").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  consultationId: uuid("consultation_id").references(() => consultations.id, { onDelete: "set null" }),
+  testDate: timestamp("test_date").notNull(),
+  
+  // Glucose and Diabetes markers
+  glucose: decimal("glucose", { precision: 5, scale: 2 }), // mg/dL
+  hba1c: decimal("hba1c", { precision: 4, scale: 2 }), // % (Hemoglobina glicosilada)
+  insulin: decimal("insulin", { precision: 6, scale: 2 }), // µU/mL
+  
+  // Lipid Profile
+  totalCholesterol: decimal("total_cholesterol", { precision: 5, scale: 2 }), // mg/dL
+  hdlCholesterol: decimal("hdl_cholesterol", { precision: 5, scale: 2 }), // mg/dL (Good cholesterol)
+  ldlCholesterol: decimal("ldl_cholesterol", { precision: 5, scale: 2 }), // mg/dL (Bad cholesterol)
+  triglycerides: decimal("triglycerides", { precision: 5, scale: 2 }), // mg/dL
+  
+  // Liver Function
+  alt: decimal("alt", { precision: 5, scale: 2 }), // U/L (Alanine aminotransferase)
+  ast: decimal("ast", { precision: 5, scale: 2 }), // U/L (Aspartate aminotransferase)
+  
+  // Kidney Function
+  creatinine: decimal("creatinine", { precision: 4, scale: 2 }), // mg/dL
+  urea: decimal("urea", { precision: 5, scale: 2 }), // mg/dL
+  uricAcid: decimal("uric_acid", { precision: 4, scale: 2 }), // mg/dL
+  
+  // Complete Blood Count (CBC)
+  hemoglobin: decimal("hemoglobin", { precision: 4, scale: 2 }), // g/dL
+  hematocrit: decimal("hematocrit", { precision: 4, scale: 2 }), // %
+  
+  // Thyroid Function
+  tsh: decimal("tsh", { precision: 5, scale: 3 }), // µUI/mL (Thyroid-stimulating hormone)
+  t3: decimal("t3", { precision: 5, scale: 2 }), // ng/dL
+  t4: decimal("t4", { precision: 5, scale: 2 }), // µg/dL
+  
+  // Vitamins and Minerals
+  vitaminD: decimal("vitamin_d", { precision: 5, scale: 2 }), // ng/mL
+  vitaminB12: decimal("vitamin_b12", { precision: 6, scale: 2 }), // pg/mL
+  iron: decimal("iron", { precision: 5, scale: 2 }), // µg/dL
+  ferritin: decimal("ferritin", { precision: 6, scale: 2 }), // ng/mL
+  
+  // Additional Notes
+  notes: text("notes"),
+  attachmentUrl: text("attachment_url"), // Link to PDF or image of lab results
+  
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Base schema for biochemical results with flexible date handling
+const biochemicalResultBaseSchema = createInsertSchema(biochemicalResults).omit({
+  id: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  testDate: z.union([z.string(), z.date()]).transform(val => val instanceof Date ? val : new Date(val)),
+});
+
+export const insertBiochemicalResultSchema = biochemicalResultBaseSchema;
+export type InsertBiochemicalResult = z.infer<typeof insertBiochemicalResultSchema>;
+
+export const updateBiochemicalResultSchema = biochemicalResultBaseSchema.partial().superRefine((data, ctx) => {
+  if (Object.keys(data).length === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "At least one field must be provided for update" });
+  }
+});
+export type UpdateBiochemicalResult = z.infer<typeof updateBiochemicalResultSchema>;
+
+export type BiochemicalResult = typeof biochemicalResults.$inferSelect;
+
 // Nutritionist Settings
 export const nutritionistSettings = pgTable("nutritionist_settings", {
   id: uuid("id").defaultRandom().primaryKey(),

@@ -900,6 +900,31 @@ export class MemStorage implements IStorage {
     return this.reports.length < initialLength;
   }
 
+  // Biochemical Results
+  async getBiochemicalResults(patientId: string): Promise<BiochemicalResult[]> {
+    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+  }
+
+  async getBiochemicalResult(id: string): Promise<BiochemicalResult | null> {
+    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+  }
+
+  async createBiochemicalResult(data: InsertBiochemicalResult): Promise<BiochemicalResult> {
+    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+  }
+
+  async updateBiochemicalResult(id: string, data: Partial<InsertBiochemicalResult>, expectedVersion?: number): Promise<BiochemicalResult | null> {
+    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+  }
+
+  async deleteBiochemicalResult(id: string): Promise<boolean> {
+    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+  }
+
+  async getLatestBiochemicalResult(patientId: string): Promise<BiochemicalResult | null> {
+    throw new Error("MemStorage not implemented yet - use DbStorage when Neon is enabled");
+  }
+
   async getGroupStatistics(): Promise<GroupStatistics[]> {
     const stats: GroupStatistics[] = [];
     
