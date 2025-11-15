@@ -541,8 +541,8 @@ export function MeasurementsHistory({ patientId, reports: reportsProp, initialMe
             <Separator />
 
             <div className="grid gap-4 lg:grid-cols-[1.5fr,1fr]">
-              <ScrollArea className="h-[220px] rounded-lg border bg-muted/30">
-                <div className="grid gap-4 p-4 md:grid-cols-2">
+              <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <FieldGroup title="Diámetros óseos">
                     <Field label="Biacromial" value={formatValue(selectedMeasurement.biacromial)} unit="cm" />
                     <Field label="Tórax transverso" value={formatValue(selectedMeasurement.thoraxTransverse)} unit="cm" />
@@ -573,7 +573,7 @@ export function MeasurementsHistory({ patientId, reports: reportsProp, initialMe
                     <Field label="Pantorrilla (pliegue)" value={formatValue(selectedMeasurement.calfSkinfold)} unit="mm" />
                   </FieldGroup>
                 </div>
-              </ScrollArea>
+              </div>
 
               <div className="space-y-4">
                 <Card className="border-primary/30 bg-primary/5">
