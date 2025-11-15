@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, Loader2 } from "lucide-react";
 import type { Patient, PatientGroup, GroupMembership } from "@shared/schema";
+import { GroupMultiSelect } from "@/components/group-multi-select";
 import { normalizeObjective, type NormalizedObjective } from "@/lib/objectives";
 
 interface PatientEditDialogProps {
@@ -56,7 +57,7 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
     medicalConditions: patient.medicalConditions || "",
     medications: patient.medications || "",
     avatarUrl: patient.avatarUrl || null,
-    groupId: "",
+    groupIds: [] as string[],
   });
 
   const { data: groups = [] } = useQuery<PatientGroup[]>({
@@ -68,9 +69,11 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
   });
 
   useEffect(() => {
-    // Cargar el grupo actual del paciente (solo debería haber uno)
-    const currentGroupId = memberships[0]?.groupId || "";
-    setFormData((prev) => ({ ...prev, groupId: currentGroupId }));
+    // Cargar todos los grupos del paciente
+    const ids = memberships
+      .map((membership) => membership.groupId)
+      .filter((id): id is string => Boolean(id));
+    setFormData((prev) => ({ ...prev, groupIds: ids }));
   }, [memberships]);
 
   const createGroupMutation = useMutation({
@@ -106,8 +109,8 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
 
   const updatePatientMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Excluir groupId del payload de paciente
-      const { groupId, ...patientData } = data;
+      // Excluir groupIds del payload de paciente
+      const { groupIds, ...patientData } = data;
 
       const payload: any = {
         name: patientData.name,
@@ -146,28 +149,34 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
         },
       });
 
-      // Validar que solo haya una membresía máximo por paciente
-      if (currentMemberships.length > 1) {
-        throw new Error(`Paciente tiene ${currentMemberships.length} membresías, debería tener máximo 1`);
+      const currentGroupIds = currentMemberships
+        .map((membership) => membership.groupId)
+        .filter((id): id is string => Boolean(id));
+
+      const groupsToAdd = groupIds.filter((id) => !currentGroupIds.includes(id));
+      const groupsToRemove = currentMemberships.filter(
+        (membership) => membership.groupId && !groupIds.includes(membership.groupId),
+      );
+
+      // Eliminar membresías que ya no están seleccionadas
+      if (groupsToRemove.length > 0) {
+        await Promise.all(
+          groupsToRemove.map((membership) =>
+            apiRequest("DELETE", `/api/memberships/${membership.id}`),
+          ),
+        );
       }
 
-      const currentMembership = currentMemberships[0];
-      const oldGroupId = currentMembership?.groupId || "";
-
-      // Manejar cambios en la membresía de grupo
-      if (groupId !== oldGroupId) {
-        // Si hay una membresía anterior, eliminarla
-        if (currentMembership) {
-          await apiRequest("DELETE", `/api/memberships/${currentMembership.id}`);
-        }
-
-        // Si se seleccionó un nuevo grupo, crear la membresía
-        if (groupId && groupId !== "") {
-          await apiRequest("POST", "/api/memberships", {
-            patientId: patient.id,
-            groupId: groupId,
-          });
-        }
+      // Agregar nuevas membresías
+      if (groupsToAdd.length > 0) {
+        await Promise.all(
+          groupsToAdd.map((groupId) =>
+            apiRequest("POST", "/api/memberships", {
+              patientId: patient.id,
+              groupId,
+            }),
+          ),
+        );
       }
 
       return updatedPatient;
@@ -421,23 +430,21 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
               </Select>
             </div>
             <div className="col-span-2 space-y-3">
-              <Label htmlFor="edit-group">Grupo</Label>
-              <Select
-                value={formData.groupId}
-                onValueChange={(value) => setFormData({ ...formData, groupId: value })}
-              >
-                <SelectTrigger id="edit-group" data-testid="select-edit-group">
-                  <SelectValue placeholder="Sin grupo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Sin grupo</SelectItem>
-                  {groups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Grupos</Label>
+              <GroupMultiSelect
+                groups={groups}
+                selectedIds={formData.groupIds}
+                onChange={(ids) => setFormData((prev) => ({ ...prev, groupIds: ids }))}
+                onCreateGroup={async (name) => {
+                  if (createGroupMutation.isPending) return null;
+                  try {
+                    const created = await createGroupMutation.mutateAsync(name);
+                    return created;
+                  } catch {
+                    return null;
+                  }
+                }}
+              />
             </div>
             <div className="col-span-2 space-y-2">
               <Label htmlFor="edit-notes">Notas</Label>
