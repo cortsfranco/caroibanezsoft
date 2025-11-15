@@ -24,7 +24,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Trash2, Loader2 } from "lucide-react";
 import type { Patient, PatientGroup, GroupMembership } from "@shared/schema";
-import { GroupMultiSelect } from "@/components/group-multi-select";
 import { normalizeObjective, type NormalizedObjective } from "@/lib/objectives";
 
 interface PatientEditDialogProps {
@@ -57,7 +56,7 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
     medicalConditions: patient.medicalConditions || "",
     medications: patient.medications || "",
     avatarUrl: patient.avatarUrl || null,
-    groupIds: [] as string[],
+    groupId: null as string | null,
   });
 
   const { data: groups = [] } = useQuery<PatientGroup[]>({
@@ -69,10 +68,9 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
   });
 
   useEffect(() => {
-    const ids = memberships
-      .map((membership) => membership.groupId)
-      .filter((id): id is string => Boolean(id));
-    setFormData((prev) => ({ ...prev, groupIds: ids }));
+    // Cargar el grupo actual del paciente (solo debería haber uno)
+    const currentGroupId = memberships[0]?.groupId || null;
+    setFormData((prev) => ({ ...prev, groupId: currentGroupId }));
   }, [memberships]);
 
   const createGroupMutation = useMutation({
@@ -108,7 +106,8 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
 
   const updatePatientMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { groupIds, ...patientData } = data;
+      // Excluir groupId del payload de paciente
+      const { groupId, ...patientData } = data;
 
       const payload: any = {
         name: patientData.name,
@@ -132,38 +131,43 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
         version: patient.version,
       };
 
+      // Actualizar datos del paciente
       const updatedPatient = await apiRequest("PATCH", `/api/patients/${patient.id}`, payload);
 
-      const currentMemberships = await queryClient.fetchQuery<GroupMembership[]>({
+      // Obtener membresías actuales desde el caché o servidor
+      const currentMemberships = await queryClient.ensureQueryData<GroupMembership[]>({
         queryKey: [`/api/memberships?patientId=${patient.id}`],
+        queryFn: async () => {
+          const response = await fetch(`/api/memberships?patientId=${patient.id}`);
+          if (!response.ok) {
+            throw new Error(`Error al obtener membresías: ${response.statusText}`);
+          }
+          return response.json();
+        },
       });
 
-      const currentGroupIds = currentMemberships
-        .map((membership) => membership.groupId)
-        .filter((id): id is string => Boolean(id));
-
-      const groupsToAdd = groupIds.filter((id) => !currentGroupIds.includes(id));
-      const groupsToRemove = currentMemberships.filter(
-        (membership) => membership.groupId && !groupIds.includes(membership.groupId),
-      );
-
-      if (groupsToRemove.length > 0) {
-        await Promise.all(
-          groupsToRemove.map((membership) =>
-            apiRequest("DELETE", `/api/memberships/${membership.id}`),
-          ),
-        );
+      // Validar que solo haya una membresía máximo por paciente
+      if (currentMemberships.length > 1) {
+        throw new Error(`Paciente tiene ${currentMemberships.length} membresías, debería tener máximo 1`);
       }
 
-      if (groupsToAdd.length > 0) {
-        await Promise.all(
-          groupsToAdd.map((groupId) =>
-            apiRequest("POST", "/api/memberships", {
-              patientId: patient.id,
-              groupId,
-            }),
-          ),
-        );
+      const currentMembership = currentMemberships[0];
+      const oldGroupId = currentMembership?.groupId || null;
+
+      // Manejar cambios en la membresía de grupo
+      if (groupId !== oldGroupId) {
+        // Si hay una membresía anterior, eliminarla
+        if (currentMembership) {
+          await apiRequest("DELETE", `/api/memberships/${currentMembership.id}`);
+        }
+
+        // Si se seleccionó un nuevo grupo, crear la membresía
+        if (groupId) {
+          await apiRequest("POST", "/api/memberships", {
+            patientId: patient.id,
+            groupId: groupId,
+          });
+        }
       }
 
       return updatedPatient;
@@ -417,21 +421,23 @@ export function PatientEditDialog({ patient, open, onOpenChange }: PatientEditDi
               </Select>
             </div>
             <div className="col-span-2 space-y-3">
-              <Label>Grupos</Label>
-              <GroupMultiSelect
-                groups={groups}
-                selectedIds={formData.groupIds}
-                onChange={(ids) => setFormData((prev) => ({ ...prev, groupIds: ids }))}
-                onCreateGroup={async (name) => {
-                  if (createGroupMutation.isPending) return null;
-                  try {
-                    const created = await createGroupMutation.mutateAsync(name);
-                    return created;
-                  } catch {
-                    return null;
-                  }
-                }}
-              />
+              <Label htmlFor="edit-group">Grupo</Label>
+              <Select
+                value={formData.groupId || "none"}
+                onValueChange={(value) => setFormData({ ...formData, groupId: value === "none" ? null : value })}
+              >
+                <SelectTrigger id="edit-group" data-testid="select-edit-group">
+                  <SelectValue placeholder="Sin grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin grupo</SelectItem>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="col-span-2 space-y-2">
               <Label htmlFor="edit-notes">Notas</Label>

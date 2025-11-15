@@ -1,0 +1,68 @@
+te doy todas las medidas y la informacion que debe tener el informe generado (y un ejemplo de datos al lado)
+
+°BASICOS
+Peso (kg)                                                  78.40
+Talla (cm)                                               182.00
+Talla sentado (cm)                                    92.80
+°DIAMETROS (cm)	
+Biacromial                                                41.60
+Tórax Transverso                                     28.00
+Tórax Anteroposterior                             20.00
+Bi-iliocrestídeo                                         32.00
+Humeral (biepicondilar)                             6.90
+Femoral (biepicondilar)                              9.60
+°PERIMETROS (cm)
+Cabeza                                                     57.50
+Brazo Relajado                                         30.00
+Brazo Flexionado en Tensión                   33.30
+Antebrazo                                                26.60
+Tórax Mesoesternal                                  92.20
+Cintura (mínima)                                      77.00
+Caderas (máxima)                                   100.00
+Muslo (superior)                                       60.00
+Muslo (medial)                                         54.50
+Pantorrilla (máxima)                                 37.50
+°PLIEGUES CUTANEOS (mm)
+
+
+PLIEGUES CUTANEOS (mm)
+Tríceps                                                       5.00	
+Subescapular                                              6.00	
+Supraespinal                                               5.00	
+Abdominal                                               13.00	
+Muslo (medial)                                         10.00	
+ Pantorrilla                                                  8.00                                                              
+
+FRACCIONAMIENTO 5
+COMPONENTES (D. Kerr, 1988)
+
+	                                 Porcentaje	Kg	Indices	Score-Z	Dif.
+Masa Adiposa	16.990	21.72%	17.040	#¡DIV/0!	-2.08	0.049
+Masa Muscular 35.352	48.94%	38.396	#¡DIV/0!	1.06	        3.044
+Masa Residual	 8.017	10.87%	8.525	#¡DIV/0!	1.10	         0.508
+Masa Ósea	10.158	13.01%	10.158	#¡DIV/0!	0.15	         0.000
+Masa de la Piel 4.183        5.46%     4.282       #¡DIV/0!   0.099
+Masa Total        74.700     100.00%  78.400      64.095     -0.06         3.700
+
+Porcentaje de diferencia î Peso Estructurado - Peso Bruto: -3.64%
+
+El fraccionamiento corporal en 5 componentes (D. Kerr, 1988) es un modelo anatómico basado en estudios antropométricos con disección de cadáveres. Es en la actualidad, a pesar de sus limitaciones, el único modelo con validación directa. Lamentablemente, la gran variabilidad de la compresibilidad del tejido adiposo genera la principal fuente de error en la predicción de esta masa al utilizar calibres para pliegues cutáneos. Con este modelo, el cuerpo se fracciona en 5 tejidos:
+1-  Adiposo               î           ("grasa subcutánea")
+2-  Muscular             î           (músculo)
+3-  Residual              î           (vísceras, órganos, pulmones)
+4-  Oseo                   î           (huesos)
+5-  Cutáneo              î           (piel)
+El organismo es el resultado de la interacción entre nuestra herencia genética y hábitos nutricionales y de actividad física.
+Una alimentación sana y balanceada, en conjunto con una actividad física planificada, asegurarán cantidades de tejido adiposo y muscular ideales para los patrones genéticos predeterminados.
+
+
+Indicadores de salud:                                                 OBJETIVOS 
+Suma de 6 pliegues cutáneos:        47.00                   42
+Indice músculo / óseo :                   3.762                   4
+Indice adiposo / muscular:              0.444
+Indice de masa corporal:                 23.669
+Indice músculo / óseo :                   3.762                   4
+Indice adiposo / muscular:              0.444
+Indice de masa corporal:                 23.669
+Objetivo:                                    Aumento de masa muscular
+

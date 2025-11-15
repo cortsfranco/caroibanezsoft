@@ -31,7 +31,6 @@ import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Calendar } from "lucide-react";
-import { GroupMultiSelect } from "@/components/group-multi-select";
 import {
   getObjectiveBadgeClasses,
   getObjectiveLabel,
@@ -90,7 +89,7 @@ export default function Patients() {
     foodDislikes: "",
     medicalConditions: "",
     medications: "",
-    groupIds: [] as string[],
+    groupId: undefined as string | undefined,
   });
 
   // Fetch patients from API
@@ -209,7 +208,7 @@ export default function Patients() {
 
   const createPatientMutation = useMutation({
     mutationFn: async (data: typeof newPatient) => {
-      const { groupIds, ...patientData } = data;
+      const { groupId, ...patientData } = data;
       
       const payload: any = {
         name: patientData.name,
@@ -233,15 +232,12 @@ export default function Patients() {
       const response = await apiRequest("POST", "/api/patients", payload);
       const patient: Patient = await response.json();
       
-      if (groupIds.length > 0) {
-        await Promise.all(
-          groupIds.map((groupId) =>
-            apiRequest("POST", "/api/memberships", {
-              patientId: patient.id,
-              groupId,
-            })
-          )
-        );
+      // Si se seleccionó un grupo, crear la membresía
+      if (groupId) {
+        await apiRequest("POST", "/api/memberships", {
+          patientId: patient.id,
+          groupId,
+        });
       }
       
       return patient;
@@ -268,7 +264,7 @@ export default function Patients() {
         foodDislikes: "",
         medicalConditions: "",
         medications: "",
-        groupIds: [],
+        groupId: undefined,
       });
       toast({
         title: "Paciente creado",
@@ -411,21 +407,23 @@ export default function Patients() {
                 </Select>
               </div>
               <div className="col-span-2 space-y-3">
-                <Label>Grupos</Label>
-                <GroupMultiSelect
-                  groups={groups}
-                  selectedIds={newPatient.groupIds}
-                  onChange={(ids) => setNewPatient((prev) => ({ ...prev, groupIds: ids }))}
-                  onCreateGroup={async (name) => {
-                    if (createGroupMutation.isPending) return null;
-                    try {
-                      const created = await createGroupMutation.mutateAsync(name);
-                      return created;
-                    } catch {
-                      return null;
-                    }
-                  }}
-                />
+                <Label htmlFor="group">Grupo</Label>
+                <Select
+                  value={newPatient.groupId || "none"}
+                  onValueChange={(value) => setNewPatient({ ...newPatient, groupId: value === "none" ? undefined : value })}
+                >
+                  <SelectTrigger id="group" data-testid="select-patient-group">
+                    <SelectValue placeholder="Sin grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin grupo</SelectItem>
+                    {groups.map((group) => (
+                      <SelectItem key={group.id} value={group.id}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="notes">Notas</Label>
